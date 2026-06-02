@@ -1,0 +1,55 @@
+{
+  "name": "under-fit",
+  "version": "2.1.0",
+  "description": "App de escritorio para gestion de gimnasio",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w sqlite3",
+    "build": "npm run rebuild && electron-builder",
+    "build:dir": "npm run rebuild && electron-builder --dir"
+  },
+  "keywords": [],
+  "author": "Amir Sholi",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^25.8.4",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  },
+  "build": {
+    "asar": true,
+    "files": [
+      "*.js",
+      "*.html",
+      "handlers/**/*",
+      "repositories/**/*",
+      "services/**/*",
+      "database/**/*",
+      "styles/**/*",
+      "assets/**/*",
+      "*.jpg",
+      "*.mp3",
+      "*.ttf",
+      "package.json",
+      "!*.png",
+      "!dist/**",
+      "!docs/**"
+    ],
+    "appId": "com.gymapp.local",
+    "productName": "Under-Fit",
+    "win": {
+      "target": "nsis"
+    },
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "nsis": {
+      "artifactName": "Under-Fit-Setup-${version}.${ext}"
+    }
+  },
+  "asarUnpack": []
+}

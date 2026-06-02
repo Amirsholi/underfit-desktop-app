@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Under-Fit</title>
+  <link rel="stylesheet" href="styles/user-dark.css">
+</head>
+<body class="user-page">
+  <main class="user-shell">
+    <section class="kiosk-panel" aria-label="Ingreso de usuarios">
+      <header class="brand-lockup">
+        <img src="logo.jpg" alt="" class="brand-symbol">
+        <span class="brand-text-group">
+          <span class="brand-mark">
+            <span class="brand-word">UNDER</span>
+            <span class="brand-separator">-</span>
+            <span class="brand-word">FIT</span>
+          </span>
+          <span class="brand-caption">CENTRO DE ENTRENAMIENTO INTEGRAL</span>
+        </span>
+      </header>
+
+      <section class="kiosk-content">
+        <div class="kiosk-copy">
+          <h1 class="kiosk-title">Ingreso</h1>
+        </div>
+
+        <div class="kiosk-form">
+          <div class="kiosk-input-wrap">
+            <input type="text" id="ci-usuario" class="kiosk-input" placeholder="Documento" autocomplete="off">
+          </div>
+          <button id="btn-ingresar" class="kiosk-submit" type="button">Ingresar</button>
+        </div>
+
+        <div id="feedback-panel" class="feedback-panel" aria-live="polite">
+          <h2 id="feedback-title" class="feedback-title"></h2>
+          <p id="feedback-text" class="feedback-text"></p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="underRunningEvent.js"></script>
+  <script>
+    window.onload = async () => {
+      const inputCI = document.getElementById('ci-usuario');
+      const submitButton = document.getElementById('btn-ingresar');
+      const feedbackPanel = document.getElementById('feedback-panel');
+      const feedbackTitle = document.getElementById('feedback-title');
+      const feedbackText = document.getElementById('feedback-text');
+      const body = document.body;
+      const runningEvent = window.UnderRunningEvent ? await window.UnderRunningEvent.init() : null;
+      let inactivityTimer;
+      let feedbackTimer;
+      let isCheckingAccess = false;
+
+      function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          inputCI.focus();
+        }, 5000);
+      }
+
+      document.addEventListener('mousemove', resetInactivityTimer);
+      document.addEventListener('keypress', resetInactivityTimer);
+      document.addEventListener('click', resetInactivityTimer);
+      resetInactivityTimer();
+      inputCI.focus();
+
+      if (window.api) {
+        window.api.onEnfocarInput(() => inputCI.focus());
+      }
+
+      function limpiarFeedback() {
+        feedbackPanel.className = 'feedback-panel';
+        feedbackTitle.textContent = '';
+        feedbackText.textContent = '';
+        body.classList.remove('feedback-success', 'feedback-error', 'feedback-warning');
+      }
+
+      const mostrarFeedback = (titulo, texto, tipo) => {
+        clearTimeout(feedbackTimer);
+        body.classList.remove('feedback-success', 'feedback-error', 'feedback-warning');
+        feedbackTitle.textContent = titulo;
+        feedbackText.textContent = texto || '';
+        feedbackPanel.className = `feedback-panel feedback-${tipo} is-visible`;
+        body.classList.add(`feedback-${tipo}`);
+
+        feedbackTimer = setTimeout(() => {
+          limpiarFeedback();
+          inputCI.value = '';
+          inputCI.focus();
+        }, 2000);
+      };
+
+      async function verificarAcceso(ci) {
+        if (isCheckingAccess) return;
+
+        if (!ci) {
+          mostrarFeedback('Ingresá tu CI', '', 'warning');
+          return;
+        }
+
+        isCheckingAccess = true;
+        submitButton.disabled = true;
+
+        try {
+          const resultado = await window.api.validarYRegistrarIngreso(ci, 'kiosk');
+
+          if (resultado?.reason === 'not_found') {
+            mostrarFeedback('No encontrado', '', 'error');
+            return;
+          }
+
+          const restantes = resultado.daysRemaining;
+
+          if (resultado.allowed) {
+            if (runningEvent?.active) {
+              await runningEvent.playEntryTransition();
+            }
+            const texto = `${restantes} día${restantes === 1 ? '' : 's'} restantes`;
+            mostrarFeedback('Puede ingresar', texto, 'success');
+          } else {
+            mostrarFeedback('Membresía vencida', `${restantes} días restantes`, 'error');
+          }
+        } catch (e) {
+          mostrarFeedback('Error', '', 'error');
+        } finally {
+          isCheckingAccess = false;
+          submitButton.disabled = false;
+        }
+      }
+
+      inputCI.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          verificarAcceso(inputCI.value.trim());
+        }
+      });
+
+      submitButton.addEventListener('click', () => {
+        verificarAcceso(inputCI.value.trim());
+      });
+
+      inputCI.addEventListener('input', () => {
+        clearTimeout(feedbackTimer);
+        limpiarFeedback();
+      });
+
+      window.addEventListener('beforeunload', () => {
+        clearTimeout(feedbackTimer);
+        runningEvent?.destroy();
+        setTimeout(() => {
+          clearTimeout(inactivityTimer);
+        }, 0);
+      });
+    };
+  </script>
+</body>
+</html>

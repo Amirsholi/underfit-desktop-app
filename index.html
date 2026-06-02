@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Under-Fit</title>
+  <link rel="stylesheet" href="styles/admin-layout.css">
+  <link rel="stylesheet" href="styles/admin-dark.css">
+</head>
+<body class="admin-page">
+  <div class="admin-shell">
+    <header class="topbar">
+      <button id="btn-go-home" class="brand-link" type="button" aria-label="Volver a la vista principal">
+        <span class="brand-lockup">
+          <img src="logo.jpg" alt="" class="brand-symbol">
+          <span class="brand-text-group">
+            <span class="brand-mark">
+              <span class="brand-word">UNDER</span>
+              <span class="brand-separator">-</span>
+              <span class="brand-word">FIT</span>
+            </span>
+            <span class="brand-caption">CENTRO DE ENTRENAMIENTO INTEGRAL</span>
+          </span>
+        </span>
+      </button>
+
+      <div class="topbar-actions">
+        <button id="btn-open-settings" class="topbar-button" type="button">Configuracion</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <main class="workspace-main">
+        <section id="view-management" class="app-view is-active management-view">
+          <div class="surface-top">
+            <section class="users-hero">
+              <div class="section-heading">
+                <div>
+                  <h2 class="section-title">Usuarios</h2>
+                  <p class="section-subtitle">Gestion diaria de socios, membresias y caja.</p>
+                </div>
+              </div>
+
+              <div class="search-row">
+                <input id="filtro-busqueda" class="users-search-field" placeholder="CI o Nombre">
+              </div>
+            </section>
+
+            <section class="widgets-row" aria-label="Resumen diario">
+              <article class="summary-widget">
+                <span class="summary-widget-label">Usuarios activos</span>
+                <span id="contador-usuarios" class="summary-widget-value">0</span>
+              </article>
+
+              <article class="summary-widget">
+                <span class="summary-widget-label">Personas que ingresaron hoy</span>
+                <span id="widget-ingresos-hoy" class="summary-widget-value">0</span>
+              </article>
+
+              <article class="summary-widget">
+                <span class="summary-widget-label">Dinero ingresado hoy</span>
+                <span id="widget-ventas-hoy" class="summary-widget-value">$ 0</span>
+              </article>
+            </section>
+          </div>
+
+          <div class="tables-grid">
+            <section class="content-panel">
+              <div class="table-card">
+                <div class="table-scroll table-scroll-users">
+                  <table class="data-table" id="tabla-usuarios">
+                    <thead>
+                      <tr>
+                        <th>CI</th>
+                        <th>Nombre</th>
+                        <th>Dias</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="cuerpo-usuarios"></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-panel">
+              <div class="table-card">
+                <div class="table-scroll table-scroll-products">
+                  <table class="data-table" id="tabla-productos">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="cuerpo-productos"></tbody>
+                  </table>
+                </div>
+                <div id="sin-productos" class="table-empty">Todavia no hay productos cargados.</div>
+              </div>
+            </section>
+          </div>
+
+          <div class="action-dock" aria-label="Acciones principales">
+            <button id="btn-open-add-user" class="dock-action" type="button" data-open-modal="modal-alta-usuario">
+              Agregar socio
+            </button>
+            <button id="btn-open-renew" class="dock-action" type="button" data-open-modal="modal-renovar-suscripcion">
+              Renovar suscripcion
+            </button>
+            <button id="btn-open-product" class="dock-action" type="button" data-open-modal="modal-nuevo-producto">
+              Nuevo producto
+            </button>
+            <button id="btn-open-dashboard" class="dock-action" type="button">
+              Dashboard
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="modal-dashboard" class="app-modal">
+    <div class="app-modal-card app-modal-card-dashboard">
+      <div class="app-modal-header">
+        <h3>Dashboard</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-dashboard">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body app-modal-dashboard-body">
+        <div class="dashboard-top-grid">
+          <div class="dashboard-top-left">
+            <div class="dashboard-toolbar">
+              <div class="dashboard-toolbar-date">
+                <label for="dashboard-fecha">Fecha</label>
+                <input id="dashboard-fecha" type="date">
+                <span id="dashboard-estado-ingresos" class="dashboard-status"></span>
+              </div>
+            </div>
+
+            <div class="dashboard-tabs">
+              <button class="dashboard-tab-button is-active" type="button" data-dashboard-tab="caja">Caja</button>
+              <button class="dashboard-tab-button" type="button" data-dashboard-tab="ingresos">Ingresos al gym</button>
+            </div>
+          </div>
+
+          <section id="dashboard-apertura-card" class="dashboard-compact-card dashboard-opening-card" data-caja-only>
+            <div class="section-heading dashboard-opening-card-heading">
+              <div>
+                <h3 class="section-title">Apertura de caja</h3>
+              </div>
+            </div>
+            <div class="dashboard-inline-form">
+              <div class="form-field">
+                <label for="dashboard-apertura-cajero">Cajero que abre</label>
+                <input id="dashboard-apertura-cajero" type="text" placeholder="Nombre">
+              </div>
+              <div class="form-field">
+                <label for="dashboard-apertura-monto">Monto inicial</label>
+                <input id="dashboard-apertura-monto" type="number" min="0" step="1" placeholder="Monto">
+              </div>
+              <div class="form-field dashboard-inline-form-grow">
+                <label for="dashboard-apertura-observacion">Observacion</label>
+                <input id="dashboard-apertura-observacion" type="text" placeholder="Obs.">
+              </div>
+              <button id="dashboard-guardar-apertura" class="app-button app-button-primary" type="button">Guardar</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="content-panel dashboard-caja-panel" data-dashboard-panel="caja">
+          <section class="dashboard-overview">
+            <div class="dashboard-overview-top">
+              <div class="dashboard-state-block">
+                <span id="dashboard-estado-caja-pill" class="cash-state-pill cash-state-closed">
+                  <span class="cash-state-dot"></span>
+                  <span id="dashboard-estado-caja-texto">Caja cerrada</span>
+                </span>
+                <p id="dashboard-cierre-estado" class="dashboard-state-copy">Sin apertura registrada para esta fecha.</p>
+              </div>
+              <div id="dashboard-apertura-resumen" class="dashboard-opening-summary" style="display: none;">
+                <span id="dashboard-apertura-estado" class="dashboard-opening-title">Caja abierta</span>
+                <span id="dashboard-apertura-resumen-monto" class="dashboard-opening-meta">$ 0</span>
+                <span id="dashboard-apertura-resumen-observacion" class="dashboard-opening-note"></span>
+                <button id="dashboard-editar-apertura" class="app-button" type="button">Editar apertura</button>
+              </div>
+            </div>
+
+            <section class="dashboard-compact-card dashboard-legacy-opening-card" style="display: none;">
+              <div class="section-heading">
+                <div>
+                  <h3 class="section-title">Apertura de caja</h3>
+                  <p class="section-subtitle">Ingresá el efectivo inicial para comenzar la jornada.</p>
+                </div>
+              </div>
+              <div class="dashboard-inline-form">
+                <div class="form-field">
+                  <label for="dashboard-apertura-cajero">Cajero que abre</label>
+                  <input type="text" placeholder="Nombre del cajero">
+                </div>
+                <div class="form-field">
+                  <label for="dashboard-apertura-monto">Monto inicial en efectivo</label>
+                  <input type="number" min="0" step="1" placeholder="Monto inicial">
+                </div>
+                <div class="form-field dashboard-inline-form-grow">
+                  <label for="dashboard-apertura-observacion">Observacion</label>
+                  <input type="text" placeholder="Observacion de apertura">
+                </div>
+                <button class="app-button app-button-primary" type="button">Guardar</button>
+              </div>
+            </section>
+
+            <section id="dashboard-cierre-resumen" class="dashboard-compact-card dashboard-history-card" style="display: none;">
+              <div class="section-heading">
+                <div>
+                  <h3 class="section-title">Cierre del dia</h3>
+                  <p class="section-subtitle">Resumen historico de la caja cerrada.</p>
+                </div>
+              </div>
+              <div class="dashboard-history-grid">
+                <div>
+                  <span class="dashboard-history-label">Hora de cierre</span>
+                  <span id="dashboard-cierre-hora" class="dashboard-history-value">-</span>
+                </div>
+                <div>
+                  <span class="dashboard-history-label">Contado final</span>
+                  <span id="dashboard-cierre-contado" class="dashboard-history-value">$ 0</span>
+                </div>
+                <div>
+                  <span class="dashboard-history-label">Diferencia</span>
+                  <span id="dashboard-cierre-diferencia" class="dashboard-history-value">$ 0</span>
+                </div>
+                <div>
+                  <span class="dashboard-history-label">Observacion</span>
+                  <span id="dashboard-cierre-observacion-resumen" class="dashboard-history-value">-</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="widgets-row dashboard-widgets-row" aria-label="Resumen de caja">
+              <article class="summary-widget summary-widget-compact summary-widget-clickable" title="Click para ajustar total">
+                <span class="summary-widget-label">Total del dia</span>
+                <span id="dashboard-total-ingresos" class="summary-widget-value">$ 0</span>
+              </article>
+              <article class="summary-widget summary-widget-compact dashboard-cash-expected-widget">
+                <span class="summary-widget-label">Efectivo esperado</span>
+                <span id="dashboard-total-efectivo" class="summary-widget-value">$ 0</span>
+              </article>
+              <article class="summary-widget summary-widget-compact">
+                <span class="summary-widget-label">Transferencias</span>
+                <span id="dashboard-total-tarjeta" class="summary-widget-value">$ 0</span>
+              </article>
+              <article class="summary-widget summary-widget-compact">
+                <span class="summary-widget-label">Salidas</span>
+                <span id="dashboard-total-egresos" class="summary-widget-value">$ 0</span>
+              </article>
+            </div>
+          </section>
+
+          <section class="dashboard-movements-section">
+            <div class="section-heading dashboard-movements-heading">
+              <div>
+                <h3 class="section-title">Movimientos de caja</h3>
+                <p class="section-subtitle">Altas, renovaciones, ventas, entradas manuales y salidas del dia.</p>
+              </div>
+              <div class="dashboard-inline-actions">
+                <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button">+ Agregar entrada</button>
+                <button id="dashboard-registrar-salida" class="app-button app-button-danger" type="button">- Registrar salida</button>
+              </div>
+            </div>
+
+            <div class="table-scroll table-scroll-dashboard dashboard-table-plain dashboard-table-primary">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th>Tipo</th>
+                    <th>Detalle</th>
+                    <th>Pago</th>
+                    <th>Monto</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-dashboard-caja"></tbody>
+              </table>
+            </div>
+            <div id="dashboard-sin-caja" class="table-empty">No hay movimientos de caja para esta fecha.</div>
+          </section>
+
+          <div class="dashboard-footer-actions">
+            <button id="dashboard-cerrar-caja" class="app-button app-button-primary" type="button">Cerrar caja</button>
+          </div>
+        </section>
+
+        <section class="content-panel" data-dashboard-panel="ingresos">
+          <div class="section-heading">
+            <div>
+              <h3 class="section-title">Registro de personas que entraron</h3>
+              <p class="section-subtitle">Actividad de acceso del gimnasio para la fecha seleccionada.</p>
+            </div>
+          </div>
+          <div class="table-scroll table-scroll-dashboard dashboard-table-plain">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>CI</th>
+                  <th>Nombre</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-dashboard-ingresos"></tbody>
+            </table>
+          </div>
+          <div id="dashboard-sin-ingresos" class="table-empty">No hay ingresos registrados para esta fecha.</div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-ajuste-total" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Ajustar total diario</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-ajuste-total">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <label for="ajuste-total-nuevo">Nuevo total del dia</label>
+        <input id="ajuste-total-nuevo" type="number" min="0" step="1">
+        <label for="ajuste-total-observacion">Motivo del ajuste</label>
+        <input id="ajuste-total-observacion" type="text" placeholder="Motivo del ajuste manual">
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar-ajuste-total" class="app-button app-button-primary" type="button">Registrar ajuste</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-salida-caja" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Registrar salida de caja</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-salida-caja">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <label for="salida-caja-monto">Monto de salida</label>
+        <input id="salida-caja-monto" type="number" min="0" step="1">
+        <label for="salida-caja-observacion">Motivo</label>
+        <input id="salida-caja-observacion" type="text" placeholder="Motivo de la salida">
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar-salida-caja" class="app-button app-button-primary" type="button">Registrar salida</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-ingreso-manual-caja" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Registrar ingreso manual</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-ingreso-manual-caja">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <label for="ingreso-manual-monto">Monto</label>
+        <input id="ingreso-manual-monto" type="number" min="0" step="1">
+        <label>Forma de pago</label>
+        <div class="binary-choice">
+          <label class="binary-choice-option">
+            <input type="radio" name="ingreso-manual-forma-pago" value="efectivo" checked>
+            <span>Efectivo</span>
+          </label>
+          <label class="binary-choice-option">
+            <input type="radio" name="ingreso-manual-forma-pago" value="transferencia">
+            <span>Transferencia</span>
+          </label>
+        </div>
+        <label for="ingreso-manual-observacion">Motivo</label>
+        <input id="ingreso-manual-observacion" type="text" placeholder="Motivo del ingreso">
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar-ingreso-manual-caja" class="app-button app-button-primary" type="button">Registrar ingreso</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-cierre-caja" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Cerrar caja</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-cierre-caja">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <label for="cierre-efectivo-esperado">Efectivo esperado</label>
+        <input id="cierre-efectivo-esperado" readonly>
+        <label for="cierre-efectivo-contado">Efectivo contado</label>
+        <input id="cierre-efectivo-contado" type="number" min="0" step="1">
+        <label for="cierre-cajero">Cajero que cierra</label>
+        <input id="cierre-cajero" type="text" placeholder="Nombre de quien cierra">
+        <label for="cierre-diferencia">Diferencia</label>
+        <input id="cierre-diferencia" readonly>
+        <label for="cierre-observacion">Observaciones</label>
+        <input id="cierre-observacion" type="text" placeholder="Observaciones del cierre">
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar-cierre-caja" class="app-button app-button-primary" type="button">Confirmar cierre</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-alta-usuario" class="app-modal">
+    <div class="app-modal-card app-modal-card-form-wide app-modal-card-user-detail">
+      <div class="app-modal-header">
+        <h3>Agregar socio</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-alta-usuario">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body user-detail-body">
+        <section class="user-detail-section">
+          <h4>Informacion personal</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="ci">CI</label>
+              <input type="text" id="ci" placeholder="CI">
+            </div>
+            <div class="form-field">
+              <label for="nombre">Nombre completo</label>
+              <input type="text" id="nombre" placeholder="Nombre">
+            </div>
+            <div class="form-field">
+              <label for="fecha-nacimiento">Fecha de nacimiento</label>
+              <input type="date" id="fecha-nacimiento">
+            </div>
+            <div class="form-field">
+              <label for="numero">Telefono</label>
+              <input type="text" id="numero" placeholder="Telefono">
+            </div>
+            <div class="form-field">
+              <label for="email">Correo</label>
+              <input type="text" id="email" placeholder="Correo">
+            </div>
+            <div class="form-field">
+              <label for="direccion">Direccion</label>
+              <input type="text" id="direccion" placeholder="Direccion">
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section">
+          <h4>Membresia y pago</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="tipo-membresia">Membresia</label>
+              <select id="tipo-membresia" class="app-select">
+                <option value="mensual">1 Mes</option>
+                <option value="trimestral">3 Meses</option>
+                <option value="semestral">6 Meses</option>
+              </select>
+            </div>
+            <div class="form-field user-detail-wide-field">
+              <label>Forma de pago</label>
+              <div class="binary-choice">
+                <label class="binary-choice-option">
+                  <input type="radio" name="forma-pago-alta" value="efectivo" checked>
+                  <span>Efectivo</span>
+                </label>
+                <label class="binary-choice-option">
+                  <input type="radio" name="forma-pago-alta" value="transferencia">
+                  <span>Transferencia</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section">
+          <h4>Contacto de emergencia</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="contacto-emergencia">Nombre completo</label>
+              <input type="text" id="contacto-emergencia" placeholder="Contacto">
+            </div>
+            <div class="form-field">
+              <label for="telefono-emergencia">Telefono</label>
+              <input type="text" id="telefono-emergencia" placeholder="Telefono">
+            </div>
+            <div class="form-field user-detail-wide-field">
+              <label for="relacion-emergencia">Relacion</label>
+              <input type="text" id="relacion-emergencia" placeholder="Relacion">
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section">
+          <h4>Salud, objetivo y consentimiento</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="condicion-medica">Condicion medica</label>
+              <input type="text" id="condicion-medica" placeholder="Condicion medica">
+            </div>
+            <div class="form-field">
+              <label for="objetivo">Objetivo</label>
+              <input type="text" id="objetivo" placeholder="Objetivo">
+            </div>
+            <div class="form-field">
+              <label>Autorizacion de uso de imagen</label>
+              <div class="binary-choice">
+                <label class="binary-choice-option">
+                  <input type="radio" name="autorizacion-imagen" value="si">
+                  <span>Si</span>
+                </label>
+                <label class="binary-choice-option">
+                  <input type="radio" name="autorizacion-imagen" value="no" checked>
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="alta-detalle">Observaciones</label>
+              <input type="text" id="alta-detalle" placeholder="Observaciones">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar" class="app-button app-button-primary" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-renovar-suscripcion" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Renovar suscripcion</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-renovar-suscripcion">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <label for="actualizar-ci">CI del usuario</label>
+        <input type="text" id="actualizar-ci" placeholder="CI del usuario">
+        <label>Forma de pago</label>
+        <div class="binary-choice">
+          <label class="binary-choice-option">
+            <input type="radio" name="renovar-forma-pago" value="efectivo" checked>
+            <span>Efectivo</span>
+          </label>
+            <label class="binary-choice-option">
+              <input type="radio" name="renovar-forma-pago" value="transferencia">
+              <span>Transferencia</span>
+            </label>
+        </div>
+      </div>
+
+      <div id="botones-membresia" class="app-modal-footer"></div>
+    </div>
+  </div>
+
+  <div id="modal-nuevo-producto" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Nuevo producto</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-nuevo-producto">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <input type="text" id="producto-nuevo-nombre" placeholder="Nombre del producto">
+        <input type="number" id="producto-nuevo-precio" min="0" step="1" placeholder="Precio">
+        <input type="number" id="producto-nuevo-stock" min="0" step="1" placeholder="Stock inicial">
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar-producto" class="app-button app-button-primary" type="button">Guardar producto</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-vender-producto" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Registrar venta</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-vender-producto">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <label for="producto-venta-nombre">Producto</label>
+        <input type="text" id="producto-venta-nombre" placeholder="Producto" readonly>
+        <label for="producto-venta-monto">Monto cobrado</label>
+        <input type="number" id="producto-venta-monto" min="0" step="1" placeholder="Monto cobrado">
+        <label>Forma de pago</label>
+        <div class="binary-choice">
+          <label class="binary-choice-option">
+            <input type="radio" name="producto-venta-forma-pago" value="efectivo" checked>
+            <span>Efectivo</span>
+          </label>
+            <label class="binary-choice-option">
+              <input type="radio" name="producto-venta-forma-pago" value="transferencia">
+              <span>Transferencia</span>
+            </label>
+        </div>
+        <label for="producto-venta-observacion">Observacion</label>
+        <input type="text" id="producto-venta-observacion" placeholder="Observacion del pago">
+      </div>
+
+      <div class="app-modal-footer">
+        <button id="guardar-venta-producto" class="app-button app-button-primary" type="button">Registrar venta</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-editar-producto" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Editar producto</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-editar-producto">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <input type="text" id="producto-editar-nombre" placeholder="Nombre del producto">
+        <input type="number" id="producto-editar-precio" min="0" step="1" placeholder="Precio">
+        <input type="number" id="producto-editar-stock" min="0" step="1" placeholder="Stock actual">
+        <input type="number" id="producto-editar-sumar-stock" min="0" step="1" placeholder="Sumar stock manualmente">
+      </div>
+
+      <div class="app-modal-footer app-modal-footer-split">
+        <button id="eliminar-producto" class="app-button app-button-danger" type="button">Eliminar</button>
+        <button id="guardar-producto-edicion" class="app-button app-button-primary" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-configuracion" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Configuracion</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-configuracion">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body">
+        <p class="placeholder-copy">Esta seccion queda preparada para proximas opciones del sistema.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="detalle" class="app-modal">
+    <div class="app-modal-card app-modal-card-form-wide app-modal-card-user-detail">
+      <div class="app-modal-header">
+        <h3>Editar usuario</h3>
+        <button id="cerrar" type="button" class="app-modal-close">Cerrar</button>
+      </div>
+
+      <div class="app-modal-body user-detail-body">
+        <section class="user-detail-section">
+          <h4>Informacion personal</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="detalle-ci">Cedula</label>
+              <input id="detalle-ci" readonly>
+            </div>
+            <div class="form-field">
+              <label for="detalle-nombre">Nombre</label>
+              <input id="detalle-nombre">
+            </div>
+            <div class="form-field">
+              <label for="detalle-fecha-nacimiento">Fecha de nacimiento</label>
+              <input id="detalle-fecha-nacimiento" type="date">
+            </div>
+            <div class="form-field">
+              <label for="detalle-telefono">Telefono</label>
+              <input id="detalle-telefono">
+            </div>
+            <div class="form-field">
+              <label for="detalle-email">Email</label>
+              <input id="detalle-email">
+            </div>
+            <div class="form-field">
+              <label for="detalle-direccion">Direccion</label>
+              <input id="detalle-direccion">
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section">
+          <h4>Membresia y pago</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="detalle-dias">Dias restantes</label>
+              <input id="detalle-dias" type="number" min="0" placeholder="Ej: 30">
+            </div>
+            <div class="form-field">
+              <label for="detalle-tipo-membresia">Membresia</label>
+              <select id="detalle-tipo-membresia" class="app-select">
+                <option value="mensual">1 Mes</option>
+                <option value="trimestral">3 Meses</option>
+                <option value="semestral">6 Meses</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="detalle-inicio">Fecha de alta</label>
+              <input id="detalle-inicio" type="date">
+            </div>
+            <div class="form-field">
+              <label for="detalle-pago">Ultimo pago</label>
+              <input id="detalle-pago" type="date">
+            </div>
+            <div class="form-field user-detail-wide-field">
+              <label>Forma de pago de alta</label>
+              <div class="binary-choice">
+                <label class="binary-choice-option">
+                  <input type="radio" name="detalle-forma-pago-alta" value="efectivo" checked>
+                  <span>Efectivo</span>
+                </label>
+                <label class="binary-choice-option">
+                  <input type="radio" name="detalle-forma-pago-alta" value="transferencia">
+                  <span>Transferencia</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section">
+          <h4>Contacto de emergencia</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="detalle-contacto-emergencia">Nombre completo</label>
+              <input id="detalle-contacto-emergencia">
+            </div>
+            <div class="form-field">
+              <label for="detalle-telefono-emergencia">Telefono</label>
+              <input id="detalle-telefono-emergencia">
+            </div>
+            <div class="form-field user-detail-wide-field">
+              <label for="detalle-relacion-emergencia">Relacion</label>
+              <input id="detalle-relacion-emergencia">
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section">
+          <h4>Salud, objetivo y consentimiento</h4>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="detalle-condicion-medica">Condicion medica</label>
+              <input id="detalle-condicion-medica">
+            </div>
+            <div class="form-field">
+              <label for="detalle-objetivo">Objetivo</label>
+              <input id="detalle-objetivo">
+            </div>
+            <div class="form-field">
+              <label>Autorizacion de imagen</label>
+              <div class="binary-choice">
+                <label class="binary-choice-option">
+                  <input type="radio" name="detalle-autorizacion-imagen" value="si">
+                  <span>Si</span>
+                </label>
+                <label class="binary-choice-option">
+                  <input type="radio" name="detalle-autorizacion-imagen" value="no" checked>
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="detalle-detalle">Observaciones</label>
+              <input id="detalle-detalle">
+            </div>
+          </div>
+        </section>
+
+        <section class="user-detail-section user-detail-section-history">
+          <h4>Historial de pagos</h4>
+          <div id="detalle-historial-pagos" class="payment-history-list">Sin pagos registrados.</div>
+        </section>
+      </div>
+
+      <div class="app-modal-footer app-modal-footer-split">
+        <button id="eliminar" class="app-button app-button-danger" type="button">Eliminar</button>
+        <button id="guardar-cambios" class="app-button app-button-primary" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmacion-modal" class="confirm-modal" aria-hidden="true">
+    <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmacion-mensaje">
+      <p id="confirmacion-mensaje" class="confirm-message"></p>
+      <div class="confirm-actions">
+        <button id="confirmar-si" class="confirm-yes">Si</button>
+        <button id="confirmar-no" class="confirm-no">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notificaciones"></div>
+
+  <script src="membershipRules.js"></script>
+  <script src="adminShared.js"></script>
+  <script src="adminLayout.js"></script>
+  <script src="adminUsers.js"></script>
+  <script src="adminMemberships.js"></script>
+  <script src="adminProducts.js"></script>
+  <script src="adminEntries.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
