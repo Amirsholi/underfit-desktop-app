@@ -228,6 +228,8 @@ async function migrarCaja(dbPath) {
     await addColumnIfMissing(db, 'aperturas_caja', 'cajero_apertura', 'TEXT');
     await addColumnIfMissing(db, 'cierres_caja', 'cajero_cierre', 'TEXT');
     await addColumnIfMissing(db, 'caja_movimientos', 'caja_sesion_id', 'INTEGER');
+    await addColumnIfMissing(db, 'caja_movimientos', 'correccion_de_id', 'INTEGER');
+    await addColumnIfMissing(db, 'caja_movimientos', 'motivo_correccion', 'TEXT');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS caja_sesiones (

@@ -59,8 +59,10 @@ contextBridge.exposeInMainWorld('api', {
   ajustarTotalCajaDia: (fecha, nuevoTotal, observacion = null) =>
     ipcRenderer.invoke('ajustar-total-caja-dia', { fecha, nuevoTotal, observacion }),
 
-  registrarSalidaCaja: (fecha, monto, observacion = null) =>
-    ipcRenderer.invoke('registrar-salida-caja', { fecha, monto, observacion }),
+  registrarSalidaCaja: (fecha, monto, formaPago = 'efectivo', observacion = null) =>
+    ipcRenderer.invoke('registrar-salida-caja', { fecha, monto, formaPago, observacion }),
+
+  corregirMovimientoCaja: (payload) => ipcRenderer.invoke('corregir-movimiento-caja', payload),
 
   obtenerInfoSistema: () => ipcRenderer.invoke('obtener-info-sistema'),
 

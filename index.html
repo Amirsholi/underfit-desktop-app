@@ -279,6 +279,7 @@
                     <th>Detalle</th>
                     <th>Pago</th>
                     <th>Monto</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody id="tabla-dashboard-caja"></tbody>
@@ -347,12 +348,55 @@
       <div class="app-modal-body">
         <label for="salida-caja-monto">Monto de salida</label>
         <input id="salida-caja-monto" type="number" min="0" step="1">
+        <label>Forma de pago</label>
+        <div class="binary-choice">
+          <label class="binary-choice-option">
+            <input type="radio" name="salida-caja-forma-pago" value="efectivo" checked>
+            <span>Efectivo</span>
+          </label>
+          <label class="binary-choice-option">
+            <input type="radio" name="salida-caja-forma-pago" value="transferencia">
+            <span>Transferencia</span>
+          </label>
+        </div>
         <label for="salida-caja-observacion">Motivo</label>
         <input id="salida-caja-observacion" type="text" placeholder="Motivo de la salida">
       </div>
 
       <div class="app-modal-footer">
         <button id="guardar-salida-caja" class="app-button app-button-primary" type="button">Registrar salida</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-corregir-movimiento" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Corregir movimiento</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-corregir-movimiento">Cerrar</button>
+      </div>
+      <div class="app-modal-body">
+        <input id="corregir-movimiento-id" type="hidden">
+        <label for="corregir-movimiento-monto">Monto correcto</label>
+        <input id="corregir-movimiento-monto" type="number" min="0" step="1">
+        <label>Forma de pago</label>
+        <div class="binary-choice">
+          <label class="binary-choice-option">
+            <input type="radio" name="corregir-movimiento-forma-pago" value="efectivo" checked>
+            <span>Efectivo</span>
+          </label>
+          <label class="binary-choice-option">
+            <input type="radio" name="corregir-movimiento-forma-pago" value="transferencia">
+            <span>Transferencia</span>
+          </label>
+        </div>
+        <label for="corregir-movimiento-observacion">Detalle correcto</label>
+        <input id="corregir-movimiento-observacion" type="text">
+        <label for="corregir-movimiento-motivo">Motivo de la correccion</label>
+        <input id="corregir-movimiento-motivo" type="text" placeholder="Obligatorio">
+      </div>
+      <div class="app-modal-footer">
+        <button id="guardar-correccion-movimiento" class="app-button app-button-primary" type="button">Guardar correccion</button>
       </div>
     </div>
   </div>

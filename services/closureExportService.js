@@ -48,6 +48,7 @@ function createClosureExportService({ cashService, getDbPath }) {
       ingreso_manual: 'Ingreso manual',
       egreso: 'Salida',
       ajuste_manual: 'Ajuste',
+      anulacion: 'Anulacion por correccion',
     };
     return labels[value] || value || '-';
   }

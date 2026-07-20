@@ -6,7 +6,7 @@ Under-Fit was developed for a real gym that needed a fast local system for membe
 
 ## Project Status
 
-- Current version: `2.1.0`
+- Current version: `2.5.0` (development branch)
 - Product name: `Under-Fit`
 - Platform: Windows desktop
 - Status: deployed in a real operational environment

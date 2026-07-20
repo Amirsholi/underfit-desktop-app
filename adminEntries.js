@@ -46,6 +46,13 @@ function createAdminEntriesController({ shared }) {
   const outputReasonInput = document.getElementById('salida-caja-observacion');
   const outputSaveButton = document.getElementById('guardar-salida-caja');
 
+  const correctionModal = document.getElementById('modal-corregir-movimiento');
+  const correctionIdInput = document.getElementById('corregir-movimiento-id');
+  const correctionAmountInput = document.getElementById('corregir-movimiento-monto');
+  const correctionObservationInput = document.getElementById('corregir-movimiento-observacion');
+  const correctionReasonInput = document.getElementById('corregir-movimiento-motivo');
+  const correctionSaveButton = document.getElementById('guardar-correccion-movimiento');
+
   const manualIncomeModal = document.getElementById('modal-ingreso-manual-caja');
   const manualIncomeAmountInput = document.getElementById('ingreso-manual-monto');
   const manualIncomeObservationInput = document.getElementById('ingreso-manual-observacion');
@@ -60,6 +67,7 @@ function createAdminEntriesController({ shared }) {
   const closeSaveButton = document.getElementById('guardar-cierre-caja');
 
   let currentSummary = null;
+  let currentMovements = new Map();
 
   function hoyYYYYMMDD() {
     const d = new Date();
@@ -283,6 +291,12 @@ function createAdminEntriesController({ shared }) {
       actualizarEstadoAperturaYCierre(resumen);
 
       tablaDashboardCaja.innerHTML = '';
+      currentMovements = new Map((movimientos || []).map(row => [Number(row.id), row]));
+      const correctedMovementIds = new Set(
+        (movimientos || [])
+          .filter(row => row.tipo_ingreso === 'anulacion' && row.correccion_de_id)
+          .map(row => Number(row.correccion_de_id))
+      );
       sinCaja.style.display = movimientos?.length ? 'none' : 'block';
 
       (movimientos || []).forEach(row => {
@@ -294,6 +308,7 @@ function createAdminEntriesController({ shared }) {
           <td>${detalle}</td>
           <td>${capitalizarFormaPago(row.forma_pago)}</td>
           <td>${formatearMoneda(row.monto)}</td>
+          <td>${['ingreso_manual', 'egreso'].includes(row.tipo_ingreso) && resumen?.sesionAbierta && !correctedMovementIds.has(Number(row.id)) ? `<button class="table-action-button" type="button" data-corregir-movimiento="${row.id}">Corregir</button>` : ''}</td>
         `;
         tablaDashboardCaja.appendChild(tr);
       });
@@ -377,6 +392,9 @@ function createAdminEntriesController({ shared }) {
   function abrirModalSalidaCaja() {
     outputAmountInput.value = '';
     outputReasonInput.value = '';
+    document.querySelectorAll('input[name="salida-caja-forma-pago"]').forEach(input => {
+      input.checked = input.value === 'efectivo';
+    });
     outputModal.style.display = 'flex';
   }
 
@@ -384,6 +402,7 @@ function createAdminEntriesController({ shared }) {
     const fecha = fechaDashboard?.value || hoyYYYYMMDD();
     const monto = Number(outputAmountInput.value || 0);
     const observacion = outputReasonInput.value.trim();
+    const formaPago = getCheckedValue('salida-caja-forma-pago', 'efectivo');
 
     if (Number.isNaN(monto) || monto <= 0) {
       shared.mostrarNotificacion('Ingresa un monto valido', 'warning');
@@ -391,7 +410,7 @@ function createAdminEntriesController({ shared }) {
     }
 
     try {
-      await window.api.registrarSalidaCaja(fecha, monto, observacion);
+      await window.api.registrarSalidaCaja(fecha, monto, formaPago, observacion);
       outputModal.style.display = 'none';
       shared.mostrarNotificacion('Egreso registrado', 'success');
       await cargarCajaDelDia(fecha);
@@ -399,6 +418,42 @@ function createAdminEntriesController({ shared }) {
     } catch (error) {
       console.error('Error registrando egreso:', error);
       shared.mostrarNotificacion(error?.message || 'No se pudo registrar el egreso', 'error');
+    }
+  }
+
+  function abrirCorreccionMovimiento(id) {
+    const row = currentMovements.get(Number(id));
+    if (!row || !['ingreso_manual', 'egreso'].includes(row.tipo_ingreso)) return;
+    correctionIdInput.value = String(row.id);
+    correctionAmountInput.value = String(Math.abs(Number(row.monto || 0)));
+    correctionObservationInput.value = row.descripcion || row.observacion || '';
+    correctionReasonInput.value = '';
+    document.querySelectorAll('input[name="corregir-movimiento-forma-pago"]').forEach(input => {
+      input.checked = input.value === row.forma_pago;
+    });
+    correctionModal.style.display = 'flex';
+  }
+
+  async function guardarCorreccionMovimiento() {
+    const payload = {
+      id: Number(correctionIdInput.value),
+      monto: Number(correctionAmountInput.value),
+      formaPago: getCheckedValue('corregir-movimiento-forma-pago', 'efectivo'),
+      observacion: correctionObservationInput.value.trim(),
+      motivo: correctionReasonInput.value.trim(),
+    };
+    if (!payload.motivo) {
+      shared.mostrarNotificacion('Ingresa el motivo de la correccion', 'warning');
+      return;
+    }
+    try {
+      await window.api.corregirMovimientoCaja(payload);
+      correctionModal.style.display = 'none';
+      shared.mostrarNotificacion('Movimiento corregido con trazabilidad', 'success');
+      await cargarCajaDelDia(fechaDashboard?.value || hoyYYYYMMDD());
+      await actualizarWidgetDineroHoy();
+    } catch (error) {
+      shared.mostrarNotificacion(error?.message || 'No se pudo corregir el movimiento', 'error');
     }
   }
 
@@ -544,6 +599,11 @@ function createAdminEntriesController({ shared }) {
     adjustmentSaveButton?.addEventListener('click', guardarAjusteTotal);
     salidaButton?.addEventListener('click', abrirModalSalidaCaja);
     outputSaveButton?.addEventListener('click', guardarSalidaCaja);
+    correctionSaveButton?.addEventListener('click', guardarCorreccionMovimiento);
+    tablaDashboardCaja?.addEventListener('click', event => {
+      const button = event.target.closest('[data-corregir-movimiento]');
+      if (button) abrirCorreccionMovimiento(button.dataset.corregirMovimiento);
+    });
     ingresoManualButton?.addEventListener('click', abrirModalIngresoManual);
     manualIncomeSaveButton?.addEventListener('click', guardarIngresoManual);
     cerrarCajaButton?.addEventListener('click', abrirModalCierreCaja);

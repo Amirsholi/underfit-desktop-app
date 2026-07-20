@@ -26,6 +26,18 @@ function createCashRepository(db) {
     });
   }
 
+  async function inTransaction(work) {
+    await run('BEGIN IMMEDIATE TRANSACTION');
+    try {
+      const result = await work();
+      await run('COMMIT');
+      return result;
+    } catch (error) {
+      try { await run('ROLLBACK'); } catch (_) {}
+      throw error;
+    }
+  }
+
   function normalizeSessionRow(row) {
     if (!row) return null;
     return {
@@ -125,13 +137,15 @@ function createCashRepository(db) {
     cantidad = 1,
     referencia_tabla = null,
     referencia_id = null,
+    correccion_de_id = null,
+    motivo_correccion = null,
   }) {
     const result = await run(
       `INSERT INTO caja_movimientos (
         caja_sesion_id, fecha, hora, ts, tipo_ingreso, forma_pago, monto, monto_recibido, cambio,
         descripcion, observacion, usuario_ci, usuario_nombre, producto_id,
-        producto_nombre, cantidad, referencia_tabla, referencia_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        producto_nombre, cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         caja_sesion_id,
         fecha,
@@ -151,6 +165,8 @@ function createCashRepository(db) {
         cantidad,
         referencia_tabla,
         referencia_id,
+        correccion_de_id,
+        motivo_correccion,
       ]
     );
 
@@ -161,7 +177,7 @@ function createCashRepository(db) {
     return all(
       `SELECT id, caja_sesion_id, fecha, hora, ts, tipo_ingreso, forma_pago, monto, monto_recibido, cambio,
               descripcion, observacion, usuario_ci, usuario_nombre, producto_id, producto_nombre,
-              cantidad, referencia_tabla, referencia_id
+              cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion
        FROM caja_movimientos
        WHERE fecha = ?
        ORDER BY hora DESC, id DESC`,
@@ -173,12 +189,16 @@ function createCashRepository(db) {
     return all(
       `SELECT id, caja_sesion_id, fecha, hora, ts, tipo_ingreso, forma_pago, monto, monto_recibido, cambio,
               descripcion, observacion, usuario_ci, usuario_nombre, producto_id, producto_nombre,
-              cantidad, referencia_tabla, referencia_id
+              cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion
        FROM caja_movimientos
        WHERE caja_sesion_id = ?
        ORDER BY hora ASC, id ASC`,
       [sessionId]
     );
+  }
+
+  function findMovementById(id) {
+    return get(`SELECT * FROM caja_movimientos WHERE id = ?`, [id]);
   }
 
   async function getCurrentTotalByDate(fecha) {
@@ -442,6 +462,8 @@ function createCashRepository(db) {
     findSessionsByDate,
     findLastClosedSession,
     createMovement,
+    findMovementById,
+    inTransaction,
     findByDate,
     findBySessionId,
     getCurrentTotalByDate,

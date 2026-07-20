@@ -52,8 +52,12 @@ function registerCashHandlers(ipcMain, cashService, closureExportService = null)
     return cashService.adjustDailyTotal(fecha, nuevoTotal, observacion);
   });
 
-  ipcMain.handle('registrar-salida-caja', async (_evt, { fecha, monto, observacion = null }) => {
-    return cashService.registerCashOutput({ fecha, monto, observacion });
+  ipcMain.handle('registrar-salida-caja', async (_evt, { fecha, monto, formaPago = 'efectivo', observacion = null }) => {
+    return cashService.registerCashOutput({ fecha, monto, formaPago, observacion });
+  });
+
+  ipcMain.handle('corregir-movimiento-caja', async (_evt, payload) => {
+    return cashService.correctMovement(payload || {});
   });
 }
 

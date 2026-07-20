@@ -223,7 +223,7 @@ function createCashService({ cashRepository }) {
     return cashRepository.findClosureByDate(normalizeDate(fecha));
   }
 
-  async function registerCashOutput({ fecha = null, monto, observacion = null }) {
+  async function registerCashOutput({ fecha = null, monto, formaPago = 'efectivo', observacion = null }) {
     const normalizedAmount = Number(monto);
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       throw new Error('Monto invalido');
@@ -231,6 +231,7 @@ function createCashService({ cashRepository }) {
 
     const movementDate = normalizeDate(fecha);
     const activeSession = await getActiveSessionForDate(movementDate);
+    const normalizedPaymentMethod = normalizePaymentMethod(formaPago);
 
     const now = nowLocalParts();
     const created = await cashRepository.createMovement({
@@ -239,7 +240,7 @@ function createCashService({ cashRepository }) {
       hora: now.hora,
       ts: now.ts,
       tipo_ingreso: 'egreso',
-      forma_pago: 'efectivo',
+      forma_pago: normalizedPaymentMethod,
       monto: Number((-normalizedAmount).toFixed(2)),
       monto_recibido: 0,
       cambio: 0,
@@ -256,6 +257,69 @@ function createCashService({ cashRepository }) {
       hora: now.hora,
       ts: now.ts,
     };
+  }
+
+  async function correctMovement({ id, monto, formaPago, observacion = null, motivo }) {
+    const movementId = Number(id);
+    const reason = String(motivo || '').trim();
+    const amount = Number(monto);
+    if (!Number.isInteger(movementId) || movementId <= 0) throw new Error('Movimiento invalido');
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Monto invalido');
+    if (!reason) throw new Error('El motivo de la correccion es obligatorio');
+
+    const original = await cashRepository.findMovementById(movementId);
+    if (!original) throw new Error('Movimiento no encontrado');
+    if (!['ingreso_manual', 'egreso'].includes(original.tipo_ingreso)) {
+      throw new Error('Solo se pueden corregir entradas y salidas manuales');
+    }
+    const activeSession = await getActiveSessionForDate(original.fecha);
+    if (Number(original.caja_sesion_id) !== Number(activeSession.id)) {
+      throw new Error('Solo se pueden corregir movimientos de la caja abierta');
+    }
+
+    return cashRepository.inTransaction(async () => {
+    const now = nowLocalParts();
+    await cashRepository.createMovement({
+      caja_sesion_id: activeSession.id,
+      fecha: original.fecha,
+      hora: now.hora,
+      ts: now.ts,
+      tipo_ingreso: 'anulacion',
+      forma_pago: original.forma_pago,
+      monto: Number((-Number(original.monto)).toFixed(2)),
+      monto_recibido: 0,
+      cambio: 0,
+      descripcion: `Anulacion de movimiento #${original.id}`,
+      observacion: reason,
+      cantidad: 1,
+      referencia_tabla: 'caja_movimientos',
+      referencia_id: original.id,
+      correccion_de_id: original.id,
+      motivo_correccion: reason,
+    });
+
+    const signedAmount = original.tipo_ingreso === 'egreso' ? -amount : amount;
+    const replacement = await cashRepository.createMovement({
+      caja_sesion_id: activeSession.id,
+      fecha: original.fecha,
+      hora: now.hora,
+      ts: now.ts,
+      tipo_ingreso: original.tipo_ingreso,
+      forma_pago: normalizePaymentMethod(formaPago || original.forma_pago),
+      monto: Number(signedAmount.toFixed(2)),
+      monto_recibido: original.tipo_ingreso === 'egreso' ? 0 : amount,
+      cambio: 0,
+      descripcion: observacion || original.descripcion,
+      observacion: observacion || null,
+      cantidad: 1,
+      referencia_tabla: 'caja_movimientos',
+      referencia_id: original.id,
+      correccion_de_id: original.id,
+      motivo_correccion: reason,
+    });
+
+    return { corrected: true, originalId: original.id, replacementId: replacement.id };
+    });
   }
 
   async function registerManualIncome({
@@ -398,6 +462,7 @@ function createCashService({ cashRepository }) {
     closeDay,
     getClosureByDate,
     registerCashOutput,
+    correctMovement,
     registerManualIncome,
     adjustDailyTotal,
     getDailyReport,
