@@ -1,7 +1,8 @@
 function createAdminLayoutController() {
   const btnGoHome = document.getElementById('btn-go-home');
-  const btnOpenDashboard = document.getElementById('btn-open-dashboard');
   const btnOpenSettings = document.getElementById('btn-open-settings');
+  const navigationButtons = Array.from(document.querySelectorAll('[data-admin-section]'));
+  const views = Array.from(document.querySelectorAll('[data-admin-view]'));
 
   function openModalById(modalId) {
     const modal = document.getElementById(modalId);
@@ -34,10 +35,26 @@ function createAdminLayoutController() {
   function init() {
     initModalTriggers();
 
-    btnGoHome?.addEventListener('click', () => closeModalById('modal-dashboard'));
-    btnOpenDashboard?.addEventListener('click', () => {
-      openModalById('modal-dashboard');
-      document.dispatchEvent(new CustomEvent('admin-dashboard:show'));
+    function showSection(section) {
+      if (section === 'cash' || section === 'records') {
+        openModalById('modal-dashboard');
+        document.dispatchEvent(new CustomEvent('admin-dashboard:show', { detail: { tab: section === 'cash' ? 'caja' : 'ingresos' } }));
+        return;
+      }
+      if (section === 'settings') {
+        btnOpenSettings?.click();
+        return;
+      }
+      views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === section));
+      document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.adminSection === section);
+      });
+    }
+
+    navigationButtons.forEach(button => button.addEventListener('click', () => showSection(button.dataset.adminSection)));
+    btnGoHome?.addEventListener('click', () => {
+      closeModalById('modal-dashboard');
+      showSection('home');
     });
     btnOpenSettings?.addEventListener('click', () => openModalById('modal-configuracion'));
   }

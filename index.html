@@ -29,22 +29,23 @@
     </header>
 
     <div class="workspace">
+      <aside class="workspace-sidebar" aria-label="Navegacion administrativa">
+        <button class="sidebar-action is-active" type="button" data-admin-section="home">Inicio</button>
+        <button class="sidebar-action" type="button" data-admin-section="users">Usuarios</button>
+        <button class="sidebar-action" type="button" data-admin-section="cash">Caja</button>
+        <button class="sidebar-action" type="button" data-admin-section="records">Registros</button>
+        <button class="sidebar-action" type="button" data-admin-section="products">Productos</button>
+        <button class="sidebar-action" type="button" data-admin-section="classes">Clases</button>
+        <button class="sidebar-action" type="button" data-admin-section="settings">Configuracion</button>
+      </aside>
       <main class="workspace-main">
-        <section id="view-management" class="app-view is-active management-view">
-          <div class="surface-top">
-            <section class="users-hero">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Usuarios</h2>
-                  <p class="section-subtitle">Gestion diaria de socios, membresias y caja.</p>
-                </div>
-              </div>
-
-              <div class="search-row">
-                <input id="filtro-busqueda" class="users-search-field" placeholder="CI o Nombre">
-              </div>
-            </section>
-
+        <section class="app-view is-active" data-admin-view="home">
+          <div class="section-heading">
+            <div>
+              <h2 class="section-title">Inicio</h2>
+              <p class="section-subtitle">Resumen de la operacion del gimnasio.</p>
+            </div>
+          </div>
             <section class="widgets-row" aria-label="Resumen diario">
               <article class="summary-widget">
                 <span class="summary-widget-label">Usuarios activos</span>
@@ -61,10 +62,24 @@
                 <span id="widget-ventas-hoy" class="summary-widget-value">$ 0</span>
               </article>
             </section>
+          <div class="action-dock" aria-label="Acciones frecuentes">
+            <button class="dock-action" type="button" data-admin-section="users">Gestionar usuarios</button>
+            <button class="dock-action" type="button" data-admin-section="cash">Abrir caja</button>
+            <button class="dock-action" type="button" data-admin-section="records">Ver registros</button>
+            <button class="dock-action" type="button" data-admin-section="products">Gestionar productos</button>
           </div>
+        </section>
 
-          <div class="tables-grid">
-            <section class="content-panel">
+        <section class="app-view" data-admin-view="users">
+          <div class="section-heading">
+            <div><h2 class="section-title">Usuarios</h2><p class="section-subtitle">Socios, membresias y datos personales.</p></div>
+            <div class="dashboard-inline-actions">
+              <button class="app-button" type="button" data-open-modal="modal-renovar-suscripcion">Renovar suscripcion</button>
+              <button class="app-button app-button-primary" type="button" data-open-modal="modal-alta-usuario">Agregar socio</button>
+            </div>
+          </div>
+          <div class="search-row"><input id="filtro-busqueda" class="users-search-field" placeholder="CI o Nombre"></div>
+          <section class="content-panel">
               <div class="table-card">
                 <div class="table-scroll table-scroll-users">
                   <table class="data-table" id="tabla-usuarios">
@@ -80,9 +95,15 @@
                   </table>
                 </div>
               </div>
-            </section>
+          </section>
+        </section>
 
-            <section class="content-panel">
+        <section class="app-view" data-admin-view="products">
+          <div class="section-heading">
+            <div><h2 class="section-title">Productos</h2><p class="section-subtitle">Catalogo, precios, ventas y stock actual.</p></div>
+            <button class="app-button app-button-primary" type="button" data-open-modal="modal-nuevo-producto">Nuevo producto</button>
+          </div>
+          <section class="content-panel">
               <div class="table-card">
                 <div class="table-scroll table-scroll-products">
                   <table class="data-table" id="tabla-productos">
@@ -99,22 +120,14 @@
                 </div>
                 <div id="sin-productos" class="table-empty">Todavia no hay productos cargados.</div>
               </div>
-            </section>
-          </div>
+          </section>
+        </section>
 
-          <div class="action-dock" aria-label="Acciones principales">
-            <button id="btn-open-add-user" class="dock-action" type="button" data-open-modal="modal-alta-usuario">
-              Agregar socio
-            </button>
-            <button id="btn-open-renew" class="dock-action" type="button" data-open-modal="modal-renovar-suscripcion">
-              Renovar suscripcion
-            </button>
-            <button id="btn-open-product" class="dock-action" type="button" data-open-modal="modal-nuevo-producto">
-              Nuevo producto
-            </button>
-            <button id="btn-open-dashboard" class="dock-action" type="button">
-              Dashboard
-            </button>
+        <section class="app-view" data-admin-view="classes">
+          <div class="section-heading"><div><h2 class="section-title">Clases</h2><p class="section-subtitle">Inscripciones y horarios del segundo local.</p></div></div>
+          <div class="module-placeholder">
+            <strong>Modulo preparado para la siguiente fase</strong>
+            <p>Desde aqui se administraran horarios, cupos, profesores e inscripciones.</p>
           </div>
         </section>
       </main>
@@ -862,13 +875,13 @@
 
   <div id="notificaciones"></div>
 
-  <script src="membershipRules.js"></script>
-  <script src="adminShared.js"></script>
-  <script src="adminLayout.js"></script>
-  <script src="adminUsers.js"></script>
-  <script src="adminMemberships.js"></script>
-  <script src="adminProducts.js"></script>
-  <script src="adminEntries.js"></script>
-  <script src="renderer.js"></script>
+  <script src="membershipRules.js?v=2.5.0"></script>
+  <script src="adminShared.js?v=2.5.0"></script>
+  <script src="adminLayout.js?v=2.5.0"></script>
+  <script src="adminUsers.js?v=2.5.0"></script>
+  <script src="adminMemberships.js?v=2.5.0"></script>
+  <script src="adminProducts.js?v=2.5.0"></script>
+  <script src="adminEntries.js?v=2.5.0"></script>
+  <script src="renderer.js?v=2.5.0"></script>
 </body>
 </html>

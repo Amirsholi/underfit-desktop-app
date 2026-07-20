@@ -74,6 +74,7 @@ function createAdminEntriesController({ shared }) {
   let currentSummary = null;
   let currentMovements = new Map();
   let currentEntries = new Map();
+  let showDashboardTab = () => {};
 
   function hoyYYYYMMDD() {
     const d = new Date();
@@ -605,6 +606,7 @@ function createAdminEntriesController({ shared }) {
         }
       });
     }
+    showDashboardTab = showTab;
 
     buttons.forEach(button => {
       button.addEventListener('click', () => showTab(button.getAttribute('data-dashboard-tab')));
@@ -655,9 +657,10 @@ function createAdminEntriesController({ shared }) {
       await refreshDashboard(fechaDashboard.value);
     });
 
-    document.addEventListener('admin-dashboard:show', async () => {
+    document.addEventListener('admin-dashboard:show', async event => {
       const fecha = fechaDashboard.value || hoyYYYYMMDD();
       fechaDashboard.value = fecha;
+      showDashboardTab(event.detail?.tab || 'caja');
       await refreshDashboard(fecha);
       await actualizarWidgetIngresosHoy();
       await actualizarWidgetDineroHoy();

@@ -154,11 +154,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const shared = window.createAdminShared(membershipRules);
   const layoutController = window.createAdminLayoutController();
-  const usersController = window.createAdminUsersController({ shared });
-  await usersController.init();
-
   layoutController.init();
   initSettingsModal(shared);
+
+  const usersController = window.createAdminUsersController({ shared });
+  await usersController.init();
 
   window.createAdminMembershipsController({
     shared,
