@@ -79,6 +79,17 @@ function createClosureExportService({ cashService, getDbPath }) {
     }).join('');
   }
 
+  function buildProductRows(products = []) {
+    if (!products.length) return `<tr><td colspan="5">Sin ventas de productos</td></tr>`;
+    return products.map(product => `<tr>
+      <td>${escapeHtml(product.nombre)}</td>
+      <td>${Number(product.cantidad || 0)}</td>
+      <td>${formatMoney(product.efectivo)}</td>
+      <td>${formatMoney(product.transferencia)}</td>
+      <td>${formatMoney(product.total)}</td>
+    </tr>`).join('');
+  }
+
   function buildSessionHtml(sesion, index) {
     const isClosed = sesion.estado === 'cerrada';
     const cierreLabel = isClosed
@@ -116,6 +127,13 @@ function createClosureExportService({ cashService, getDbPath }) {
         <span>Transferencia: ${formatMoney(sesion.totalesPorFormaPago.transferencia)}</span>
         <span>Salidas: ${formatMoney(Math.abs(sesion.totalesPorTipoIngreso.egresos))}</span>
       </div>
+      <h3>Ventas por producto</h3>
+      <table>
+        <thead>
+          <tr><th>Producto</th><th>Unidades</th><th>Efectivo</th><th>Transferencia</th><th>Total</th></tr>
+        </thead>
+        <tbody>${buildProductRows(sesion.ventasPorProducto)}</tbody>
+      </table>
     </section>`;
   }
 

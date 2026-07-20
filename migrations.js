@@ -121,6 +121,9 @@ async function migrarIngresos(dbPath) {
     await addColumnIfMissing(db, 'ingresos', 'ts', 'TEXT');
     await addColumnIfMissing(db, 'ingresos', 'fuente', 'TEXT', `'kiosk'`);
     await addColumnIfMissing(db, 'ingresos', 'observacion', 'TEXT');
+    await addColumnIfMissing(db, 'ingresos', 'anulado', 'INTEGER', '0');
+    await addColumnIfMissing(db, 'ingresos', 'anulado_ts', 'TEXT');
+    await addColumnIfMissing(db, 'ingresos', 'motivo_anulacion', 'TEXT');
 
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ingresos_fecha ON ingresos(fecha)`);
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ingresos_ci ON ingresos(ci)`);

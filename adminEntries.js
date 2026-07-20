@@ -5,6 +5,11 @@ function createAdminEntriesController({ shared }) {
   const sinIngresos = document.getElementById('dashboard-sin-ingresos');
   const widgetIngresosHoy = document.getElementById('widget-ingresos-hoy');
   const widgetDineroHoy = document.getElementById('widget-ventas-hoy');
+  const annulEntryModal = document.getElementById('modal-anular-ingreso');
+  const annulEntryIdInput = document.getElementById('anular-ingreso-id');
+  const annulEntryDetail = document.getElementById('anular-ingreso-detalle');
+  const annulEntryReasonInput = document.getElementById('anular-ingreso-motivo');
+  const annulEntrySaveButton = document.getElementById('guardar-anulacion-ingreso');
 
   const estadoCajaPill = document.getElementById('dashboard-estado-caja-pill');
   const estadoCajaTexto = document.getElementById('dashboard-estado-caja-texto');
@@ -68,6 +73,7 @@ function createAdminEntriesController({ shared }) {
 
   let currentSummary = null;
   let currentMovements = new Map();
+  let currentEntries = new Map();
 
   function hoyYYYYMMDD() {
     const d = new Date();
@@ -140,6 +146,7 @@ function createAdminEntriesController({ shared }) {
       sinIngresos.style.display = 'none';
 
       const filas = await window.api.obtenerIngresos(fecha, fecha);
+      currentEntries = new Map((filas || []).map(row => [Number(row.id), row]));
       estadoDashboard.textContent = '';
 
       if (!filas?.length) {
@@ -153,12 +160,40 @@ function createAdminEntriesController({ shared }) {
           <td>${row.hora || '-'}</td>
           <td>${row.ci ?? '-'}</td>
           <td>${row.nombre ?? '-'}</td>
+          <td>${fecha === hoyYYYYMMDD() ? `<button class="table-action-button" type="button" data-anular-ingreso="${row.id}">Anular</button>` : ''}</td>
         `;
         tablaDashboardIngresos.appendChild(tr);
       });
     } catch (error) {
       console.error('Error cargando ingresos:', error);
       estadoDashboard.textContent = 'Error al cargar ingresos';
+    }
+  }
+
+  function abrirAnulacionIngreso(id) {
+    const row = currentEntries.get(Number(id));
+    if (!row) return;
+    annulEntryIdInput.value = String(row.id);
+    annulEntryDetail.textContent = `${row.hora || '-'} · ${row.ci || '-'} · ${row.nombre || '-'}`;
+    annulEntryReasonInput.value = '';
+    annulEntryModal.style.display = 'flex';
+  }
+
+  async function guardarAnulacionIngreso() {
+    const motivo = annulEntryReasonInput.value.trim();
+    if (!motivo) {
+      shared.mostrarNotificacion('Ingresa el motivo de la anulacion', 'warning');
+      return;
+    }
+    try {
+      await window.api.anularIngreso({ id: Number(annulEntryIdInput.value), motivo });
+      annulEntryModal.style.display = 'none';
+      shared.mostrarNotificacion('Ingreso anulado con trazabilidad', 'success');
+      const fecha = fechaDashboard?.value || hoyYYYYMMDD();
+      await cargarIngresosDelDia(fecha);
+      await actualizarWidgetIngresosHoy();
+    } catch (error) {
+      shared.mostrarNotificacion(error?.message || 'No se pudo anular el ingreso', 'error');
     }
   }
 
@@ -609,6 +644,11 @@ function createAdminEntriesController({ shared }) {
     cerrarCajaButton?.addEventListener('click', abrirModalCierreCaja);
     closeCountedCashInput?.addEventListener('input', actualizarDiferenciaCierre);
     closeSaveButton?.addEventListener('click', guardarCierreCaja);
+    annulEntrySaveButton?.addEventListener('click', guardarAnulacionIngreso);
+    tablaDashboardIngresos?.addEventListener('click', event => {
+      const button = event.target.closest('[data-anular-ingreso]');
+      if (button) abrirAnulacionIngreso(button.dataset.anularIngreso);
+    });
 
     fechaDashboard.addEventListener('change', async () => {
       if (!fechaDashboard.value) return;

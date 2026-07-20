@@ -30,10 +30,10 @@ function createEntryRepository(db) {
       }
 
       const sql = `
-        SELECT i.fecha, i.hora, i.ci, u.nombre, i.fuente, i.observacion
+        SELECT i.id, i.fecha, i.hora, i.ci, u.nombre, i.fuente, i.observacion
         FROM ingresos i
         LEFT JOIN usuarios u ON u.ci = i.ci
-        ${where}
+        ${where ? `${where} AND` : 'WHERE'} COALESCE(i.anulado, 0) = 0
         ORDER BY i.fecha DESC, i.hora DESC
       `;
 
@@ -44,9 +44,35 @@ function createEntryRepository(db) {
     });
   }
 
+  function findById(id) {
+    return new Promise((resolve, reject) => {
+      db.get(`SELECT * FROM ingresos WHERE id = ?`, [id], (err, row) => {
+        if (err) return reject(err);
+        resolve(row || null);
+      });
+    });
+  }
+
+  function annul({ id, ts, motivo }) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE ingresos
+         SET anulado = 1, anulado_ts = ?, motivo_anulacion = ?
+         WHERE id = ? AND COALESCE(anulado, 0) = 0`,
+        [ts, motivo, id],
+        function (err) {
+          if (err) return reject(err);
+          resolve({ changed: this.changes > 0 });
+        }
+      );
+    });
+  }
+
   return {
     create,
     findByDateRange,
+    findById,
+    annul,
   };
 }
 

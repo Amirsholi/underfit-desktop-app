@@ -59,3 +59,35 @@ test('correction annuls the original and creates the corrected movement', async 
   assert.equal(repository.created[1].monto, -250);
   assert.equal(repository.created[1].forma_pago, 'transferencia');
 });
+
+test('daily report groups every product and payment method', async () => {
+  const repository = {
+    getDailySummary: async () => ({
+      totalIngresos: 250,
+      totalPorFormaPago: [{ formaPago: 'efectivo', total: 150 }, { formaPago: 'transferencia', total: 100 }],
+      totalPorTipoIngreso: [{ tipoIngreso: 'venta_producto', total: 250 }],
+      apertura: { monto_inicial_efectivo: 0 },
+    }),
+    findOpenSession: async () => null,
+    findSessionsByDate: async () => [{ id: 1, estado: 'cerrada' }],
+    findLastClosedSession: async () => null,
+    findClosureByDate: async () => null,
+    getSessionSummary: async () => ({
+      totalIngresos: 250,
+      efectivoEsperado: 150,
+      totalPorFormaPago: [{ formaPago: 'efectivo', total: 150 }, { formaPago: 'transferencia', total: 100 }],
+      totalPorTipoIngreso: [{ tipoIngreso: 'venta_producto', total: 250 }],
+    }),
+    findBySessionId: async () => [
+      { tipo_ingreso: 'venta_producto', producto_id: 1, producto_nombre: 'Agua', cantidad: 1, forma_pago: 'efectivo', monto: 50 },
+      { tipo_ingreso: 'venta_producto', producto_id: 1, producto_nombre: 'Agua', cantidad: 2, forma_pago: 'transferencia', monto: 100 },
+      { tipo_ingreso: 'venta_producto', producto_id: 2, producto_nombre: 'Barrita', cantidad: 1, forma_pago: 'efectivo', monto: 100 },
+    ],
+  };
+  const report = await createCashService({ cashRepository: repository }).getDailyReport('2099-01-01');
+
+  assert.deepEqual(report.sesiones[0].ventasPorProducto, [
+    { productoId: 1, nombre: 'Agua', cantidad: 3, efectivo: 50, transferencia: 100, total: 150 },
+    { productoId: 2, nombre: 'Barrita', cantidad: 1, efectivo: 100, transferencia: 0, total: 100 },
+  ]);
+});

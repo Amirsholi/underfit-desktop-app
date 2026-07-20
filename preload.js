@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('api', {
   obtenerIngresos: (desde, hasta) =>
     ipcRenderer.invoke('obtener-ingresos', { desde, hasta }),
 
+  anularIngreso: (payload) => ipcRenderer.invoke('anular-ingreso', payload),
+
   obtenerProductos: () => ipcRenderer.invoke('obtener-productos'),
 
   crearProducto: (datos) => ipcRenderer.invoke('crear-producto', datos),

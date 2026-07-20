@@ -307,6 +307,7 @@
                   <th>Hora</th>
                   <th>CI</th>
                   <th>Nombre</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="tabla-dashboard-ingresos"></tbody>
@@ -314,6 +315,24 @@
           </div>
           <div id="dashboard-sin-ingresos" class="table-empty">No hay ingresos registrados para esta fecha.</div>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-anular-ingreso" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Anular registro de ingreso</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-anular-ingreso">Cerrar</button>
+      </div>
+      <div class="app-modal-body">
+        <input id="anular-ingreso-id" type="hidden">
+        <p id="anular-ingreso-detalle" class="section-subtitle"></p>
+        <label for="anular-ingreso-motivo">Motivo de la anulacion</label>
+        <input id="anular-ingreso-motivo" type="text" placeholder="Ej: ingreso duplicado">
+      </div>
+      <div class="app-modal-footer">
+        <button id="guardar-anulacion-ingreso" class="app-button app-button-danger" type="button">Anular ingreso</button>
       </div>
     </div>
   </div>

@@ -397,6 +397,34 @@ function createCashService({ cashRepository }) {
       resumen.totalPorFormaPago.map(item => [item.formaPago, item.total])
     );
 
+    function groupProductSales(movements) {
+      const groups = new Map();
+      movements
+        .filter(row => row.tipo_ingreso === 'venta_producto')
+        .forEach(row => {
+          const key = String(row.producto_id || row.producto_nombre || 'sin-producto');
+          const current = groups.get(key) || {
+            productoId: row.producto_id || null,
+            nombre: row.producto_nombre || row.descripcion || 'Producto',
+            cantidad: 0,
+            efectivo: 0,
+            transferencia: 0,
+            total: 0,
+          };
+          current.cantidad += Number(row.cantidad || 1);
+          current.total += Number(row.monto || 0);
+          if (row.forma_pago === 'efectivo') current.efectivo += Number(row.monto || 0);
+          if (row.forma_pago === 'transferencia') current.transferencia += Number(row.monto || 0);
+          groups.set(key, current);
+        });
+      return [...groups.values()].map(item => ({
+        ...item,
+        efectivo: Number(item.efectivo.toFixed(2)),
+        transferencia: Number(item.transferencia.toFixed(2)),
+        total: Number(item.total.toFixed(2)),
+      })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    }
+
     const sesiones = await Promise.all((resumen.sesiones || []).map(async sesion => {
       const sessionSummary = await cashRepository.getSessionSummary(sesion.id);
       const movimientos = await cashRepository.findBySessionId(sesion.id);
@@ -410,6 +438,7 @@ function createCashService({ cashRepository }) {
       return {
         ...sesion,
         movimientos,
+        ventasPorProducto: groupProductSales(movimientos),
         totalGeneral: Number(sessionSummary.totalIngresos || 0),
         efectivoEsperado: Number(sessionSummary.efectivoEsperado || 0),
         totalesPorTipoIngreso: {
