@@ -48,6 +48,9 @@ function createAdminLayoutController() {
       'modal-vender-producto': ['fa-cart-shopping', 'Registra una venta y actualiza el stock.'],
       'modal-editar-producto': ['fa-pen', 'Actualiza los datos y existencias del articulo.'],
       'modal-anular-ingreso': ['fa-ban', 'El registro quedara anulado con trazabilidad.'],
+      'modal-nueva-clase': ['fa-calendar-plus', 'Defini horario, cupos y profesor para el Local 2.'],
+      'modal-inscribir-clase': ['fa-user-check', 'Asocia un socio a la clase seleccionada.'],
+      'modal-cobrar-pendiente': ['fa-hand-holding-dollar', 'El cobro ingresara a la caja abierta del Local 1.'],
     };
     document.querySelectorAll('.app-modal:not(.route-page)').forEach(modal => {
       const header = modal.querySelector('.app-modal-header');
@@ -90,6 +93,7 @@ function createAdminLayoutController() {
     initModalTriggers();
 
     function showSection(section) {
+      document.dispatchEvent(new CustomEvent('admin-section:show', { detail: { section } }));
       if (section === 'cash' || section === 'records') {
         views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'operations'));
         document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {

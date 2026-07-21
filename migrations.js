@@ -392,12 +392,124 @@ async function migrarConfiguracion(dbPath) {
   }
 }
 
+async function migrarOperacionesMultiLocal(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS locales (
+        id INTEGER PRIMARY KEY,
+        codigo TEXT NOT NULL UNIQUE,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1
+      )
+    `);
+
+    await runAsync(db, `
+      INSERT OR IGNORE INTO locales (id, codigo, nombre, tipo, activo)
+      VALUES (1, 'principal', 'Recepcion principal', 'principal', 1),
+             (2, 'funcional', 'Salon funcional', 'clases', 1)
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS stock_local (
+        local_id INTEGER NOT NULL,
+        producto_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL DEFAULT 0,
+        actualizado_ts TEXT NOT NULL,
+        PRIMARY KEY (local_id, producto_id)
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS transferencias_stock (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        producto_id INTEGER NOT NULL,
+        origen_local_id INTEGER NOT NULL,
+        destino_local_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL,
+        responsable TEXT,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS clases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        duracion_minutos INTEGER NOT NULL DEFAULT 60,
+        capacidad INTEGER NOT NULL DEFAULT 12,
+        profesor TEXT NOT NULL,
+        local_id INTEGER NOT NULL DEFAULT 2,
+        notas TEXT,
+        estado TEXT NOT NULL DEFAULT 'programada',
+        creado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS inscripciones_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clase_id INTEGER NOT NULL,
+        usuario_ci INTEGER NOT NULL,
+        usuario_nombre TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'inscripto',
+        creado_ts TEXT NOT NULL,
+        UNIQUE (clase_id, usuario_ci)
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS ventas_pendientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        local_id INTEGER NOT NULL DEFAULT 2,
+        producto_id INTEGER NOT NULL,
+        producto_nombre TEXT NOT NULL,
+        usuario_ci INTEGER NOT NULL,
+        usuario_nombre TEXT NOT NULL,
+        cantidad INTEGER NOT NULL DEFAULT 1,
+        total REAL NOT NULL DEFAULT 0,
+        profesor TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        ts TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'pendiente',
+        cobrado_ts TEXT,
+        forma_pago TEXT,
+        caja_movimiento_id INTEGER,
+        observacion TEXT
+      )
+    `);
+
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_clases_fecha ON clases(fecha, hora)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_inscripciones_clase ON inscripciones_clase(clase_id)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_stock_transferencias_fecha ON transferencias_stock(fecha)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ventas_pendientes_estado ON ventas_pendientes(estado, fecha)`);
+
+    await runAsync(db, `
+      INSERT OR IGNORE INTO stock_local (local_id, producto_id, cantidad, actualizado_ts)
+      SELECT 1, id, stock, datetime('now') FROM productos
+    `);
+    await runAsync(db, `
+      INSERT OR IGNORE INTO stock_local (local_id, producto_id, cantidad, actualizado_ts)
+      SELECT 2, id, 0, datetime('now') FROM productos
+    `);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
 async function ejecutarMigraciones(dbPath) {
   await migrarUsuarios(dbPath);
   await migrarIngresos(dbPath);
   await migrarProductos(dbPath);
   await migrarCaja(dbPath);
   await migrarConfiguracion(dbPath);
+  await migrarOperacionesMultiLocal(dbPath);
 }
 
 module.exports = {
@@ -406,5 +518,6 @@ module.exports = {
   migrarProductos,
   migrarCaja,
   migrarConfiguracion,
+  migrarOperacionesMultiLocal,
   ejecutarMigraciones,
 };

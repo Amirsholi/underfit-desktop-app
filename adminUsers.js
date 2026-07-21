@@ -95,6 +95,17 @@ function createAdminUsersController({ shared }) {
   }
 
   async function actualizarTabla() {
+    if (!window.api) {
+      todosLosUsuarios = [
+        { ci: 49876543, nombre: 'Martina Silva', numero: '099 123 456', email: 'martina@ejemplo.com', fecha_vencimiento: '2026-08-11', tipo_membresia: 'mensual' },
+        { ci: 43219876, nombre: 'Bruno Rodriguez', numero: '098 456 789', email: 'bruno@ejemplo.com', fecha_vencimiento: '2026-08-20', tipo_membresia: 'mensual' },
+        { ci: 51234567, nombre: 'Lucas Pereira', numero: '097 111 222', email: 'lucas@ejemplo.com', fecha_vencimiento: '2026-08-30', tipo_membresia: 'trimestral' },
+        { ci: 56781234, nombre: 'Diego Martinez', numero: '096 333 444', email: 'diego@ejemplo.com', fecha_vencimiento: '2026-10-16', tipo_membresia: 'semestral' },
+        { ci: 37654321, nombre: 'Camila Fernandez', numero: '095 555 666', email: 'camila@ejemplo.com', fecha_vencimiento: '2027-02-26', tipo_membresia: 'semestral' },
+      ];
+      renderizarTabla(todosLosUsuarios);
+      return;
+    }
     try {
       const usuarios = await window.api.obtenerUsuarios();
       todosLosUsuarios = Array.isArray(usuarios) ? usuarios : [];

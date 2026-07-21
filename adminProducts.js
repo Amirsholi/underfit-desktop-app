@@ -23,13 +23,17 @@ function createAdminProductsController({ shared }) {
   const eliminarProductoBtn = document.getElementById('eliminar-producto');
 
   const inputVentaNombre = document.getElementById('producto-venta-nombre');
+  const inputVentaCantidad = document.getElementById('producto-venta-cantidad');
   const inputVentaMonto = document.getElementById('producto-venta-monto');
+  const ventaTotalPreview = document.getElementById('producto-venta-total-preview');
   const inputVentaObservacion = document.getElementById('producto-venta-observacion');
   const guardarVentaBtn = document.getElementById('guardar-venta-producto');
 
   let productos = [];
   let productoSeleccionadoId = null;
   let productoVentaId = null;
+  let productoVentaPrecio = 0;
+  let productoVentaStock = 0;
 
   function hoyYYYYMMDD() {
     const d = new Date();
@@ -54,7 +58,9 @@ function createAdminProductsController({ shared }) {
 
   function limpiarFormularioVenta() {
     inputVentaNombre.value = '';
+    if (inputVentaCantidad) inputVentaCantidad.value = '1';
     inputVentaMonto.value = '';
+    if (ventaTotalPreview) ventaTotalPreview.textContent = formatearMoneda(0);
     inputVentaObservacion.value = '';
     document.querySelectorAll('input[name="producto-venta-forma-pago"]').forEach(input => {
       input.checked = input.value === 'efectivo';
@@ -70,7 +76,14 @@ function createAdminProductsController({ shared }) {
   }
 
   async function cargarProductos() {
-    productos = await window.api.obtenerProductos();
+    productos = window.api ? await window.api.obtenerProductos() : [
+      { id: 1, nombre: 'Agua mineral 1.5 L', precio: 95, stock: 18 },
+      { id: 2, nombre: 'Agua mineral 600 ml', precio: 60, stock: 38 },
+      { id: 3, nombre: 'Agua saborizada 500 ml', precio: 85, stock: 22 },
+      { id: 4, nombre: 'Barrita de cereal chocolate', precio: 70, stock: 28 },
+      { id: 5, nombre: 'Barrita de cereal frutos rojos', precio: 70, stock: 24 },
+      { id: 6, nombre: 'Bebida isotonica 500 ml', precio: 120, stock: 16 },
+    ];
     renderizarProductos();
   }
 
@@ -106,7 +119,7 @@ function createAdminProductsController({ shared }) {
   async function renderizarVentasDashboard(fecha = dashboardFecha?.value || hoyYYYYMMDD()) {
     if (!tablaDashboardVentas || !dashboardSinVentas) return;
 
-    const ventasDelDia = await window.api.obtenerVentasProductos(fecha);
+    const ventasDelDia = window.api ? await window.api.obtenerVentasProductos(fecha) : [];
     tablaDashboardVentas.innerHTML = '';
     dashboardSinVentas.style.display = ventasDelDia.length === 0 ? 'block' : 'none';
 
@@ -124,6 +137,7 @@ function createAdminProductsController({ shared }) {
 
   async function actualizarWidgetVentasHoy() {
     if (!widgetVentasHoy) return;
+    if (!window.api) return;
     const resumen = await window.api.obtenerResumenCajaDia(hoyYYYYMMDD());
     widgetVentasHoy.textContent = formatearMoneda(resumen?.totalIngresos || 0);
   }
@@ -145,14 +159,30 @@ function createAdminProductsController({ shared }) {
     if (!producto) return;
 
     productoVentaId = producto.id;
+    productoVentaPrecio = Number(producto.precio || 0);
+    productoVentaStock = Number(producto.stock || 0);
     limpiarFormularioVenta();
     inputVentaNombre.value = producto.nombre;
-    inputVentaMonto.value = String(producto.precio);
+    actualizarTotalVenta();
     modalVenderProducto.style.display = 'flex';
+  }
+
+  function actualizarTotalVenta() {
+    const cantidad = Math.max(1, Number.parseInt(inputVentaCantidad?.value || '1', 10));
+    if (inputVentaCantidad) inputVentaCantidad.value = String(cantidad);
+    const total = productoVentaPrecio * cantidad;
+    inputVentaMonto.value = String(total);
+    if (ventaTotalPreview) ventaTotalPreview.textContent = formatearMoneda(total);
   }
 
   async function venderProductoSeleccionado() {
     if (!productoVentaId) return;
+
+    const cantidad = Math.max(1, Number.parseInt(inputVentaCantidad?.value || '1', 10));
+    if (cantidad > productoVentaStock) {
+      shared.mostrarNotificacion('No hay stock suficiente', 'warning');
+      return;
+    }
 
     const pago = obtenerPagoVenta();
     if (Number.isNaN(pago.monto) || pago.monto <= 0) {
@@ -161,7 +191,7 @@ function createAdminProductsController({ shared }) {
     }
 
     try {
-      await window.api.venderProducto({ id: Number(productoVentaId), payment: pago });
+      await window.api.venderProducto({ id: Number(productoVentaId), quantity: cantidad, payment: pago });
       modalVenderProducto.style.display = 'none';
       shared.mostrarNotificacion('Venta registrada', 'success');
       await cargarProductos();
@@ -171,7 +201,7 @@ function createAdminProductsController({ shared }) {
     } catch (error) {
       console.error(error);
       shared.mostrarNotificacion(
-        error?.message === 'No hay stock disponible' ? 'No hay stock disponible' : (error?.message || 'No se pudo registrar la venta'),
+        error?.message?.includes('stock') ? error.message : (error?.message || 'No se pudo registrar la venta'),
         'warning'
       );
     }
@@ -253,6 +283,7 @@ function createAdminProductsController({ shared }) {
     guardarProductoBtn?.addEventListener('click', crearProducto);
     guardarEdicionBtn?.addEventListener('click', guardarEdicionProducto);
     eliminarProductoBtn?.addEventListener('click', eliminarProducto);
+    inputVentaCantidad?.addEventListener('input', actualizarTotalVenta);
     guardarVentaBtn?.addEventListener('click', venderProductoSeleccionado);
 
     document.addEventListener('admin-dashboard:show', async () => {

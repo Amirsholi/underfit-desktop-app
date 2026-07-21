@@ -68,6 +68,11 @@ function createProductService({ db, productRepository, productSaleRepository, ca
 
   async function sellOneProduct(payload) {
     const productId = normalizeProductId(payload?.id ?? payload);
+    const quantity = Math.max(1, Number.parseInt(payload?.quantity ?? 1, 10));
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new Error('Cantidad invalida');
+    }
 
     await run('BEGIN IMMEDIATE TRANSACTION');
     try {
@@ -75,16 +80,18 @@ function createProductService({ db, productRepository, productSaleRepository, ca
       if (!product) {
         throw new Error('Producto no encontrado');
       }
-      if (Number(product.stock) <= 0) {
-        throw new Error('No hay stock disponible');
+      if (Number(product.stock) < quantity) {
+        throw new Error('No hay stock suficiente');
       }
 
+      const saleTotal = Number(product.precio) * quantity;
+
       const payment = cashService.normalizePaymentDetails(
-        payload?.payment || { monto: Number(product.precio), formaPago: 'efectivo', montoRecibido: Number(product.precio) },
-        Number(product.precio)
+        payload?.payment || { monto: saleTotal, formaPago: 'efectivo', montoRecibido: saleTotal },
+        saleTotal
       );
 
-      const newStock = Number(product.stock) - 1;
+      const newStock = Number(product.stock) - quantity;
       await productRepository.update(productId, {
         nombre: product.nombre,
         precio: Number(product.precio),
@@ -95,8 +102,8 @@ function createProductService({ db, productRepository, productSaleRepository, ca
       const sale = await productSaleRepository.create({
         productoId: productId,
         nombre: product.nombre,
-        cantidad: 1,
-        total: Number(product.precio),
+        cantidad: quantity,
+        total: saleTotal,
         fecha: now.fecha,
         hora: now.hora,
         ts: now.ts,
@@ -114,7 +121,7 @@ function createProductService({ db, productRepository, productSaleRepository, ca
           id: product.id,
           nombre: product.nombre,
         },
-        cantidad: 1,
+        cantidad: quantity,
         referencia: { tabla: 'ventas_productos', id: sale.id },
       });
 

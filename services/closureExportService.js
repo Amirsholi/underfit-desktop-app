@@ -90,6 +90,17 @@ function createClosureExportService({ cashService, getDbPath }) {
     </tr>`).join('');
   }
 
+  function buildPendingRows(sales = []) {
+    if (!sales.length) return `<tr><td colspan="5">Sin ventas pendientes de cobro para esta fecha</td></tr>`;
+    return sales.map(sale => `<tr>
+      <td>${escapeHtml(sale.hora || '-')}</td>
+      <td>${escapeHtml(sale.usuarioNombre || sale.usuario_nombre || '-')}</td>
+      <td>${escapeHtml(sale.productoNombre || sale.producto_nombre || '-')}</td>
+      <td>${escapeHtml(sale.profesor || '-')}</td>
+      <td>${formatMoney(sale.total)}</td>
+    </tr>`).join('');
+  }
+
   function buildSessionHtml(sesion, index) {
     const isClosed = sesion.estado === 'cerrada';
     const cierreLabel = isClosed
@@ -201,7 +212,7 @@ function createClosureExportService({ cashService, getDbPath }) {
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px;
     }
     .card {
@@ -323,10 +334,23 @@ function createClosureExportService({ cashService, getDbPath }) {
         <span class="card-label">Transferencias</span>
         <span class="card-value">${formatMoney(report.totalesPorFormaPago.transferencia)}</span>
       </div>
+      <div class="card">
+        <span class="card-label">Entregado sin cobrar</span>
+        <span class="card-value">${formatMoney(report.pendientes?.total || 0)}</span>
+      </div>
     </section>
 
     ${sessionSections}
     ${openNotice}
+
+    <section class="section warning">
+      <h2>Ventas entregadas sin cobrar</h2>
+      <p class="empty">Se muestran para control, pero no forman parte del efectivo ni de las transferencias cobradas.</p>
+      <table>
+        <thead><tr><th>Hora</th><th>Socio</th><th>Producto</th><th>Registró</th><th>Importe pendiente</th></tr></thead>
+        <tbody>${buildPendingRows(report.ventasPendientes)}</tbody>
+      </table>
+    </section>
 
     <section class="section">
       <h2>Resumen del dia</h2>
@@ -341,6 +365,7 @@ function createClosureExportService({ cashService, getDbPath }) {
           <tr><td>Ingresos manuales</td><td>${formatMoney(report.totalesPorTipoIngreso.ingresosManuales)}</td></tr>
           <tr><td>Salidas</td><td>${formatMoney(report.totalesPorTipoIngreso.egresos)}</td></tr>
           <tr><td>Ajustes</td><td>${formatMoney(report.totalesPorTipoIngreso.ajustes)}</td></tr>
+          <tr><td>Entregado sin cobrar (no incluido en caja)</td><td>${formatMoney(report.pendientes?.total || 0)}</td></tr>
           <tr><td>Diferencia total de efectivo</td><td>${formatDifferenceLabel(totalDiferencia)}</td></tr>
           <tr><td>Ultimo monto contado</td><td>${ultimoCierre ? formatMoney(ultimoCierre.efectivo_contado) : '-'}</td></tr>
         </tbody>

@@ -36,6 +36,26 @@ contextBridge.exposeInMainWorld('api', {
 
   obtenerTotalVentasProductos: (fecha) => ipcRenderer.invoke('obtener-total-ventas-productos', fecha),
 
+  obtenerStockLocales: () => ipcRenderer.invoke('obtener-stock-locales'),
+
+  transferirStockLocal: (payload) => ipcRenderer.invoke('transferir-stock-local', payload),
+
+  obtenerClasesProximas: (desde) => ipcRenderer.invoke('obtener-clases-proximas', desde),
+
+  crearClase: (payload) => ipcRenderer.invoke('crear-clase', payload),
+
+  obtenerInscripcionesClase: (claseId) => ipcRenderer.invoke('obtener-inscripciones-clase', claseId),
+
+  inscribirSocioClase: (payload) => ipcRenderer.invoke('inscribir-socio-clase', payload),
+
+  obtenerVentasPendientes: () => ipcRenderer.invoke('obtener-ventas-pendientes'),
+
+  obtenerResumenVentasPendientes: (fecha) => ipcRenderer.invoke('obtener-resumen-ventas-pendientes', fecha),
+
+  crearVentaPendiente: (payload) => ipcRenderer.invoke('crear-venta-pendiente', payload),
+
+  cobrarVentaPendiente: (payload) => ipcRenderer.invoke('cobrar-venta-pendiente', payload),
+
   abrirCajaDia: (payload) => ipcRenderer.invoke('abrir-caja-dia', payload),
 
   obtenerAperturaCajaDia: (fecha) => ipcRenderer.invoke('obtener-apertura-caja-dia', fecha),

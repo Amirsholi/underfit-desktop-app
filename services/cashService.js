@@ -1,4 +1,4 @@
-function createCashService({ cashRepository }) {
+function createCashService({ cashRepository, operationsRepository = null }) {
   const ALLOWED_PAYMENT_METHODS = new Set(['efectivo', 'transferencia']);
 
   function nowLocalParts() {
@@ -159,7 +159,10 @@ function createCashService({ cashRepository }) {
 
   async function getDailySummary(fecha) {
     const summaryDate = normalizeDate(fecha);
-    const resumen = await cashRepository.getDailySummary(summaryDate);
+    const [resumen, pendientes] = await Promise.all([
+      cashRepository.getDailySummary(summaryDate),
+      operationsRepository?.getPendingSummaryByDate(summaryDate) || Promise.resolve({ cantidad: 0, total: 0 }),
+    ]);
     const openSession = await cashRepository.findOpenSession();
     const sesiones = await cashRepository.findSessionsByDate(summaryDate);
     const ultimoCierreGlobal = await cashRepository.findLastClosedSession();
@@ -171,6 +174,7 @@ function createCashService({ cashRepository }) {
       sesionAbierta: activeSession,
       ultimoCierreGlobal,
       cierre,
+      pendientes,
       estado: activeSession ? 'abierta' : (sesiones.length ? 'cerrada' : 'sin_apertura'),
     };
   }
@@ -390,6 +394,9 @@ function createCashService({ cashRepository }) {
   async function getDailyReport(fecha) {
     const reportDate = normalizeDate(fecha);
     const resumen = await getDailySummary(reportDate);
+    const ventasPendientes = operationsRepository
+      ? await operationsRepository.listPendingSales({ estado: 'pendiente', fecha: reportDate })
+      : [];
     const totalsByType = Object.fromEntries(
       resumen.totalPorTipoIngreso.map(item => [item.tipoIngreso, item.total])
     );
@@ -478,6 +485,8 @@ function createCashService({ cashRepository }) {
       sesionAbierta: resumen.sesionAbierta,
       diferenciaCaja: Number(resumen.cierre?.diferencia_efectivo || 0),
       observaciones: resumen.cierre?.observacion || null,
+      pendientes: resumen.pendientes || { cantidad: 0, total: 0 },
+      ventasPendientes,
     };
   }
 

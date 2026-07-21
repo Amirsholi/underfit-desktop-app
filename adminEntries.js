@@ -1,6 +1,9 @@
 function createAdminEntriesController({ shared }) {
   const fechaDashboard = document.getElementById('dashboard-fecha');
   const dashboardPageTitle = document.querySelector('#modal-dashboard > .app-modal-card > .app-modal-header h3');
+  const dashboardPageKicker = document.getElementById('dashboard-page-kicker');
+  const dashboardPageHeading = document.getElementById('dashboard-page-heading');
+  const dashboardPageCopy = document.getElementById('dashboard-page-copy');
   const estadoDashboard = document.getElementById('dashboard-estado-ingresos');
   const tablaDashboardIngresos = document.getElementById('tabla-dashboard-ingresos');
   const sinIngresos = document.getElementById('dashboard-sin-ingresos');
@@ -68,6 +71,7 @@ function createAdminEntriesController({ shared }) {
 
   const closeModal = document.getElementById('modal-cierre-caja');
   const closeExpectedCashInput = document.getElementById('cierre-efectivo-esperado');
+  const closePendingSummary = document.getElementById('cierre-pendientes-resumen');
   const closeCountedCashInput = document.getElementById('cierre-efectivo-contado');
   const closeCashierInput = document.getElementById('cierre-cajero');
   const closeDifferenceInput = document.getElementById('cierre-diferencia');
@@ -149,7 +153,14 @@ function createAdminEntriesController({ shared }) {
       tablaDashboardIngresos.innerHTML = '';
       sinIngresos.style.display = 'none';
 
-      const filas = await window.api.obtenerIngresos(fecha, fecha);
+      const filas = window.api?.obtenerIngresos
+        ? await window.api.obtenerIngresos(fecha, fecha)
+        : [
+            { id: 1, hora: '08:14', ci: 49876543, nombre: 'Martina Silva' },
+            { id: 2, hora: '09:02', ci: 43219876, nombre: 'Bruno Rodríguez' },
+            { id: 3, hora: '10:37', ci: 51234567, nombre: 'Lucas Pereira' },
+            { id: 4, hora: '17:46', ci: 37654321, nombre: 'Camila Fernández' },
+          ];
       currentEntries = new Map((filas || []).map(row => [Number(row.id), row]));
       estadoDashboard.textContent = '';
 
@@ -205,6 +216,11 @@ function createAdminEntriesController({ shared }) {
   async function actualizarWidgetIngresosHoy() {
     if (!widgetIngresosHoy) return;
 
+    if (!window.api?.obtenerIngresos) {
+      widgetIngresosHoy.textContent = '7';
+      return;
+    }
+
     try {
       const hoy = hoyYYYYMMDD();
       const filas = await window.api.obtenerIngresos(hoy, hoy);
@@ -217,6 +233,11 @@ function createAdminEntriesController({ shared }) {
 
   async function actualizarWidgetDineroHoy() {
     if (!widgetDineroHoy) return;
+
+    if (!window.api?.obtenerResumenCajaDia) {
+      widgetDineroHoy.textContent = formatearMoneda(10545);
+      return;
+    }
 
     try {
       const resumen = await window.api.obtenerResumenCajaDia(hoyYYYYMMDD());
@@ -268,7 +289,7 @@ function createAdminEntriesController({ shared }) {
         ? String(resumen.ultimoCierreGlobal.efectivo_contado || 0)
         : '';
       aperturaObservacionInput.value = '';
-      aperturaGuardarButton.textContent = esHoy ? 'Guardar' : 'Fecha historica';
+      aperturaGuardarButton.textContent = esHoy ? 'Abrir caja' : 'Fecha historica';
     }
 
     if (sesionAbierta) {
@@ -311,10 +332,44 @@ function createAdminEntriesController({ shared }) {
 
   async function cargarCajaDelDia(fecha) {
     try {
-      const [resumen, movimientos] = await Promise.all([
-        window.api.obtenerResumenCajaDia(fecha),
-        window.api.obtenerMovimientosCaja(fecha),
-      ]);
+      const previewMovements = [
+        { id: 5, hora: '18:24', tipo_ingreso: 'venta_producto', producto_id: 1, producto_nombre: 'Agua mineral 1.5 L', forma_pago: 'efectivo', monto: 95, cantidad: 1 },
+        { id: 4, hora: '17:58', tipo_ingreso: 'renovacion', usuario_ci: 49876543, usuario_nombre: 'Martina Silva', forma_pago: 'transferencia', monto: 1600, cantidad: 1 },
+        { id: 3, hora: '16:12', tipo_ingreso: 'venta_producto', producto_id: 4, producto_nombre: 'Barrita de cereal chocolate', forma_pago: 'efectivo', monto: 140, cantidad: 2 },
+        { id: 2, hora: '11:36', tipo_ingreso: 'egreso', descripcion: 'Insumos de limpieza', forma_pago: 'transferencia', monto: -500, cantidad: 1 },
+        { id: 1, hora: '09:18', tipo_ingreso: 'alta', usuario_ci: 48723901, usuario_nombre: 'Federico Núñez', forma_pago: 'efectivo', monto: 1600, cantidad: 1 },
+      ];
+      const previewSummary = {
+        totalIngresos: 10545,
+        efectivoEsperado: 6745,
+        totalPorFormaPago: [
+          { formaPago: 'efectivo', total: 7245 },
+          { formaPago: 'transferencia', total: 3300 },
+        ],
+        totalPorTipoIngreso: [
+          { tipoIngreso: 'alta', total: 1600 },
+          { tipoIngreso: 'renovacion', total: 8810 },
+          { tipoIngreso: 'venta_producto', total: 635 },
+          { tipoIngreso: 'egreso', total: -500 },
+        ],
+        sesionAbierta: {
+          id: 1,
+          fecha,
+          hora_apertura: '08:00',
+          cajero_apertura: 'Recepción',
+          monto_inicial_efectivo: 2000,
+          observacion: 'Turno mañana',
+        },
+        apertura: null,
+        cierre: null,
+        sesiones: [],
+      };
+      const [resumen, movimientos] = window.api?.obtenerResumenCajaDia && window.api?.obtenerMovimientosCaja
+        ? await Promise.all([
+            window.api.obtenerResumenCajaDia(fecha),
+            window.api.obtenerMovimientosCaja(fecha),
+          ])
+        : [previewSummary, previewMovements];
 
       const totalPorForma = Object.fromEntries(
         (resumen?.totalPorFormaPago || []).map(item => [item.formaPago, item.total])
@@ -549,6 +604,11 @@ function createAdminEntriesController({ shared }) {
 
   function abrirModalCierreCaja() {
     const efectivoEsperado = Number(currentSummary?.efectivoEsperado || 0);
+    const pendingCount = Number(currentSummary?.pendientes?.cantidad || 0);
+    const pendingTotal = Number(currentSummary?.pendientes?.total || 0);
+    if (closePendingSummary) {
+      closePendingSummary.innerHTML = `<span>Entregado sin cobrar · ${pendingCount} ${pendingCount === 1 ? 'venta' : 'ventas'}</span><strong>${formatearMoneda(pendingTotal)}</strong><span>No se suma al efectivo ni a las transferencias cobradas.</span>`;
+    }
     closeExpectedCashInput.value = formatearMoneda(efectivoEsperado);
     closeCountedCashInput.value = String(efectivoEsperado);
     closeCashierInput.value = currentSummary?.sesionAbierta?.cajero_apertura || '';
@@ -685,6 +745,13 @@ function createAdminEntriesController({ shared }) {
       const selectedTab = event.detail?.tab || 'caja';
       showDashboardTab(selectedTab);
       if (dashboardPageTitle) dashboardPageTitle.textContent = selectedTab === 'caja' ? 'Caja' : 'Registros';
+      if (dashboardPageKicker) dashboardPageKicker.textContent = selectedTab === 'caja' ? 'Control de jornada' : 'Control de accesos';
+      if (dashboardPageHeading) dashboardPageHeading.textContent = selectedTab === 'caja' ? 'Caja del local principal' : 'Ingresos al gimnasio';
+      if (dashboardPageCopy) {
+        dashboardPageCopy.textContent = selectedTab === 'caja'
+          ? 'Abrí la jornada, controlá los movimientos y cerrá con el detalle completo.'
+          : 'Consultá quién ingresó, a qué hora y anulá registros incorrectos con trazabilidad.';
+      }
       await refreshDashboard(fecha);
       await actualizarWidgetIngresosHoy();
       await actualizarWidgetDineroHoy();

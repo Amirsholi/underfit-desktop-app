@@ -55,6 +55,9 @@ function createMainWindow() {
 
   mainWindow.setMenu(null);
   mainWindow.loadFile('index.html');
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize();
+  });
 
   function resetInactivity() {
     clearTimeout(inactivityTimer);

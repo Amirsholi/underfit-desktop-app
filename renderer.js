@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <section class="config-section">
         <div class="config-section-heading">
           <div class="config-section-icon"><i class="fa-solid fa-database"></i></div>
-          <div><h4>Datos y respaldos</h4><p>Ubicaciones administradas por esta instalacion.</p></div>
+          <div><h4>Datos del sistema</h4><p>Estado de la instalación actual y transición al servicio central.</p></div>
         </div>
         <div class="config-paths-grid">
         <div class="form-field">
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <input id="config-backup-path" readonly>
         </div>
         </div>
+        <div class="config-sync-note"><i class="fa-solid fa-hard-drive"></i><span><strong>Modo local activo</strong>La base compartida en línea se habilitará al conectar el servicio central.</span></div>
         <p id="config-backup-status" class="config-status-copy">Backup semanal automatico activo.</p>
       </section>
       <section class="config-section config-event-panel">
@@ -93,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const footer = document.createElement('div');
     footer.className = 'app-modal-footer';
     footer.innerHTML = `
-      <button id="config-crear-backup" class="app-button" type="button"><i class="fa-solid fa-box-archive"></i> Crear backup</button>
+      <button id="config-crear-backup" class="app-button" type="button"><i class="fa-solid fa-box-archive"></i> Crear respaldo local</button>
       <button id="config-guardar-negocio" class="app-button app-button-primary" type="button"><i class="fa-solid fa-check"></i> Guardar cambios</button>
     `;
     modalCard.appendChild(footer);
@@ -113,6 +114,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backupButton = document.getElementById('config-crear-backup');
 
     async function cargarInfoSistema() {
+      if (!window.api?.obtenerInfoSistema) {
+        inputEventoRunningFecha.value = '2026-05-24';
+        inputDbPath.value = 'C:\\Under-Fit\\datos\\under-fit.db';
+        inputBackupPath.value = 'C:\\Under-Fit\\respaldos';
+        backupStatus.textContent = 'Respaldo local automático activo.';
+        return;
+      }
       try {
         const info = await window.api.obtenerInfoSistema();
         inputPrecioInscripcion.value = String(info?.settings?.precioInscripcion ?? 0);
@@ -135,6 +143,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnOpenSettings?.addEventListener('click', cargarInfoSistema);
     document.addEventListener('admin-settings:show', cargarInfoSistema);
     saveBusinessButton.addEventListener('click', async () => {
+      if (!window.api?.guardarConfiguracionNegocio) {
+        backupStatus.textContent = 'Vista previa: los cambios se guardarán en la aplicación de escritorio.';
+        return;
+      }
       try {
         await window.api.guardarConfiguracionNegocio({
           precioInscripcion: Number(inputPrecioInscripcion.value || 0),
@@ -155,6 +167,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
     backupButton.addEventListener('click', async () => {
+      if (!window.api?.crearBackupManual) {
+        backupStatus.textContent = 'Vista previa: el respaldo se creará desde la aplicación de escritorio.';
+        return;
+      }
       try {
         const resultado = await window.api.crearBackupManual();
         if (resultado?.created) {
@@ -203,4 +219,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   window.createHomeDashboardController({ shared }).init();
   window.createAdminEntriesController({ shared }).init();
+  try {
+    await window.createAdminOperationsController({ shared }).init();
+  } catch (error) {
+    console.error('No se pudieron inicializar las operaciones multi-local:', error);
+  }
 });
