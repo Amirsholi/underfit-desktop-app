@@ -1,5 +1,6 @@
 function createAdminEntriesController({ shared }) {
   const fechaDashboard = document.getElementById('dashboard-fecha');
+  const dashboardPageTitle = document.querySelector('#modal-dashboard > .app-modal-card > .app-modal-header h3');
   const estadoDashboard = document.getElementById('dashboard-estado-ingresos');
   const tablaDashboardIngresos = document.getElementById('tabla-dashboard-ingresos');
   const sinIngresos = document.getElementById('dashboard-sin-ingresos');
@@ -36,6 +37,8 @@ function createAdminEntriesController({ shared }) {
   const totalEgresosCaja = document.getElementById('dashboard-total-egresos');
   const tablaDashboardCaja = document.getElementById('tabla-dashboard-caja');
   const sinCaja = document.getElementById('dashboard-sin-caja');
+  const homeActivityBody = document.getElementById('home-activity-body');
+  const homeActivityEmpty = document.getElementById('home-activity-empty');
 
   const ingresoManualButton = document.getElementById('dashboard-registrar-ingreso-manual');
   const salidaButton = document.getElementById('dashboard-registrar-salida');
@@ -348,6 +351,23 @@ function createAdminEntriesController({ shared }) {
         `;
         tablaDashboardCaja.appendChild(tr);
       });
+
+      if (fecha === hoyYYYYMMDD() && homeActivityBody && homeActivityEmpty) {
+        homeActivityBody.innerHTML = '';
+        const recent = (movimientos || []).slice(0, 7);
+        homeActivityEmpty.style.display = recent.length ? 'none' : 'block';
+        recent.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.hora || '-'}</td>
+            <td>${formatearTipoMovimiento(row.tipo_ingreso)}</td>
+            <td>${row.usuario_nombre || row.producto_nombre || row.descripcion || '-'}</td>
+            <td>${capitalizarFormaPago(row.forma_pago)}</td>
+            <td>${formatearMoneda(row.monto)}</td>
+          `;
+          homeActivityBody.appendChild(tr);
+        });
+      }
     } catch (error) {
       console.error('Error cargando caja del dia:', error);
       totalIngresosCaja.textContent = formatearMoneda(0);
@@ -660,7 +680,9 @@ function createAdminEntriesController({ shared }) {
     document.addEventListener('admin-dashboard:show', async event => {
       const fecha = fechaDashboard.value || hoyYYYYMMDD();
       fechaDashboard.value = fecha;
-      showDashboardTab(event.detail?.tab || 'caja');
+      const selectedTab = event.detail?.tab || 'caja';
+      showDashboardTab(selectedTab);
+      if (dashboardPageTitle) dashboardPageTitle.textContent = selectedTab === 'caja' ? 'Caja' : 'Registros';
       await refreshDashboard(fecha);
       await actualizarWidgetIngresosHoy();
       await actualizarWidgetDineroHoy();

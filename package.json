@@ -18,6 +18,7 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "sqlite3": "^5.1.7"
   },
   "build": {

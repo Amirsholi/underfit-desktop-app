@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Under-Fit</title>
-  <link rel="stylesheet" href="styles/admin-layout.css">
-  <link rel="stylesheet" href="styles/admin-dark.css">
+  <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
+  <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.3">
+  <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
@@ -24,19 +25,24 @@
       </button>
 
       <div class="topbar-actions">
+        <div class="topbar-context">
+          <span id="topbar-date"></span>
+          <span id="topbar-time"></span>
+        </div>
         <button id="btn-open-settings" class="topbar-button" type="button">Configuracion</button>
       </div>
     </header>
 
     <div class="workspace">
       <aside class="workspace-sidebar" aria-label="Navegacion administrativa">
-        <button class="sidebar-action is-active" type="button" data-admin-section="home">Inicio</button>
-        <button class="sidebar-action" type="button" data-admin-section="users">Usuarios</button>
-        <button class="sidebar-action" type="button" data-admin-section="cash">Caja</button>
-        <button class="sidebar-action" type="button" data-admin-section="records">Registros</button>
-        <button class="sidebar-action" type="button" data-admin-section="products">Productos</button>
-        <button class="sidebar-action" type="button" data-admin-section="classes">Clases</button>
-        <button class="sidebar-action" type="button" data-admin-section="settings">Configuracion</button>
+        <button class="sidebar-action is-active" type="button" data-admin-section="home"><i class="fa-solid fa-house"></i><span>Inicio</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="users"><i class="fa-solid fa-users"></i><span>Usuarios</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="pending"><i class="fa-regular fa-rectangle-list"></i><span>Cobros pendientes</span><span class="nav-count" id="pending-sales-count">0</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+        <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuracion</span></button>
       </aside>
       <main class="workspace-main">
         <section class="app-view is-active" data-admin-view="home">
@@ -61,12 +67,47 @@
                 <span class="summary-widget-label">Dinero ingresado hoy</span>
                 <span id="widget-ventas-hoy" class="summary-widget-value">$ 0</span>
               </article>
+              <article class="summary-widget summary-widget-pending" data-admin-section="pending" tabindex="0">
+                <span class="summary-widget-label">Cobros pendientes</span>
+                <span class="summary-widget-value" id="widget-cobros-pendientes">0</span>
+              </article>
             </section>
           <div class="action-dock" aria-label="Acciones frecuentes">
             <button class="dock-action" type="button" data-admin-section="users">Gestionar usuarios</button>
             <button class="dock-action" type="button" data-admin-section="cash">Abrir caja</button>
             <button class="dock-action" type="button" data-admin-section="records">Ver registros</button>
             <button class="dock-action" type="button" data-admin-section="products">Gestionar productos</button>
+          </div>
+          <section class="home-activity">
+            <div class="section-heading"><div><h3 class="home-section-title">Operaciones recientes</h3><p class="section-subtitle">Ultimos movimientos registrados en caja.</p></div></div>
+            <div class="table-card">
+              <div class="table-scroll home-activity-scroll">
+                <table class="data-table">
+                  <thead><tr><th>Hora</th><th>Tipo</th><th>Descripcion</th><th>Pago</th><th>Monto</th></tr></thead>
+                  <tbody id="home-activity-body"></tbody>
+                </table>
+              </div>
+              <div id="home-activity-empty" class="table-empty home-empty-visible">Todavia no hay movimientos de caja para hoy.</div>
+            </div>
+          </section>
+        </section>
+
+        <section class="app-view" data-admin-view="pending">
+          <div class="section-heading">
+            <div><h2 class="section-title">Cobros pendientes</h2><p class="section-subtitle">Ventas entregadas en el segundo local que esperan cobro en recepcion.</p></div>
+          </div>
+          <div class="table-card pending-sales-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>Hora</th><th>Socio</th><th>Producto</th><th>Profesor</th><th>Total</th><th></th></tr></thead>
+                <tbody id="pending-sales-body"></tbody>
+              </table>
+            </div>
+            <div class="pending-empty-state">
+              <i class="fa-regular fa-circle-check"></i>
+              <strong>No hay cobros pendientes</strong>
+              <span>Las ventas enviadas desde el segundo local apareceran aqui.</span>
+            </div>
           </div>
         </section>
 
@@ -161,7 +202,7 @@
           <section id="dashboard-apertura-card" class="dashboard-compact-card dashboard-opening-card" data-caja-only>
             <div class="section-heading dashboard-opening-card-heading">
               <div>
-                <h3 class="section-title">Apertura de caja</h3>
+                <h3 class="section-title"><i class="fa-solid fa-cash-register"></i>Apertura de caja</h3>
               </div>
             </div>
             <div class="dashboard-inline-form">
@@ -203,7 +244,7 @@
             <section class="dashboard-compact-card dashboard-legacy-opening-card" style="display: none;">
               <div class="section-heading">
                 <div>
-                  <h3 class="section-title">Apertura de caja</h3>
+                  <h3 class="section-title"><i class="fa-solid fa-cash-register"></i>Apertura de caja</h3>
                   <p class="section-subtitle">Ingresá el efectivo inicial para comenzar la jornada.</p>
                 </div>
               </div>
@@ -875,13 +916,13 @@
 
   <div id="notificaciones"></div>
 
-  <script src="membershipRules.js?v=2.5.0"></script>
-  <script src="adminShared.js?v=2.5.0"></script>
-  <script src="adminLayout.js?v=2.5.0"></script>
-  <script src="adminUsers.js?v=2.5.0"></script>
-  <script src="adminMemberships.js?v=2.5.0"></script>
-  <script src="adminProducts.js?v=2.5.0"></script>
-  <script src="adminEntries.js?v=2.5.0"></script>
-  <script src="renderer.js?v=2.5.0"></script>
+  <script src="membershipRules.js?v=2.5.0.2"></script>
+  <script src="adminShared.js?v=2.5.0.2"></script>
+  <script src="adminLayout.js?v=2.5.0.2"></script>
+  <script src="adminUsers.js?v=2.5.0.2"></script>
+  <script src="adminMemberships.js?v=2.5.0.2"></script>
+  <script src="adminProducts.js?v=2.5.0.2"></script>
+  <script src="adminEntries.js?v=2.5.0.3"></script>
+  <script src="renderer.js?v=2.5.0.2"></script>
 </body>
 </html>

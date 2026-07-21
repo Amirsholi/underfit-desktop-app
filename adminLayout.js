@@ -1,6 +1,23 @@
 function createAdminLayoutController() {
   const btnGoHome = document.getElementById('btn-go-home');
   const btnOpenSettings = document.getElementById('btn-open-settings');
+  const workspaceMain = document.querySelector('.workspace-main');
+
+  function promoteModalToPage(modalId, viewId) {
+    const page = document.getElementById(modalId);
+    if (!page || !workspaceMain) return null;
+    page.classList.remove('app-modal');
+    page.classList.add('app-view', 'route-page');
+    page.dataset.adminView = viewId;
+    page.style.display = '';
+    page.querySelector('.app-modal-close')?.remove();
+    page.querySelector('.app-modal-card')?.classList.add('route-page-card');
+    workspaceMain.appendChild(page);
+    return page;
+  }
+
+  promoteModalToPage('modal-dashboard', 'operations');
+  promoteModalToPage('modal-configuracion', 'settings');
   const navigationButtons = Array.from(document.querySelectorAll('[data-admin-section]'));
   const views = Array.from(document.querySelectorAll('[data-admin-view]'));
 
@@ -37,12 +54,17 @@ function createAdminLayoutController() {
 
     function showSection(section) {
       if (section === 'cash' || section === 'records') {
-        openModalById('modal-dashboard');
+        views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'operations'));
+        document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
+          button.classList.toggle('is-active', button.dataset.adminSection === section);
+        });
         document.dispatchEvent(new CustomEvent('admin-dashboard:show', { detail: { tab: section === 'cash' ? 'caja' : 'ingresos' } }));
         return;
       }
       if (section === 'settings') {
-        btnOpenSettings?.click();
+        views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'settings'));
+        document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => button.classList.toggle('is-active', button.dataset.adminSection === section));
+        document.dispatchEvent(new CustomEvent('admin-settings:show'));
         return;
       }
       views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === section));
@@ -53,10 +75,9 @@ function createAdminLayoutController() {
 
     navigationButtons.forEach(button => button.addEventListener('click', () => showSection(button.dataset.adminSection)));
     btnGoHome?.addEventListener('click', () => {
-      closeModalById('modal-dashboard');
       showSection('home');
     });
-    btnOpenSettings?.addEventListener('click', () => openModalById('modal-configuracion'));
+    btnOpenSettings?.addEventListener('click', () => showSection('settings'));
   }
 
   return {

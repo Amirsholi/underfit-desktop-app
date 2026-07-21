@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     btnOpenSettings.addEventListener('click', cargarInfoSistema);
+    document.addEventListener('admin-settings:show', cargarInfoSistema);
     saveBusinessButton.addEventListener('click', async () => {
       try {
         await window.api.guardarConfiguracionNegocio({
@@ -157,6 +158,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   layoutController.init();
   initSettingsModal(shared);
 
+  const dateElement = document.getElementById('topbar-date');
+  const timeElement = document.getElementById('topbar-time');
+  function updateTopbarClock() {
+    const now = new Date();
+    if (dateElement) dateElement.textContent = now.toLocaleDateString('es-UY', { day: '2-digit', month: 'long', year: 'numeric' });
+    if (timeElement) timeElement.textContent = now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+  }
+  updateTopbarClock();
+  setInterval(updateTopbarClock, 30000);
+
   const usersController = window.createAdminUsersController({ shared });
   await usersController.init();
 
@@ -165,6 +176,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     actualizarTabla: usersController.actualizarTabla,
   }).init();
 
-  await window.createAdminProductsController({ shared }).init();
+  try {
+    await window.createAdminProductsController({ shared }).init();
+  } catch (error) {
+    console.error('No se pudo inicializar productos:', error);
+  }
   window.createAdminEntriesController({ shared }).init();
 });
