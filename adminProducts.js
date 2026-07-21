@@ -99,8 +99,8 @@ function createAdminProductsController({ shared }) {
         <td>${producto.stock}</td>
         <td>
           <div class="table-action-group">
-            <button class="table-action-button primary" data-vender-producto="${producto.id}">Vender 1</button>
-            <button class="table-action-button" data-editar-producto="${producto.id}">Editar</button>
+            <button class="table-action-button primary" data-vender-producto="${producto.id}"><i class="fa-solid fa-cart-shopping"></i>Vender</button>
+            <button class="table-action-button table-action-icon" data-editar-producto="${producto.id}" aria-label="Editar ${producto.nombre}" title="Editar"><i class="fa-solid fa-pen"></i></button>
           </div>
         </td>
       `;

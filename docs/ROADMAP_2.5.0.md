@@ -44,11 +44,22 @@ The main location currently runs one reception PC with two displays: the adminis
 
 ### 5. Tablet workflow
 
-- Instructor sign-in and sign-out.
-- Fast member lookup and attendance registration as separate actions.
+- Instructor signs in once at the beginning of the class block and signs out when leaving; the session must not interrupt student check-in.
+- After sign-in, the tablet stays in attendance mode: students type their CI, receive immediate confirmation and the numeric pad clears itself for the next person.
+- The current class is selected automatically from the recurring schedule (for example, Monday/Wednesday/Friday at 20:00), with a small manual override for exceptional changes.
+- Product sale is a short instructor-only detour: product, member, quantity and send. After sending, the tablet returns to attendance mode automatically.
+- Fast member lookup and attendance registration remain separate from administrative editing.
 - Read-only member details.
-- Stock table and a minimal member-associated sale flow.
-- Pending-operation visibility and clear connection status.
+- Stock is visible as a compact reference; stock assignment remains exclusive to the main location.
+- Every tablet sale is member-associated, tagged with location and instructor, and sent as pending collection to the main location.
+- Pending-operation visibility and clear connection status, with a local retry queue that prevents duplicate attendance or sales after a temporary network loss.
+
+#### Tablet interaction budget
+
+- Student check-in: CI plus one confirmation, then automatic reset.
+- Normal product sale: no more than four decisions (product, member, quantity, send).
+- The instructor should not need to reselect the current class, location or own identity during an active session.
+- Destructive or corrective actions stay in administration; the tablet only creates attendance and pending sales.
 
 ### 6. Classes
 
@@ -66,3 +77,5 @@ The main location currently runs one reception PC with two displays: the adminis
 ## Architecture direction
 
 Do not open one SQLite file concurrently from multiple devices. Use a central API as the only writer to a shared database. Electron remains suitable for the reception and kiosk experience; the tablet surface should be a touch-first installable web application. This allows the existing desktop operation to evolve without rewriting every interface at once.
+
+The API should require an idempotency key for attendance, stock transfers, pending sales and collection. Every business event must include `locationId`, `staffId`, timestamp and device identifier. Pending sales are commercial commitments but never cash movements: only collection at the main location creates the final sale and cash entry. Stock transfer and collection should run inside database transactions so simultaneous use from both locations cannot create negative stock or duplicate charges.

@@ -56,46 +56,33 @@ function createHomeDashboardController({ shared }) {
     productsEmpty.style.display = visible.length ? 'none' : 'grid';
 
     visible.forEach(product => {
-      let quantity = 1;
       const row = document.createElement('div');
       row.className = 'home-product-row home-product-columns';
       row.innerHTML = `
         <span class="home-product-name"><i class="fa-solid fa-cube"></i><span></span></span>
         <span class="home-product-price"></span>
         <strong class="home-product-stock"></strong>
-        <span class="home-product-quantity"><button type="button" aria-label="Quitar una unidad">−</button><span>1</span><button type="button" aria-label="Agregar una unidad">+</button></span>
-        <button class="home-quick-sale" type="button" aria-label="Vender producto"><i class="fa-solid fa-cart-shopping"></i></button>
+        <button class="home-quick-sale" type="button" aria-label="Vender producto"><i class="fa-solid fa-cart-shopping"></i><span>Vender</span></button>
       `;
       row.querySelector('.home-product-name span').textContent = product?.nombre || 'Producto';
       row.querySelector('.home-product-price').textContent = money(product?.precio);
       row.querySelector('.home-product-stock').textContent = String(product?.stock ?? 0);
-      const quantityControl = row.querySelector('.home-product-quantity');
-      const quantityValue = quantityControl.querySelector('span');
-      const quantityButtons = quantityControl.querySelectorAll('button');
-      quantityButtons[0].addEventListener('click', () => {
-        quantity = Math.max(1, quantity - 1);
-        quantityValue.textContent = String(quantity);
-      });
-      quantityButtons[1].addEventListener('click', () => {
-        quantity = Math.min(Number(product?.stock || 1), quantity + 1);
-        quantityValue.textContent = String(quantity);
-      });
       row.querySelector('.home-quick-sale').addEventListener('click', () => {
         const sourceButton = document.querySelector(`#cuerpo-productos [data-vender-producto="${CSS.escape(String(product?.id || ''))}"]`);
         if (sourceButton) {
           sourceButton.click();
           const quantityInput = document.getElementById('producto-venta-cantidad');
           if (quantityInput) {
-            quantityInput.value = String(quantity);
+            quantityInput.value = '1';
             quantityInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
           return;
         }
         if (!window.api) {
           document.getElementById('producto-venta-nombre').value = product?.nombre || '';
-          document.getElementById('producto-venta-cantidad').value = String(quantity);
-          document.getElementById('producto-venta-monto').value = String(Number(product?.precio || 0) * quantity);
-          document.getElementById('producto-venta-total-preview').textContent = money(Number(product?.precio || 0) * quantity);
+          document.getElementById('producto-venta-cantidad').value = '1';
+          document.getElementById('producto-venta-monto').value = String(Number(product?.precio || 0));
+          document.getElementById('producto-venta-total-preview').textContent = money(Number(product?.precio || 0));
           document.getElementById('modal-vender-producto').style.display = 'flex';
         }
       });

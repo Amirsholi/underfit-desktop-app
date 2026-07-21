@@ -93,6 +93,7 @@ function createAdminLayoutController() {
     initModalTriggers();
 
     function showSection(section) {
+      if (section === 'locations') section = 'products';
       document.dispatchEvent(new CustomEvent('admin-section:show', { detail: { section } }));
       if (section === 'cash' || section === 'records') {
         views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'operations'));
@@ -116,6 +117,12 @@ function createAdminLayoutController() {
     }
 
     navigationButtons.forEach(button => button.addEventListener('click', () => showSection(button.dataset.adminSection)));
+    document.querySelectorAll('[data-scroll-to]').forEach(button => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.scrollTo);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
     btnGoHome?.addEventListener('click', () => {
       showSection('home');
     });

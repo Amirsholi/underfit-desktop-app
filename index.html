@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.3">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.4">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -43,42 +43,41 @@
         <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
         <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
         <button class="sidebar-action" type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="locations"><i class="fa-solid fa-cube"></i><span>Locales</span></button>
         <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuracion</span></button>
       </aside>
       <main class="workspace-main">
         <section class="app-view is-active" data-admin-view="home">
-          <div class="home-command-heading">
-            <h2>¡Bienvenido de vuelta!</h2>
-            <p>Centro operativo · <span id="home-today-label">hoy</span></p>
-          </div>
           <section class="home-live-strip" aria-label="Resumen diario">
             <article><i class="fa-solid fa-users"></i><span>Usuarios activos<strong id="contador-usuarios">0</strong></span></article>
             <article><i class="fa-solid fa-person-walking-arrow-right"></i><span>Personas que ingresaron hoy<strong id="widget-ingresos-hoy">0</strong></span></article>
             <article><i class="fa-solid fa-dollar-sign"></i><span>Dinero ingresado hoy<strong id="widget-ventas-hoy">$ 0</strong></span></article>
             <article data-admin-section="pending" tabindex="0"><i class="fa-regular fa-clock"></i><span>Cobros pendientes<strong id="widget-cobros-pendientes">0</strong></span></article>
           </section>
+          <section class="home-utility-bar" aria-label="Herramientas de recepcion">
+            <div class="home-search-block">
+              <label for="home-member-search">Buscar socio</label>
+              <div class="home-search"><input id="home-member-search" placeholder="CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+            </div>
+            <div class="home-command-actions" aria-label="Acciones frecuentes">
+              <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
+              <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar</span></button>
+              <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+              <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
+            </div>
+          </section>
           <div class="home-workspace-grid">
             <section class="home-operational-pane home-members-pane">
-              <div class="home-pane-heading"><h3>Buscar socio</h3><button type="button" data-admin-section="users">Ver todos los socios <i class="fa-solid fa-chevron-right"></i></button></div>
-              <div class="home-search"><input id="home-member-search" placeholder="CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
-              <div class="home-pane-heading home-list-heading"><h3>Socios activos</h3></div>
+              <div class="home-pane-heading"><div><span class="home-pane-kicker">Recepcion</span><h3>Socios activos</h3></div><button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button></div>
               <div class="home-list-header home-member-columns"><span>Socio</span><span>Vencimiento</span><span>Plan / Estado</span></div>
               <div id="home-members-list" class="home-data-list"></div>
               <div id="home-members-empty" class="home-list-empty">No hay socios para mostrar.</div>
             </section>
             <section class="home-operational-pane home-products-pane">
-              <div class="home-pane-heading"><h3>Venta rapida de productos</h3><button type="button" data-admin-section="products">Ver todos los productos <i class="fa-solid fa-chevron-right"></i></button></div>
-              <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Stock</span><span>Cantidad</span><span>Acción</span></div>
+              <div class="home-pane-heading"><div><span class="home-pane-kicker">Caja rapida</span><h3>Venta de productos</h3></div><button type="button" data-admin-section="products">Ver todos <i class="fa-solid fa-chevron-right"></i></button></div>
+              <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Stock</span><span>Acción</span></div>
               <div id="home-products-list" class="home-data-list"></div>
               <div id="home-products-empty" class="home-list-empty">No hay productos disponibles.</div>
             </section>
-          </div>
-          <div class="home-command-actions" aria-label="Acciones frecuentes">
-            <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
-            <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripcion</span></button>
-            <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
-            <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Ver caja</span></button>
           </div>
         </section>
 
@@ -132,10 +131,14 @@
 
         <section class="app-view" data-admin-view="products">
           <div class="section-heading">
-            <div><h2 class="section-title">Productos</h2><p class="section-subtitle">Catalogo, precios, ventas y stock actual.</p></div>
-            <button class="app-button app-button-primary" type="button" data-open-modal="modal-nuevo-producto">Nuevo producto</button>
+            <div><h2 class="section-title">Productos</h2><p class="section-subtitle">Catalogo, ventas y distribucion de stock entre locales.</p></div>
+            <div class="dashboard-inline-actions">
+              <button class="app-button" type="button" data-scroll-to="product-stock-allocation"><i class="fa-solid fa-arrow-right-arrow-left"></i>Asignar stock</button>
+              <button class="app-button app-button-primary" type="button" data-open-modal="modal-nuevo-producto">Nuevo producto</button>
+            </div>
           </div>
-          <section class="content-panel">
+          <section class="content-panel product-catalog-section">
+              <div class="surface-heading product-catalog-heading"><div><h3>Catalogo general</h3><p>Precio y existencias totales disponibles.</p></div></div>
               <div class="table-card">
                 <div class="table-scroll table-scroll-products">
                   <table class="data-table" id="tabla-productos">
@@ -144,7 +147,7 @@
                         <th>Producto</th>
                         <th>Precio</th>
                         <th>Stock</th>
-                        <th></th>
+                        <th>Acciones</th>
                       </tr>
                     </thead>
                     <tbody id="cuerpo-productos"></tbody>
@@ -152,6 +155,27 @@
                 </div>
                 <div id="sin-productos" class="table-empty">Todavia no hay productos cargados.</div>
               </div>
+          </section>
+          <section id="product-stock-allocation" class="product-location-section">
+            <div class="product-location-heading">
+              <div><span class="section-kicker">Operacion multi-local</span><h3>Stock por local</h3><p>Recepcion asigna mercaderia al salon funcional y conserva la trazabilidad.</p></div>
+              <div class="location-legend"><span><i class="fa-solid fa-building"></i>Local 1 · Recepcion</span><span><i class="fa-solid fa-dumbbell"></i>Local 2 · Funcional</span></div>
+            </div>
+            <div class="product-location-grid">
+              <section class="operations-surface stock-allocation-surface">
+                <div class="surface-heading"><div><h3>Asignar al Local 2</h3><p>Se descuenta del stock disponible en recepcion.</p></div></div>
+                <div class="stock-transfer-form">
+                  <div class="form-field"><label for="stock-transfer-product">Producto</label><select id="stock-transfer-product" class="app-select"></select></div>
+                  <div class="form-field"><label for="stock-transfer-quantity">Cantidad</label><input id="stock-transfer-quantity" type="number" min="1" step="1" value="1"></div>
+                  <div id="stock-transfer-availability" class="stock-availability"><span>Disponible en Local 1</span><strong>—</strong></div>
+                  <button id="stock-transfer-submit" class="app-button app-button-primary" type="button"><i class="fa-solid fa-arrow-right-arrow-left"></i>Asignar</button>
+                </div>
+              </section>
+              <section class="operations-surface location-stock-surface">
+                <div class="surface-heading"><div><h3>Distribucion actual</h3><p>Unidades disponibles en cada sede.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
+                <div class="table-scroll"><table class="data-table location-stock-table"><thead><tr><th>Producto</th><th>Precio</th><th>Local 1</th><th>Local 2</th><th>Total</th></tr></thead><tbody id="location-stock-body"></tbody></table></div>
+              </section>
+            </div>
           </section>
         </section>
 
@@ -178,26 +202,6 @@
               <button id="class-enroll-open" class="app-button app-button-primary class-enroll-action" type="button" disabled><i class="fa-solid fa-user-plus"></i>Inscribir socio</button>
             </aside>
           </div>
-        </section>
-        <section class="app-view" data-admin-view="locations">
-          <div class="section-heading"><div><span class="section-kicker">Operación multi-local</span><h2 class="section-title">Locales y stock</h2><p class="section-subtitle">El local principal asigna mercadería al salón de funcional y conserva trazabilidad.</p></div></div>
-          <div class="locations-grid">
-            <article class="location-card is-primary"><div class="location-card-icon"><i class="fa-solid fa-building"></i></div><div><span>Local 1</span><h3>Recepción principal</h3><p>Caja, cobros, membresías y administración.</p></div><strong class="location-status"><i class="fa-solid fa-circle"></i>Principal</strong></article>
-            <article class="location-card"><div class="location-card-icon"><i class="fa-solid fa-dumbbell"></i></div><div><span>Local 2</span><h3>Salón funcional</h3><p>Clases, asistencia, stock asignado y ventas pendientes.</p></div><strong class="location-status is-connected"><i class="fa-solid fa-circle"></i>Preparado</strong></article>
-          </div>
-          <section class="operations-surface stock-allocation-surface">
-            <div class="surface-heading"><div><h3>Asignar stock al Local 2</h3><p>La transferencia descuenta unidades del stock disponible en recepción.</p></div></div>
-            <div class="stock-transfer-form">
-              <div class="form-field"><label for="stock-transfer-product">Producto</label><select id="stock-transfer-product" class="app-select"></select></div>
-              <div class="form-field"><label for="stock-transfer-quantity">Cantidad</label><input id="stock-transfer-quantity" type="number" min="1" step="1" value="1"></div>
-              <div id="stock-transfer-availability" class="stock-availability"><span>Disponible en Local 1</span><strong>—</strong></div>
-              <button id="stock-transfer-submit" class="app-button app-button-primary" type="button"><i class="fa-solid fa-arrow-right-arrow-left"></i>Asignar al Local 2</button>
-            </div>
-          </section>
-          <section class="operations-surface location-stock-surface">
-            <div class="surface-heading"><div><h3>Stock por local</h3><p>Vista rápida para recepción.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
-            <div class="table-scroll"><table class="data-table location-stock-table"><thead><tr><th>Producto</th><th>Precio</th><th>Local 1</th><th>Local 2</th><th>Total</th></tr></thead><tbody id="location-stock-body"></tbody></table></div>
-          </section>
         </section>
       </main>
     </div>
@@ -359,8 +363,8 @@
                 <p class="section-subtitle">Altas, renovaciones, ventas, entradas manuales y salidas del dia.</p>
               </div>
               <div class="dashboard-inline-actions">
-                <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button"><i class="fa-solid fa-plus"></i>Agregar entrada</button>
-                <button id="dashboard-registrar-salida" class="app-button app-button-danger" type="button"><i class="fa-solid fa-minus"></i>Registrar salida</button>
+                <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button"><i class="fa-solid fa-plus"></i>Entrada</button>
+                <button id="dashboard-registrar-salida" class="app-button app-button-danger" type="button"><i class="fa-solid fa-minus"></i>Salida</button>
               </div>
             </div>
 
