@@ -171,6 +171,7 @@ function createAdminEntriesController({ shared }) {
     } catch (error) {
       console.error('Error cargando ingresos:', error);
       estadoDashboard.textContent = 'Error al cargar ingresos';
+      sinIngresos.style.display = 'grid';
     }
   }
 
@@ -376,6 +377,7 @@ function createAdminEntriesController({ shared }) {
       totalEgresosCaja.textContent = formatearMoneda(0);
       aperturaEstado.textContent = 'Error al cargar apertura';
       cierreEstado.textContent = 'Error al cargar caja';
+      sinCaja.style.display = 'grid';
     }
   }
 

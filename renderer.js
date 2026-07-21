@@ -18,7 +18,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalCard.classList.add('app-modal-card-wide');
 
     modalBody.innerHTML = `
-      <div class="config-price-grid">
+      <div class="config-page-intro">
+        <span class="config-page-kicker">Administracion del sistema</span>
+        <p>Valores comerciales, almacenamiento y funciones especiales de Under-Fit.</p>
+      </div>
+      <section class="config-section">
+        <div class="config-section-heading">
+          <div class="config-section-icon"><i class="fa-solid fa-tags"></i></div>
+          <div><h4>Cuotas y membresias</h4><p>Importes utilizados al registrar altas y renovaciones.</p></div>
+        </div>
+        <div class="config-price-grid">
         <div class="form-field">
           <label for="config-precio-inscripcion">Inscripcion</label>
           <input id="config-precio-inscripcion" type="number" min="0" step="1" value="0">
@@ -35,8 +44,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           <label for="config-precio-membresia-semestral">6 Meses</label>
           <input id="config-precio-membresia-semestral" type="number" min="0" step="1" value="0">
         </div>
-      </div>
-      <div class="config-paths-grid">
+        </div>
+      </section>
+      <section class="config-section">
+        <div class="config-section-heading">
+          <div class="config-section-icon"><i class="fa-solid fa-database"></i></div>
+          <div><h4>Datos y respaldos</h4><p>Ubicaciones administradas por esta instalacion.</p></div>
+        </div>
+        <div class="config-paths-grid">
         <div class="form-field">
           <label for="config-db-path">Base de datos</label>
           <input id="config-db-path" readonly>
@@ -45,15 +60,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           <label for="config-backup-path">Carpeta de backups</label>
           <input id="config-backup-path" readonly>
         </div>
-      </div>
-      <p id="config-backup-status" class="placeholder-copy">Backup semanal automatico activo.</p>
-      <div class="config-event-panel">
-        <h4>Modo evento Under Running</h4>
-        <label class="config-event-toggle">
-          <input id="config-evento-running-activo" type="checkbox">
-          <span>Activar evento en pantalla de ingreso</span>
-        </label>
-        <div class="config-price-grid">
+        </div>
+        <p id="config-backup-status" class="config-status-copy">Backup semanal automatico activo.</p>
+      </section>
+      <section class="config-section config-event-panel">
+        <div class="config-section-heading config-event-heading">
+          <div class="config-section-icon"><i class="fa-solid fa-person-running"></i></div>
+          <div><h4>Under Running</h4><p>Contenido especial para la pantalla de ingreso.</p></div>
+          <label class="switch-control" for="config-evento-running-activo">
+            <input id="config-evento-running-activo" type="checkbox">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-label">Activar evento</span>
+          </label>
+        </div>
+        <div class="config-event-fields">
           <div class="form-field">
             <label for="config-evento-running-nombre">Nombre</label>
             <input id="config-evento-running-nombre" type="text" value="UNDER RUNNING">
@@ -67,14 +87,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             <input id="config-evento-running-fecha" type="date">
           </div>
         </div>
-      </div>
+      </section>
     `;
 
     const footer = document.createElement('div');
     footer.className = 'app-modal-footer';
     footer.innerHTML = `
-      <button id="config-guardar-negocio" class="app-button" type="button">Guardar montos</button>
-      <button id="config-crear-backup" class="app-button app-button-primary" type="button">Crear backup ahora</button>
+      <button id="config-crear-backup" class="app-button" type="button"><i class="fa-solid fa-box-archive"></i> Crear backup</button>
+      <button id="config-guardar-negocio" class="app-button app-button-primary" type="button"><i class="fa-solid fa-check"></i> Guardar cambios</button>
     `;
     modalCard.appendChild(footer);
 

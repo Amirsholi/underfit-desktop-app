@@ -1,60 +1,68 @@
-**Design QA — Under-Fit 2.5.0**
+**Design QA — Under-Fit 2.5.0 premium operational cut**
 
-- source visual truth path: `C:\Users\Usuario\.codex\generated_images\019f7fef-b994-7da2-a5b2-06256229efbb\exec-83c2264d-bc31-40af-bf6f-63a98d121f1c.png`
-- implementation screenshot path: `C:\GymApp\.codex-audit\10-home-final.png`
-- combined comparison evidence: `C:\GymApp\.codex-audit\11-side-by-side.png`
+- source visual truth path: `C:\Users\Usuario\.codex\generated_images\019f7fef-b994-7da2-a5b2-06256229efbb\exec-93541def-3a03-41bd-9ade-5d7fbb584868.png`
+- implementation screenshot path: `C:\GymApp\.codex-audit\22-modal-premium-aligned.png`
+- settings screenshot path: `C:\GymApp\.codex-audit\19-config-premium-final.png`
+- combined comparison evidence: `C:\GymApp\.codex-audit\23-premium-side-by-side-final.png`
 - viewport: 1440 × 1024
-- state: administración / Inicio / tema oscuro / datos vacíos del servidor estático
+- state: Caja / ingreso manual abierto / tema oscuro premium
 
 **Findings**
 
 - No quedan diferencias P0, P1 o P2 accionables.
-- La implementación conserva la identidad visual existente de Under-Fit: negro profundo, superficies grafito, naranja de marca, bordes fríos, logo y tipografía de títulos.
-- La composición sigue la referencia seleccionada: navegación lateral persistente, cabecera de contexto, indicadores, accesos rápidos y tabla operativa.
-- La diferencia de contenido entre la referencia y la captura es esperada: la referencia usa datos demostrativos y la captura estática no tiene acceso a la API de Electron. La aplicación mantiene sus fuentes de datos reales y no incorpora datos ficticios.
+- La página Caja replica la composición seleccionada: fecha y estado a la izquierda, apertura a la derecha, totales tipográficos con divisores, movimientos como superficie principal y fondo atmosférico.
+- El modal conserva tamaño, alineación, profundidad, título con icono, explicación, cierre compacto, selector de pago y separación de acciones de la referencia.
+- Los nombres de campos mantienen el modelo real: la implementación usa `Motivo` donde el mock decía `Descripción`, porque ese es el dato auditado por el flujo existente.
+- El aviso `Error al cargar usuarios` pertenece exclusivamente a la ejecución en servidor estático sin `window.api`; la aplicación Electron conserva su API real.
 
 **Required fidelity surfaces**
 
-- Fonts and typography: jerarquía, peso, tamaño, altura de línea y contraste son coherentes con la marca actual y con la referencia. Los títulos mantienen el carácter visual de Under-Fit; el texto funcional usa una sans legible.
-- Spacing and layout rhythm: sidebar compacto, grilla de cuatro indicadores, acciones rápidas y tabla usan un ritmo consistente. No hay desbordamiento horizontal a 1440 px.
-- Colors and visual tokens: fondos negros/grafito, texto blanco/gris y acento naranja se corresponden con la paleta actual y la dirección seleccionada.
-- Image quality and asset fidelity: se reutiliza el logo real. Los iconos provienen de Font Awesome; no se usan dibujos CSS, emojis ni sustitutos de texto.
-- Copy and content: Inicio, Usuarios, Caja, Cobros pendientes, Registros, Productos, Clases y Configuración son etiquetas directas y consistentes con el modelo operativo acordado.
+- Fonts and typography: jerarquía compacta, pesos y altura de línea son coherentes con la referencia; se preservan los títulos Under-Fit y la sans funcional del producto.
+- Spacing and layout rhythm: cabecera, estado, apertura, totales, tabla y modal siguen el ritmo y proporciones del objetivo. No existe desbordamiento horizontal a 1440 px.
+- Colors and visual tokens: negro carbón, superficies translúcidas, divisores fríos y naranja restringido a selección/acción coinciden con la dirección elegida.
+- Image quality and asset fidelity: se reutiliza el logo real y los iconos provienen de Font Awesome. El fondo usa el activo real `gym.jpg` con tratamiento atmosférico del producto.
+- Copy and content: etiquetas de Caja, Registros y Configuración se mantienen en español y corresponden a las operaciones reales.
 
 **Interaction evidence**
 
-- Inicio, Caja, Registros, Cobros pendientes y Configuración fueron recorridos desde la navegación lateral.
-- Caja cambia al contexto de caja y Registros al contexto de ingresos dentro de la misma página operativa.
-- Configuración se renderiza dentro de `main`, sin botón de cerrar y sin comportamiento de modal.
-- Cobros pendientes muestra su página y estado vacío; el contador queda en cero hasta que exista persistencia real.
-- La captura final no presenta desbordamiento horizontal.
+- Caja y Registros abren como páginas dentro de la navegación.
+- Agregar entrada abre el modal refinado.
+- Cancelar y cerrar ocultan el modal correctamente.
+- Efectivo/Transferencia conserva controles de formulario reales.
+- Configuración abre como página, agrupa tres secciones y no desborda el viewport.
+- El switch Under Running puede activarse y desactivarse mediante teclado/click y conserva el checkbox usado por la persistencia actual.
+
+**Console evidence**
+
+- Los únicos errores observados provienen de ejecutar el HTML fuera de Electron, donde `window.api` no existe. No se observaron errores de sintaxis, layout o interacción introducidos por este corte.
 
 **Full-view comparison evidence**
 
-- La comparación combinada lado a lado confirma proporciones, jerarquía general, densidad, color, navegación, métricas y tabla.
+- La comparación lado a lado confirma composición, proporción del modal, jerarquía, densidad, fondo, bordes, selector de pago y acciones.
 
 **Focused region comparison evidence**
 
-- No fue necesaria una captura adicional: la comparación combinada conserva resolución suficiente para leer y evaluar cabecera, sidebar, tarjetas, botones, iconos y encabezados de tabla.
+- El modal constituye la región focal y ocupa suficiente resolución en la comparación de 2880 × 1024 para revisar tipografía, controles, espaciado, iconos, borde y botones.
 
 **Comparison history**
 
-- Iteración inicial: la navegación anterior se sentía visualmente desconectada y con jerarquía insuficiente.
-- Fix aplicado: sidebar compacto persistente, jerarquía de Inicio, métricas, accesos rápidos, tabla reciente, iconografía consistente y páginas promovidas desde modales.
-- Evidencia posterior: `C:\GymApp\.codex-audit\10-home-final.png` y `C:\GymApp\.codex-audit\11-side-by-side.png`.
-- Resultado posterior: no quedan hallazgos P0/P1/P2.
+- Iteración 1: el modal implementado estaba desplazado aproximadamente 100 px a la derecha y el desenfoque del fondo era más intenso que la referencia (P2).
+- Fix: se retiró el desplazamiento asociado al ancho del sidebar y se redujo el desenfoque de 4 px a 2 px.
+- Evidencia posterior: `C:\GymApp\.codex-audit\22-modal-premium-aligned.png` y `C:\GymApp\.codex-audit\23-premium-side-by-side-final.png`.
+- Resultado posterior: alineación izquierda `449 px`, ancho `542 px`, sin desbordamiento; no quedan hallazgos P0/P1/P2.
 
 **Follow-up polish**
 
-- [P3] Validar densidad y truncado con datos productivos extremos cuando se conecte el segundo local y existan cobros pendientes reales.
-- [P3] Preparar una variante táctil específica para la tablet del profesor durante la fase multi-local.
+- [P3] Revisar textos y densidad con una base productiva poblada y movimientos extensos.
+- [P3] Aplicar el mismo lenguaje a las futuras pantallas de ingreso del local 1 y tablet del profesor.
 
 **Implementation Checklist**
 
-- [x] Preservar paleta, logo y carácter visual actual.
-- [x] Convertir navegación principal en páginas persistentes.
-- [x] Incorporar Cobros pendientes como destino dedicado.
-- [x] Verificar estados vacíos y navegación principal.
-- [x] Verificar sintaxis y pruebas automatizadas.
+- [x] Restaurar profundidad del fondo Under-Fit.
+- [x] Reorganizar Caja y Registros.
+- [x] Reorganizar Configuración por propósito.
+- [x] Convertir Under Running en switch accesible.
+- [x] Reinventar el sistema de modales.
+- [x] Verificar navegación, cierre, switch, viewport y pruebas automatizadas.
 
 final result: passed

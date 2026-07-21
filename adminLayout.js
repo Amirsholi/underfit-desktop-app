@@ -36,6 +36,43 @@ function createAdminLayoutController() {
   }
 
   function initModalTriggers() {
+    const modalCopy = {
+      'modal-ingreso-manual-caja': ['fa-arrow-right-to-bracket', 'Registra un ingreso manual a la caja.'],
+      'modal-salida-caja': ['fa-arrow-right-from-bracket', 'Registra un egreso y su metodo de pago.'],
+      'modal-corregir-movimiento': ['fa-pen-to-square', 'Anula el movimiento original y guarda la correccion.'],
+      'modal-cierre-caja': ['fa-lock', 'Compara el efectivo contado antes de cerrar la jornada.'],
+      'modal-ajuste-total': ['fa-scale-balanced', 'Ajusta el total conservando un registro de auditoria.'],
+      'modal-alta-usuario': ['fa-user-plus', 'Completa los datos principales del nuevo socio.'],
+      'modal-renovar-suscripcion': ['fa-arrows-rotate', 'Selecciona el socio y el periodo de renovacion.'],
+      'modal-nuevo-producto': ['fa-bag-shopping', 'Agrega un articulo al inventario.'],
+      'modal-vender-producto': ['fa-cart-shopping', 'Registra una venta y actualiza el stock.'],
+      'modal-editar-producto': ['fa-pen', 'Actualiza los datos y existencias del articulo.'],
+      'modal-anular-ingreso': ['fa-ban', 'El registro quedara anulado con trazabilidad.'],
+    };
+    document.querySelectorAll('.app-modal:not(.route-page)').forEach(modal => {
+      const header = modal.querySelector('.app-modal-header');
+      const title = header?.querySelector('h3');
+      const close = header?.querySelector('.app-modal-close');
+      if (!header || !title) return;
+      modal.classList.add('refined-modal');
+      const [icon, subtitle] = modalCopy[modal.id] || ['fa-sliders', 'Completa la informacion para continuar.'];
+      title.innerHTML = `<span class="modal-title-icon"><i class="fa-solid ${icon}"></i></span><span class="modal-title-copy"><span>${title.textContent}</span><small>${subtitle}</small></span>`;
+      if (close) {
+        close.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        close.setAttribute('aria-label', 'Cerrar');
+        close.setAttribute('title', 'Cerrar');
+      }
+      const footer = modal.querySelector('.app-modal-footer');
+      if (footer && !footer.querySelector('.modal-cancel-action')) {
+        const cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'app-button modal-cancel-action';
+        cancel.dataset.closeModal = modal.id;
+        cancel.textContent = 'Cancelar';
+        footer.prepend(cancel);
+      }
+    });
+
     document.querySelectorAll('[data-open-modal]').forEach(button => {
       button.addEventListener('click', () => {
         openModalById(button.getAttribute('data-open-modal'));
