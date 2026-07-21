@@ -108,6 +108,7 @@ function createAdminLayoutController() {
       document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
         button.classList.toggle('is-active', button.dataset.adminSection === section);
       });
+      if (section === 'home') document.dispatchEvent(new CustomEvent('admin-home:show'));
     }
 
     navigationButtons.forEach(button => button.addEventListener('click', () => showSection(button.dataset.adminSection)));

@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalBody = modal?.querySelector('.app-modal-body');
     const modalCard = modal?.querySelector('.app-modal-card');
 
-    if (!btnOpenSettings || !modal || !modalBody || !modalCard || modal.dataset.settingsReady === 'true') {
+    if (!modal || !modalBody || !modalCard || modal.dataset.settingsReady === 'true') {
       return;
     }
 
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    btnOpenSettings.addEventListener('click', cargarInfoSistema);
+    btnOpenSettings?.addEventListener('click', cargarInfoSistema);
     document.addEventListener('admin-settings:show', cargarInfoSistema);
     saveBusinessButton.addEventListener('click', async () => {
       try {
@@ -201,5 +201,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     console.error('No se pudo inicializar productos:', error);
   }
+  window.createHomeDashboardController({ shared }).init();
   window.createAdminEntriesController({ shared }).init();
 });

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
-  <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.3">
+  <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -25,11 +25,11 @@
       </button>
 
       <div class="topbar-actions">
-        <div class="topbar-context">
-          <span id="topbar-date"></span>
-          <span id="topbar-time"></span>
+        <div class="sync-status" aria-label="Estado de sincronizacion">
+          <i class="fa-solid fa-circle-check"></i>
+          <span><strong>Sincronizado</strong><small>Hoy, <span id="topbar-time"></span></small></span>
         </div>
-        <button id="btn-open-settings" class="topbar-button" type="button">Configuracion</button>
+        <span id="topbar-date" class="topbar-date-hidden"></span>
       </div>
     </header>
 
@@ -42,54 +42,43 @@
         <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
         <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
         <button class="sidebar-action" type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="locations"><i class="fa-solid fa-cube"></i><span>Locales</span></button>
         <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuracion</span></button>
       </aside>
       <main class="workspace-main">
         <section class="app-view is-active" data-admin-view="home">
-          <div class="section-heading">
-            <div>
-              <h2 class="section-title">Inicio</h2>
-              <p class="section-subtitle">Resumen de la operacion del gimnasio.</p>
-            </div>
+          <div class="home-command-heading">
+            <h2>¡Bienvenido de vuelta!</h2>
+            <p>Centro operativo del gimnasio.</p>
           </div>
-            <section class="widgets-row" aria-label="Resumen diario">
-              <article class="summary-widget">
-                <span class="summary-widget-label">Usuarios activos</span>
-                <span id="contador-usuarios" class="summary-widget-value">0</span>
-              </article>
-
-              <article class="summary-widget">
-                <span class="summary-widget-label">Personas que ingresaron hoy</span>
-                <span id="widget-ingresos-hoy" class="summary-widget-value">0</span>
-              </article>
-
-              <article class="summary-widget">
-                <span class="summary-widget-label">Dinero ingresado hoy</span>
-                <span id="widget-ventas-hoy" class="summary-widget-value">$ 0</span>
-              </article>
-              <article class="summary-widget summary-widget-pending" data-admin-section="pending" tabindex="0">
-                <span class="summary-widget-label">Cobros pendientes</span>
-                <span class="summary-widget-value" id="widget-cobros-pendientes">0</span>
-              </article>
-            </section>
-          <div class="action-dock" aria-label="Acciones frecuentes">
-            <button class="dock-action" type="button" data-admin-section="users">Gestionar usuarios</button>
-            <button class="dock-action" type="button" data-admin-section="cash">Abrir caja</button>
-            <button class="dock-action" type="button" data-admin-section="records">Ver registros</button>
-            <button class="dock-action" type="button" data-admin-section="products">Gestionar productos</button>
-          </div>
-          <section class="home-activity">
-            <div class="section-heading"><div><h3 class="home-section-title">Operaciones recientes</h3><p class="section-subtitle">Ultimos movimientos registrados en caja.</p></div></div>
-            <div class="table-card">
-              <div class="table-scroll home-activity-scroll">
-                <table class="data-table">
-                  <thead><tr><th>Hora</th><th>Tipo</th><th>Descripcion</th><th>Pago</th><th>Monto</th></tr></thead>
-                  <tbody id="home-activity-body"></tbody>
-                </table>
-              </div>
-              <div id="home-activity-empty" class="table-empty home-empty-visible">Todavia no hay movimientos de caja para hoy.</div>
-            </div>
+          <section class="home-live-strip" aria-label="Resumen diario">
+            <article><i class="fa-solid fa-users"></i><span>Usuarios activos<strong id="contador-usuarios">0</strong></span></article>
+            <article><i class="fa-solid fa-person-walking-arrow-right"></i><span>Personas que ingresaron hoy<strong id="widget-ingresos-hoy">0</strong></span></article>
+            <article><i class="fa-solid fa-dollar-sign"></i><span>Dinero ingresado hoy<strong id="widget-ventas-hoy">$ 0</strong></span></article>
+            <article data-admin-section="pending" tabindex="0"><i class="fa-regular fa-clock"></i><span>Cobros pendientes<strong id="widget-cobros-pendientes">0</strong></span></article>
           </section>
+          <div class="home-workspace-grid">
+            <section class="home-operational-pane home-members-pane">
+              <div class="home-pane-heading"><h3>Buscar socio</h3><button type="button" data-admin-section="users">Ver todos los socios <i class="fa-solid fa-chevron-right"></i></button></div>
+              <div class="home-search"><input id="home-member-search" placeholder="CI o Nombre"><i class="fa-solid fa-magnifying-glass"></i></div>
+              <div class="home-pane-heading home-list-heading"><h3>Socios activos</h3></div>
+              <div class="home-list-header home-member-columns"><span>Socio</span><span>Vencimiento</span><span>Plan / Estado</span></div>
+              <div id="home-members-list" class="home-data-list"></div>
+              <div id="home-members-empty" class="home-list-empty">No hay socios para mostrar.</div>
+            </section>
+            <section class="home-operational-pane home-products-pane">
+              <div class="home-pane-heading"><h3>Venta rapida de productos</h3><button type="button" data-admin-section="products">Ver todos los productos <i class="fa-solid fa-chevron-right"></i></button></div>
+              <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Stock</span><span>Accion</span></div>
+              <div id="home-products-list" class="home-data-list"></div>
+              <div id="home-products-empty" class="home-list-empty">No hay productos disponibles.</div>
+            </section>
+          </div>
+          <div class="home-command-actions" aria-label="Acciones frecuentes">
+            <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
+            <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripcion</span></button>
+            <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+            <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Ver caja</span></button>
+          </div>
         </section>
 
         <section class="app-view" data-admin-view="pending">
@@ -170,6 +159,10 @@
             <strong>Modulo preparado para la siguiente fase</strong>
             <p>Desde aqui se administraran horarios, cupos, profesores e inscripciones.</p>
           </div>
+        </section>
+        <section class="app-view" data-admin-view="locations">
+          <div class="section-heading"><div><h2 class="section-title">Locales</h2><p class="section-subtitle">Asignacion de stock y estado de cada sede.</p></div></div>
+          <div class="module-placeholder"><strong>Modulo multi-local pendiente</strong><p>Se implementara con el modelo compartido de stock y permisos.</p></div>
         </section>
       </main>
     </div>
@@ -324,8 +317,9 @@
               </div>
             </div>
 
-            <div class="table-scroll table-scroll-dashboard dashboard-table-plain dashboard-table-primary">
-              <table class="data-table">
+            <div class="dashboard-table-shell">
+              <div class="table-scroll table-scroll-dashboard dashboard-table-plain dashboard-table-primary">
+                <table class="data-table">
                 <thead>
                   <tr>
                     <th>Hora</th>
@@ -337,9 +331,10 @@
                   </tr>
                 </thead>
                 <tbody id="tabla-dashboard-caja"></tbody>
-              </table>
+                </table>
+              </div>
+              <div id="dashboard-sin-caja" class="table-empty dashboard-empty-state"><i class="fa-regular fa-folder-open"></i><strong>No hay movimientos registrados</strong><span>Los movimientos de caja apareceran aqui.</span></div>
             </div>
-            <div id="dashboard-sin-caja" class="table-empty dashboard-empty-state"><i class="fa-regular fa-folder-open"></i><strong>No hay movimientos registrados</strong><span>Los movimientos de caja apareceran aqui.</span></div>
           </section>
 
           <div class="dashboard-footer-actions">
@@ -354,8 +349,9 @@
               <p class="section-subtitle">Actividad de acceso del gimnasio para la fecha seleccionada.</p>
             </div>
           </div>
-          <div class="table-scroll table-scroll-dashboard dashboard-table-plain">
-            <table class="data-table">
+          <div class="dashboard-table-shell">
+            <div class="table-scroll table-scroll-dashboard dashboard-table-plain">
+              <table class="data-table">
               <thead>
                 <tr>
                   <th>Hora</th>
@@ -365,9 +361,10 @@
                 </tr>
               </thead>
               <tbody id="tabla-dashboard-ingresos"></tbody>
-            </table>
+              </table>
+            </div>
+            <div id="dashboard-sin-ingresos" class="table-empty dashboard-empty-state"><i class="fa-solid fa-door-open"></i><strong>No hay ingresos registrados</strong><span>Los accesos de la fecha seleccionada apareceran aqui.</span></div>
           </div>
-          <div id="dashboard-sin-ingresos" class="table-empty dashboard-empty-state"><i class="fa-solid fa-door-open"></i><strong>No hay ingresos registrados</strong><span>Los accesos de la fecha seleccionada apareceran aqui.</span></div>
         </section>
       </div>
     </div>
@@ -923,6 +920,7 @@
   <script src="adminMemberships.js?v=2.5.0.2"></script>
   <script src="adminProducts.js?v=2.5.0.2"></script>
   <script src="adminEntries.js?v=2.5.0.5"></script>
+  <script src="homeDashboard.js?v=2.5.0.1"></script>
   <script src="renderer.js?v=2.5.0.4"></script>
 </body>
 </html>
