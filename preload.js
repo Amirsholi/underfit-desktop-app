@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('api', {
 
   transferirStockLocal: (payload) => ipcRenderer.invoke('transferir-stock-local', payload),
 
+  obtenerLocales: () => ipcRenderer.invoke('obtener-locales'),
+
   obtenerClasesProximas: (desde) => ipcRenderer.invoke('obtener-clases-proximas', desde),
 
   crearClase: (payload) => ipcRenderer.invoke('crear-clase', payload),

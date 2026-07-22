@@ -2280,6 +2280,71 @@ body.admin-page::after {
   opacity: 0.55;
 }
 
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(58px, 1fr));
+  gap: 8px;
+}
+
+.weekday-picker label {
+  position: relative;
+  cursor: pointer;
+}
+
+.weekday-picker input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.weekday-picker span {
+  display: grid;
+  min-height: 43px;
+  place-items: center;
+  border: 1px solid var(--uf-border);
+  border-radius: 9px;
+  color: var(--uf-muted);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 13px;
+  font-weight: 900;
+  transition: 150ms ease;
+}
+
+.weekday-picker input:checked + span {
+  border-color: rgba(255, 104, 31, 0.72);
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 104, 31, 0.26), rgba(255, 104, 31, 0.12));
+  box-shadow: inset 0 0 0 1px rgba(255, 104, 31, 0.08);
+}
+
+.weekday-picker input:focus-visible + span {
+  outline: 2px solid rgba(255, 104, 31, 0.42);
+  outline-offset: 2px;
+}
+
+#modal-nueva-clase.refined-modal .app-modal-body-two-columns {
+  gap: 12px 18px;
+  padding: 16px 22px 18px;
+}
+
+#modal-nueva-clase.refined-modal .app-modal-body .form-field {
+  margin-bottom: 0;
+}
+
+#modal-nueva-clase .weekday-picker span {
+  min-height: 39px;
+}
+
+#modal-nueva-clase .field-help {
+  margin-top: 5px;
+}
+
+@media (min-height: 700px) {
+  #modal-nueva-clase.refined-modal .app-modal-body {
+    overflow: hidden;
+  }
+}
+
 @media (max-width: 1380px) {
   .professors-list { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 }
@@ -2288,4 +2353,5 @@ body.admin-page::after {
   .professors-list { grid-template-columns: 1fr; }
   .professor-row { grid-template-columns: minmax(0, 1fr) auto; }
   .professor-status { display: none; }
+  .weekday-picker { grid-template-columns: repeat(4, minmax(58px, 1fr)); }
 }

@@ -543,6 +543,51 @@ async function migrarProfesores(dbPath) {
   }
 }
 
+async function migrarProgramacionesClases(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS programaciones_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        profesor_id INTEGER NOT NULL,
+        profesor_nombre TEXT NOT NULL,
+        dias_semana TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        duracion_minutos INTEGER NOT NULL DEFAULT 60,
+        capacidad INTEGER NOT NULL DEFAULT 12,
+        fecha_inicio TEXT NOT NULL,
+        fecha_fin TEXT,
+        notas TEXT,
+        estado TEXT NOT NULL DEFAULT 'activa',
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS inscripciones_programacion_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        programacion_id INTEGER NOT NULL,
+        usuario_ci INTEGER NOT NULL,
+        usuario_nombre TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'inscripto',
+        creado_ts TEXT NOT NULL,
+        UNIQUE (programacion_id, usuario_ci)
+      )
+    `);
+
+    await addColumnIfMissing(db, 'clases', 'programacion_id', 'INTEGER');
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_programaciones_clase_estado ON programaciones_clase(estado, fecha_inicio)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_inscripciones_programacion ON inscripciones_programacion_clase(programacion_id, estado)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_clases_programacion ON clases(programacion_id, fecha, hora)`);
+    await runAsync(db, `CREATE UNIQUE INDEX IF NOT EXISTS unq_clase_programacion_fecha ON clases(programacion_id, fecha, hora) WHERE programacion_id IS NOT NULL`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
 async function ejecutarMigraciones(dbPath) {
   await migrarUsuarios(dbPath);
   await migrarIngresos(dbPath);
@@ -551,6 +596,7 @@ async function ejecutarMigraciones(dbPath) {
   await migrarConfiguracion(dbPath);
   await migrarOperacionesMultiLocal(dbPath);
   await migrarProfesores(dbPath);
+  await migrarProgramacionesClases(dbPath);
 }
 
 module.exports = {
@@ -561,5 +607,6 @@ module.exports = {
   migrarConfiguracion,
   migrarOperacionesMultiLocal,
   migrarProfesores,
+  migrarProgramacionesClases,
   ejecutarMigraciones,
 };

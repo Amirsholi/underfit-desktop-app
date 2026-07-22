@@ -48,9 +48,9 @@ function createAdminLayoutController() {
       'modal-vender-producto': ['fa-cart-shopping', 'Registra una venta y actualiza el stock.'],
       'modal-editar-producto': ['fa-pen', 'Actualiza los datos y existencias del articulo.'],
       'modal-anular-ingreso': ['fa-ban', 'El registro quedara anulado con trazabilidad.'],
-      'modal-nueva-clase': ['fa-calendar-plus', 'Defini horario, cupos y profesor para el Local 2.'],
+      'modal-nueva-clase': ['fa-calendar-plus', 'Definí local, profesor, días, horario y cupos del grupo.'],
       'modal-profesor': ['fa-user-lock', 'Crea una identidad simple para operar la tablet.'],
-      'modal-inscribir-clase': ['fa-user-check', 'Asocia un socio a la clase seleccionada.'],
+      'modal-inscribir-clase': ['fa-user-check', 'Asocia un socio al grupo o a una fecha puntual.'],
       'modal-cobrar-pendiente': ['fa-hand-holding-dollar', 'El cobro ingresara a la caja abierta del Local 1.'],
     };
     document.querySelectorAll('.app-modal:not(.route-page)').forEach(modal => {

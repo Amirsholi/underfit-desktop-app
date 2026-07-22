@@ -21,6 +21,47 @@ function createOperationsService({ operationsRepository, userRepository, product
     return normalized;
   }
 
+  function normalizeDate(value, fieldName) {
+    const normalized = requiredText(value, fieldName);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) throw new Error(`${fieldName} invalida`);
+    const parsed = new Date(`${normalized}T12:00:00`);
+    if (Number.isNaN(parsed.getTime()) || formatLocalDate(parsed) !== normalized) throw new Error(`${fieldName} invalida`);
+    return normalized;
+  }
+
+  function formatLocalDate(date) {
+    const pad = value => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  function addDays(dateText, days) {
+    const date = new Date(`${dateText}T12:00:00`);
+    date.setDate(date.getDate() + days);
+    return formatLocalDate(date);
+  }
+
+  function normalizeWeekdays(value) {
+    const source = Array.isArray(value) ? value : String(value || '').split(',');
+    const days = [...new Set(source.map(day => Number.parseInt(day, 10)))]
+      .filter(day => Number.isInteger(day) && day >= 0 && day <= 6)
+      .sort((a, b) => (a || 7) - (b || 7));
+    if (!days.length) throw new Error('Selecciona al menos un dia de clase');
+    return days;
+  }
+
+  function generateOccurrenceDates(schedule, fromDate, throughDate) {
+    const weekdays = normalizeWeekdays(schedule.diasSemana);
+    const effectiveStart = schedule.fechaInicio > fromDate ? schedule.fechaInicio : fromDate;
+    let effectiveEnd = throughDate;
+    if (schedule.fechaFin && schedule.fechaFin < effectiveEnd) effectiveEnd = schedule.fechaFin;
+    if (effectiveEnd < effectiveStart) return [];
+    const dates = [];
+    for (let cursor = effectiveStart; cursor <= effectiveEnd; cursor = addDays(cursor, 1)) {
+      if (weekdays.includes(new Date(`${cursor}T12:00:00`).getDay())) dates.push(cursor);
+    }
+    return dates;
+  }
+
   async function resolveProfessor(payload = {}) {
     if (staffService) return staffService.resolveIdentity(payload);
     return {
@@ -34,6 +75,10 @@ function createOperationsService({ operationsRepository, userRepository, product
     return operationsRepository.listStockByLocation();
   }
 
+  function listLocations() {
+    return operationsRepository.listLocations();
+  }
+
   async function transferStock(payload = {}) {
     const now = nowLocalParts();
     return operationsRepository.transferStock({
@@ -44,14 +89,56 @@ function createOperationsService({ operationsRepository, userRepository, product
     });
   }
 
-  function listUpcomingClasses(fromDate = null) {
-    return operationsRepository.listClasses({ fromDate: String(fromDate || nowLocalParts().fecha) });
+  async function ensureUpcomingClasses(fromDate) {
+    if (!operationsRepository.listActiveClassSchedules || !operationsRepository.addScheduleOccurrences) return;
+    const schedules = await operationsRepository.listActiveClassSchedules();
+    const throughDate = addDays(fromDate, 70);
+    const createdTs = new Date().toISOString();
+    for (const schedule of schedules) {
+      const dates = generateOccurrenceDates(schedule, fromDate, throughDate);
+      await operationsRepository.addScheduleOccurrences(schedule, dates, createdTs);
+    }
+  }
+
+  async function listUpcomingClasses(fromDate = null) {
+    const normalizedFromDate = normalizeDate(fromDate || nowLocalParts().fecha, 'Fecha');
+    await ensureUpcomingClasses(normalizedFromDate);
+    return operationsRepository.listClasses({ fromDate: normalizedFromDate });
   }
 
   async function createClass(payload = {}) {
-    const fecha = requiredText(payload.fecha, 'Fecha');
     const hora = requiredText(payload.hora, 'Hora');
     const professor = await resolveProfessor(payload);
+    if (payload.diasSemana !== undefined) {
+      const fechaInicio = normalizeDate(payload.fechaInicio || nowLocalParts().fecha, 'Fecha de inicio');
+      const fechaFin = payload.fechaFin ? normalizeDate(payload.fechaFin, 'Fecha de fin') : null;
+      if (fechaFin && fechaFin < fechaInicio) throw new Error('La fecha de fin no puede ser anterior al inicio');
+      const weekdays = normalizeWeekdays(payload.diasSemana);
+      const localId = normalizePositiveInteger(payload.localId || 2, 'Local');
+      const professorId = professor.profesorId || professor.id;
+      if (!professorId) throw new Error('Selecciona un profesor registrado');
+      const locations = await operationsRepository.listLocations();
+      if (!locations.some(location => Number(location.id) === localId)) throw new Error('Local no disponible');
+      const schedule = {
+        nombre: requiredText(payload.nombre, 'Nombre'),
+        profesor: professor.profesorNombre || professor.nombre,
+        profesorId: professorId,
+        localId,
+        diasSemana: weekdays.join(','),
+        hora,
+        capacidad: normalizePositiveInteger(payload.capacidad || 12, 'Capacidad'),
+        duracionMinutos: normalizePositiveInteger(payload.duracionMinutos || 60, 'Duracion'),
+        fechaInicio,
+        fechaFin,
+        notas: String(payload.notas || '').trim() || null,
+        creadoTs: new Date().toISOString(),
+      };
+      const fromDate = fechaInicio > nowLocalParts().fecha ? fechaInicio : nowLocalParts().fecha;
+      schedule.occurrenceDates = generateOccurrenceDates(schedule, fromDate, addDays(fromDate, 70));
+      if (!schedule.occurrenceDates.length) throw new Error('La programacion no genera ninguna clase en el periodo seleccionado');
+      return operationsRepository.createClassSchedule(schedule);
+    }
+    const fecha = normalizeDate(payload.fecha, 'Fecha');
     return operationsRepository.createClass({
       nombre: requiredText(payload.nombre, 'Nombre'),
       profesor: professor.profesorNombre || professor.nombre,
@@ -149,6 +236,7 @@ function createOperationsService({ operationsRepository, userRepository, product
   return {
     listStock,
     transferStock,
+    listLocations,
     listUpcomingClasses,
     createClass,
     listClassEnrollments,

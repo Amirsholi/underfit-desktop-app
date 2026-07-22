@@ -23,6 +23,9 @@ The main location currently runs one reception PC with two displays: the adminis
 - Classes reference the selected professor while preserving the readable name on historical records.
 - Pending Local 2 sales preserve the professor and the exact tablet session that created them.
 - Reception can create, edit, deactivate and assign professors from the Classes page.
+- Class schedules now include location, professor, weekdays, time, duration, capacity and optional end date.
+- Upcoming occurrences are generated automatically and replenished as the calendar advances.
+- Enrollment belongs to the recurring group, so one reception action applies to every upcoming occurrence.
 - Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
 
 ### 1. Cash integrity

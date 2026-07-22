@@ -17,6 +17,8 @@ function createAdminOperationsController({ shared }) {
   const modalEnrollClass = document.getElementById('modal-inscribir-clase');
   const classSave = document.getElementById('class-save');
   const classCoach = document.getElementById('class-coach');
+  const classLocal = document.getElementById('class-local');
+  const classEnrollHelp = document.getElementById('class-enroll-help');
   const professorsList = document.getElementById('professors-list');
   const professorsEmpty = document.getElementById('professors-empty');
   const professorsCount = document.getElementById('professors-count');
@@ -48,6 +50,7 @@ function createAdminOperationsController({ shared }) {
 
   let classes = [];
   let professors = [];
+  let locations = [];
   let selectedClass = null;
   let enrollments = new Map();
   let stock = [];
@@ -94,12 +97,23 @@ function createAdminOperationsController({ shared }) {
     }).format(date);
   }
 
+  const weekdayLabels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  function formatWeekdays(value) {
+    const days = Array.isArray(value) ? value : String(value || '').split(',');
+    return days
+      .map(day => Number.parseInt(day, 10))
+      .filter(day => Number.isInteger(day) && day >= 0 && day <= 6)
+      .map(day => weekdayLabels[day])
+      .join(' · ');
+  }
+
   function demoClasses() {
     const base = today();
     return [
-      { id: 1, nombre: 'Funcional inicial', fecha: base, hora: '18:00', duracionMinutos: 60, capacidad: 12, profesor: 'Santiago', inscriptos: 6 },
-      { id: 2, nombre: 'Funcional intenso', fecha: base, hora: '19:15', duracionMinutos: 60, capacidad: 10, profesor: 'Santiago', inscriptos: 8 },
-      { id: 3, nombre: 'Movilidad y core', fecha: addDays(base, 1), hora: '17:30', duracionMinutos: 45, capacidad: 12, profesor: 'Valentina', inscriptos: 4 },
+      { id: 1, programacionId: 1, nombre: 'Funcional mañana', fecha: base, hora: '08:00', duracionMinutos: 60, capacidad: 12, profesor: 'Santiago', localNombre: 'Salón funcional', diasSemana: '1,3,5', inscriptos: 6 },
+      { id: 2, programacionId: 2, nombre: 'Funcional tarde', fecha: base, hora: '17:00', duracionMinutos: 60, capacidad: 10, profesor: 'Valentina', localNombre: 'Salón funcional', diasSemana: '2,4', inscriptos: 8 },
+      { id: 3, programacionId: 1, nombre: 'Funcional mañana', fecha: addDays(base, 2), hora: '08:00', duracionMinutos: 60, capacidad: 12, profesor: 'Santiago', localNombre: 'Salón funcional', diasSemana: '1,3,5', inscriptos: 6 },
     ];
   }
 
@@ -108,6 +122,37 @@ function createAdminOperationsController({ shared }) {
       { id: 1, nombre: 'Santiago', activo: true, pinConfigurado: true },
       { id: 2, nombre: 'Valentina', activo: true, pinConfigurado: true },
     ];
+  }
+
+  function demoLocations() {
+    return [
+      { id: 1, codigo: 'principal', nombre: 'Recepción principal', tipo: 'principal', activo: 1 },
+      { id: 2, codigo: 'funcional', nombre: 'Salón funcional', tipo: 'clases', activo: 1 },
+    ];
+  }
+
+  async function loadLocations() {
+    try {
+      if (window.api) locations = await window.api.obtenerLocales();
+      else if (!locations.length) locations = demoLocations();
+    } catch (error) {
+      console.error('No se pudieron cargar los locales:', error);
+      locations = [];
+    }
+    populateLocationSelect();
+  }
+
+  function populateLocationSelect() {
+    if (!classLocal) return;
+    const selectedValue = classLocal.value || '2';
+    classLocal.innerHTML = '<option value="">Seleccionar local</option>';
+    locations.forEach(item => {
+      const option = document.createElement('option');
+      option.value = String(item.id);
+      option.textContent = item.nombre;
+      classLocal.appendChild(option);
+    });
+    if ([...classLocal.options].some(option => option.value === selectedValue)) classLocal.value = selectedValue;
   }
 
   async function loadProfessors() {
@@ -250,7 +295,8 @@ function createAdminOperationsController({ shared }) {
 
   async function loadClasses() {
     try {
-      classes = window.api ? await window.api.obtenerClasesProximas(today()) : demoClasses();
+      if (window.api) classes = await window.api.obtenerClasesProximas(today());
+      else if (!classes.length) classes = demoClasses();
     } catch (error) {
       console.error('No se pudieron cargar las clases:', error);
       classes = [];
@@ -264,8 +310,14 @@ function createAdminOperationsController({ shared }) {
     classesList.innerHTML = '';
     classesEmpty.style.display = classes.length ? 'none' : 'grid';
     classesTodayCount.textContent = String(classes.filter(item => item.fecha === today()).length);
-    classesEnrolledCount.textContent = String(classes.reduce((sum, item) => sum + Number(item.inscriptos || 0), 0));
-    classesCapacityCount.textContent = String(classes.reduce((sum, item) => sum + Math.max(0, Number(item.capacidad || 0) - Number(item.inscriptos || 0)), 0));
+    const groups = new Map();
+    classes.forEach(item => {
+      const key = item.programacionId ? `schedule-${item.programacionId}` : `class-${item.id}`;
+      if (!groups.has(key)) groups.set(key, item);
+    });
+    const groupRows = [...groups.values()];
+    classesEnrolledCount.textContent = String(groupRows.reduce((sum, item) => sum + Number(item.inscriptos || 0), 0));
+    classesCapacityCount.textContent = String(groupRows.reduce((sum, item) => sum + Math.max(0, Number(item.capacidad || 0) - Number(item.inscriptos || 0)), 0));
 
     classes.forEach(item => {
       const date = shortDate(item.fecha);
@@ -276,8 +328,8 @@ function createAdminOperationsController({ shared }) {
       row.dataset.classId = String(item.id);
       row.innerHTML = `
         <span class="class-date-badge"><strong>${date.day}</strong><span>${date.month}</span></span>
-        <span class="class-row-title"><strong>${item.nombre}</strong><span class="class-row-meta"><i class="fa-regular fa-clock"></i> ${item.hora} · ${item.duracionMinutos || 60} min</span></span>
-        <span class="class-row-title"><strong>${item.profesor}</strong><span class="class-row-meta">Profesor</span></span>
+        <span class="class-row-title"><strong>${item.nombre}</strong><span class="class-row-meta"><i class="fa-regular fa-clock"></i> ${item.hora} · ${item.duracionMinutos || 60} min${item.diasSemana ? ` · ${formatWeekdays(item.diasSemana)}` : ''}</span></span>
+        <span class="class-row-title"><strong>${item.profesor}</strong><span class="class-row-meta">${item.localNombre || 'Profesor'}</span></span>
         <span class="class-capacity"><strong>${item.inscriptos || 0}/${item.capacidad}</strong><br>${available} cupos</span>
         <i class="fa-solid fa-chevron-right"></i>
       `;
@@ -291,7 +343,11 @@ function createAdminOperationsController({ shared }) {
     renderClasses();
     if (!selectedClass) return;
     classDetailTitle.textContent = selectedClass.nombre;
-    classDetailMeta.textContent = `${formatDateTime(selectedClass.fecha, selectedClass.hora)} · ${selectedClass.profesor}`;
+    const recurrence = selectedClass.diasSemana ? ` · ${formatWeekdays(selectedClass.diasSemana)}` : '';
+    classDetailMeta.textContent = `${formatDateTime(selectedClass.fecha, selectedClass.hora)} · ${selectedClass.profesor} · ${selectedClass.localNombre || 'Local 2'}${recurrence}`;
+    classEnrollOpen.innerHTML = selectedClass.programacionId
+      ? '<i class="fa-solid fa-user-plus"></i>Inscribir al grupo'
+      : '<i class="fa-solid fa-user-plus"></i>Inscribir socio';
     classEnrollOpen.disabled = Number(selectedClass.inscriptos || 0) >= Number(selectedClass.capacidad || 0);
     classDetailEmpty.style.display = 'none';
     try {
@@ -329,28 +385,43 @@ function createAdminOperationsController({ shared }) {
 
   async function saveClass() {
     const selectedProfessor = professors.find(item => String(item.id) === classCoach.value);
+    const diasSemana = [...document.querySelectorAll('input[name="class-weekday"]:checked')]
+      .map(input => Number(input.value));
     const payload = {
       nombre: document.getElementById('class-name').value.trim(),
       profesorId: Number(classCoach.value || 0),
       profesor: selectedProfessor?.nombre || '',
-      fecha: document.getElementById('class-date').value,
+      localId: Number(classLocal.value || 0),
+      diasSemana,
+      fechaInicio: document.getElementById('class-start-date').value,
+      fechaFin: document.getElementById('class-end-date').value || null,
       hora: document.getElementById('class-time').value,
       capacidad: Number(document.getElementById('class-capacity').value || 0),
       duracionMinutos: Number(document.getElementById('class-duration').value || 60),
       notas: document.getElementById('class-notes').value.trim(),
     };
-    if (!payload.nombre || !payload.profesorId || !payload.fecha || !payload.hora || payload.capacidad <= 0) {
-      shared.mostrarNotificacion('Completá nombre, profesor, fecha, hora y cupos', 'warning');
+    if (!payload.nombre || !payload.profesorId || !payload.localId || !payload.fechaInicio || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0) {
+      shared.mostrarNotificacion('Completá nombre, local, profesor, días, horario y cupos', 'warning');
       return;
     }
     try {
       if (window.api) {
         await window.api.crearClase(payload);
       } else {
-        classes.push({ id: Date.now(), ...payload, inscriptos: 0 });
+        let nextDate = payload.fechaInicio;
+        while (!payload.diasSemana.includes(new Date(`${nextDate}T12:00:00`).getDay())) nextDate = addDays(nextDate, 1);
+        classes.push({
+          id: Date.now(),
+          programacionId: Date.now(),
+          ...payload,
+          fecha: nextDate,
+          diasSemana: payload.diasSemana.join(','),
+          localNombre: locations.find(item => Number(item.id) === payload.localId)?.nombre || 'Local',
+          inscriptos: 0,
+        });
       }
       modalNewClass.style.display = 'none';
-      shared.mostrarNotificacion('Clase programada', 'success');
+      shared.mostrarNotificacion('Programación de clases creada', 'success');
       await loadClasses();
     } catch (error) {
       shared.mostrarNotificacion(error?.message || 'No se pudo programar la clase', 'error');
@@ -359,7 +430,10 @@ function createAdminOperationsController({ shared }) {
 
   async function openEnrollment() {
     if (!selectedClass) return;
-    classEnrollSummary.innerHTML = `<span>Clase seleccionada</span><strong>${selectedClass.nombre}</strong><span>${formatDateTime(selectedClass.fecha, selectedClass.hora)} · ${selectedClass.profesor}</span>`;
+    classEnrollSummary.innerHTML = `<span>${selectedClass.programacionId ? 'Grupo seleccionado' : 'Clase seleccionada'}</span><strong>${selectedClass.nombre}</strong><span>${formatDateTime(selectedClass.fecha, selectedClass.hora)} · ${selectedClass.profesor}${selectedClass.diasSemana ? ` · ${formatWeekdays(selectedClass.diasSemana)}` : ''}</span>`;
+    if (classEnrollHelp) classEnrollHelp.textContent = selectedClass.programacionId
+      ? 'El socio quedará inscripto en todas las próximas fechas de esta programación.'
+      : 'La inscripción corresponde solamente a esta fecha.';
     classEnrollMember.innerHTML = '<option value="">Seleccionar socio</option>';
     try {
       const users = window.api ? await window.api.obtenerUsuarios() : [
@@ -398,7 +472,7 @@ function createAdminOperationsController({ shared }) {
         selectedClass.inscriptos = Number(selectedClass.inscriptos || 0) + 1;
       }
       modalEnrollClass.style.display = 'none';
-      shared.mostrarNotificacion('Socio inscripto', 'success');
+      shared.mostrarNotificacion(selectedClass.programacionId ? 'Socio inscripto al grupo' : 'Socio inscripto', 'success');
       await loadClasses();
       await selectClass(selectedClass.id);
     } catch (error) {
@@ -529,14 +603,14 @@ function createAdminOperationsController({ shared }) {
   }
 
   function initializeNewClassDefaults() {
-    const dateInput = document.getElementById('class-date');
+    const dateInput = document.getElementById('class-start-date');
     const timeInput = document.getElementById('class-time');
     if (dateInput && !dateInput.value) dateInput.value = today();
     if (timeInput && !timeInput.value) timeInput.value = '18:00';
   }
 
   async function refreshAll() {
-    await loadProfessors();
+    await Promise.all([loadProfessors(), loadLocations()]);
     await Promise.all([loadClasses(), loadStock(), loadPending()]);
   }
 
@@ -560,7 +634,7 @@ function createAdminOperationsController({ shared }) {
     });
     pendingCollectSave?.addEventListener('click', savePendingCollection);
     document.addEventListener('admin-section:show', event => {
-      if (event.detail?.section === 'classes') Promise.all([loadProfessors(), loadClasses()]);
+      if (event.detail?.section === 'classes') Promise.all([loadProfessors(), loadLocations(), loadClasses()]);
       if (event.detail?.section === 'locations') loadStock();
       if (event.detail?.section === 'pending') loadPending();
     });

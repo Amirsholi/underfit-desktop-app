@@ -37,7 +37,7 @@ Se eliminó el saludo de Inicio, se alinearon socios y productos desde el mismo 
 - Interacciones verificadas: venta rápida, cantidad de venta dentro del formulario, navegación, transferencia de stock Local 1 → Local 2, Caja y Registros.
 - Viewports: 1920×1080 y 1280×720. Sin desbordamiento horizontal; en el ancho compacto la barra lateral se transforma en riel de iconos y las tablas conservan columnas legibles.
 - Iconos y activos: se conserva el logo real, el fondo de gimnasio y Font Awesome; no se agregaron ilustraciones falsas ni SVG improvisados.
-- Pruebas: sintaxis validada y 11 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores y sesiones de tablet.
+- Pruebas: sintaxis validada y 12 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores, sesiones de tablet y clases recurrentes.
 
 ## Alcance futuro explícito
 

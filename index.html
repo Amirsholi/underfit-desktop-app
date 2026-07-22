@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.5">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.6">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -189,8 +189,8 @@
           </div>
           <div class="classes-summary-grid">
             <article class="operational-stat"><span>Clases de hoy</span><strong id="classes-today-count">0</strong><small>programadas</small></article>
-            <article class="operational-stat"><span>Alumnos inscriptos</span><strong id="classes-enrolled-count">0</strong><small>para las próximas clases</small></article>
-            <article class="operational-stat"><span>Cupos disponibles</span><strong id="classes-capacity-count">0</strong><small>en agenda</small></article>
+            <article class="operational-stat"><span>Alumnos inscriptos</span><strong id="classes-enrolled-count">0</strong><small>en grupos activos</small></article>
+            <article class="operational-stat"><span>Cupos disponibles</span><strong id="classes-capacity-count">0</strong><small>entre los grupos</small></article>
           </div>
           <div class="classes-workspace">
             <section class="operations-surface classes-list-surface">
@@ -808,13 +808,16 @@
         <button type="button" class="app-modal-close" data-close-modal="modal-nueva-clase">Cerrar</button>
       </div>
       <div class="app-modal-body app-modal-body-two-columns">
-        <div class="form-field"><label for="class-name">Nombre de la clase</label><input id="class-name" type="text" placeholder="Ej: Funcional inicial"></div>
+        <div class="form-field"><label for="class-name">Nombre de la clase</label><input id="class-name" type="text" placeholder="Ej: Funcional mañana"></div>
+        <div class="form-field"><label for="class-local">Local</label><select id="class-local" class="app-select"><option value="">Seleccionar local</option></select></div>
         <div class="form-field"><label for="class-coach">Profesor</label><select id="class-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
-        <div class="form-field"><label for="class-date">Fecha</label><input id="class-date" type="date"></div>
         <div class="form-field"><label for="class-time">Hora</label><input id="class-time" type="time"></div>
+        <div class="form-field form-field-full"><label>Días de la semana</label><div class="weekday-picker" role="group" aria-label="Días de la semana"><label><input type="checkbox" name="class-weekday" value="1" checked><span>Lun</span></label><label><input type="checkbox" name="class-weekday" value="2"><span>Mar</span></label><label><input type="checkbox" name="class-weekday" value="3" checked><span>Mié</span></label><label><input type="checkbox" name="class-weekday" value="4"><span>Jue</span></label><label><input type="checkbox" name="class-weekday" value="5" checked><span>Vie</span></label><label><input type="checkbox" name="class-weekday" value="6"><span>Sáb</span></label><label><input type="checkbox" name="class-weekday" value="0"><span>Dom</span></label></div></div>
+        <div class="form-field"><label for="class-start-date">Comienza</label><input id="class-start-date" type="date"></div>
+        <div class="form-field"><label for="class-end-date">Finaliza</label><input id="class-end-date" type="date"><span class="field-help">Opcional; vacío significa sin fecha de fin.</span></div>
         <div class="form-field"><label for="class-capacity">Cupos</label><input id="class-capacity" type="number" min="1" step="1" value="12"></div>
         <div class="form-field"><label for="class-duration">Duración</label><select id="class-duration" class="app-select"><option value="45">45 minutos</option><option value="60" selected>60 minutos</option><option value="75">75 minutos</option></select></div>
-        <div class="form-field form-field-full"><label for="class-notes">Notas</label><input id="class-notes" type="text" placeholder="Indicaciones para recepción o el profesor"></div>
+        <input id="class-notes" type="hidden" value="">
       </div>
       <div class="app-modal-footer"><button id="class-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-calendar-check"></i>Programar clase</button></div>
     </div>
@@ -850,7 +853,7 @@
         <div id="class-enroll-summary" class="task-context-card"></div>
         <label for="class-enroll-member">Socio</label>
         <select id="class-enroll-member" class="app-select"></select>
-        <p class="field-help">La inscripción quedará visible para recepción y para el profesor en la tablet.</p>
+        <p id="class-enroll-help" class="field-help">La inscripción quedará visible para recepción y para el profesor en la tablet.</p>
       </div>
       <div class="app-modal-footer"><button id="class-enroll-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-user-check"></i>Confirmar inscripción</button></div>
     </div>
@@ -1063,12 +1066,12 @@
 
   <script src="membershipRules.js?v=2.5.0.2"></script>
   <script src="adminShared.js?v=2.5.0.2"></script>
-  <script src="adminLayout.js?v=2.5.0.7"></script>
+  <script src="adminLayout.js?v=2.5.0.8"></script>
   <script src="adminUsers.js?v=2.5.0.3"></script>
   <script src="adminMemberships.js?v=2.5.0.2"></script>
   <script src="adminProducts.js?v=2.5.0.3"></script>
   <script src="adminEntries.js?v=2.5.0.8"></script>
-  <script src="adminOperations.js?v=2.5.0.3"></script>
+  <script src="adminOperations.js?v=2.5.0.4"></script>
   <script src="homeDashboard.js?v=2.5.0.2"></script>
   <script src="renderer.js?v=2.5.0.6"></script>
 </body>

@@ -100,15 +100,91 @@ function createOperationsRepository(db) {
     });
   }
 
+  function listLocations() {
+    return all(`
+      SELECT id, codigo, nombre, tipo, activo
+      FROM locales
+      WHERE activo = 1
+      ORDER BY id
+    `);
+  }
+
+  function listActiveClassSchedules() {
+    return all(`
+      SELECT id, nombre, local_id AS localId, profesor_id AS profesorId,
+             profesor_nombre AS profesor, dias_semana AS diasSemana, hora,
+             duracion_minutos AS duracionMinutos, capacidad,
+             fecha_inicio AS fechaInicio, fecha_fin AS fechaFin, notas, estado,
+             creado_ts AS creadoTs, actualizado_ts AS actualizadoTs
+      FROM programaciones_clase
+      WHERE estado = 'activa'
+      ORDER BY hora, LOWER(nombre), id
+    `);
+  }
+
+  async function addScheduleOccurrences(schedule, dates, createdTs) {
+    if (!dates.length) return { added: 0 };
+    return inTransaction(async () => {
+      let added = 0;
+      for (const date of dates) {
+        const result = await run(`
+          INSERT OR IGNORE INTO clases (
+            nombre, fecha, hora, duracion_minutos, capacidad, profesor, profesor_id,
+            local_id, notas, estado, creado_ts, programacion_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'programada', ?, ?)
+        `, [schedule.nombre, date, schedule.hora, schedule.duracionMinutos, schedule.capacidad,
+          schedule.profesor, schedule.profesorId, schedule.localId, schedule.notas, createdTs, schedule.id]);
+        added += Number(result.changes || 0);
+      }
+      return { added };
+    });
+  }
+
+  async function createClassSchedule(data) {
+    return inTransaction(async () => {
+      const result = await run(`
+        INSERT INTO programaciones_clase (
+          nombre, local_id, profesor_id, profesor_nombre, dias_semana, hora,
+          duracion_minutos, capacidad, fecha_inicio, fecha_fin, notas, estado,
+          creado_ts, actualizado_ts
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'activa', ?, ?)
+      `, [data.nombre, data.localId, data.profesorId, data.profesor, data.diasSemana,
+        data.hora, data.duracionMinutos, data.capacidad, data.fechaInicio, data.fechaFin,
+        data.notas, data.creadoTs, data.creadoTs]);
+      const schedule = { id: result.lastID, ...data, estado: 'activa' };
+      for (const date of data.occurrenceDates) {
+        await run(`
+          INSERT OR IGNORE INTO clases (
+            nombre, fecha, hora, duracion_minutos, capacidad, profesor, profesor_id,
+            local_id, notas, estado, creado_ts, programacion_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'programada', ?, ?)
+        `, [data.nombre, date, data.hora, data.duracionMinutos, data.capacidad,
+          data.profesor, data.profesorId, data.localId, data.notas, data.creadoTs, result.lastID]);
+      }
+      return schedule;
+    });
+  }
+
   function listClasses({ fromDate, limit = 50 }) {
     return all(`
       SELECT c.id, c.nombre, c.fecha, c.hora, c.duracion_minutos AS duracionMinutos,
-             c.capacidad, c.profesor, c.profesor_id AS profesorId, c.local_id AS localId, c.notas, c.estado,
-             COUNT(i.id) AS inscriptos
+             c.capacidad, c.profesor, c.profesor_id AS profesorId, c.local_id AS localId,
+             l.nombre AS localNombre, c.notas, c.estado, c.programacion_id AS programacionId,
+             pc.dias_semana AS diasSemana,
+             CASE
+               WHEN c.programacion_id IS NOT NULL THEN (
+                 SELECT COUNT(*) FROM inscripciones_programacion_clase ip
+                 WHERE ip.programacion_id = c.programacion_id AND ip.estado = 'inscripto'
+               )
+               ELSE (
+                 SELECT COUNT(*) FROM inscripciones_clase ic
+                 WHERE ic.clase_id = c.id AND ic.estado = 'inscripto'
+               )
+             END AS inscriptos
       FROM clases c
-      LEFT JOIN inscripciones_clase i ON i.clase_id = c.id AND i.estado = 'inscripto'
+      LEFT JOIN programaciones_clase pc ON pc.id = c.programacion_id
+      LEFT JOIN locales l ON l.id = c.local_id
       WHERE c.fecha >= ? AND c.estado = 'programada'
-      GROUP BY c.id
       ORDER BY c.fecha ASC, c.hora ASC, c.id ASC
       LIMIT ?
     `, [fromDate, limit]);
@@ -124,27 +200,51 @@ function createOperationsRepository(db) {
     return get(`SELECT * FROM clases WHERE id = ?`, [result.lastID]);
   }
 
-  function listClassEnrollments(classId) {
+  async function listClassEnrollments(classId) {
+    const classRow = await get(`SELECT id, programacion_id AS programacionId FROM clases WHERE id = ?`, [classId]);
+    if (!classRow) return [];
+    if (classRow.programacionId) {
+      return all(`
+        SELECT id, programacion_id AS programacionId, usuario_ci AS usuarioCi,
+               usuario_nombre AS usuarioNombre, estado, creado_ts AS creadoTs
+        FROM inscripciones_programacion_clase
+        WHERE programacion_id = ? AND estado = 'inscripto'
+        ORDER BY LOWER(usuario_nombre), id
+      `, [classRow.programacionId]);
+    }
     return all(`
-      SELECT id, clase_id AS claseId, usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre, estado, creado_ts AS creadoTs
-      FROM inscripciones_clase
-      WHERE clase_id = ? AND estado = 'inscripto'
-      ORDER BY LOWER(usuario_nombre), id
-    `, [classId]);
+        SELECT id, clase_id AS claseId, usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre, estado, creado_ts AS creadoTs
+        FROM inscripciones_clase
+        WHERE clase_id = ? AND estado = 'inscripto'
+        ORDER BY LOWER(usuario_nombre), id
+      `, [classId]);
   }
 
   async function enrollMember({ classId, userCi, userName, createdTs }) {
     return inTransaction(async () => {
-      const classRow = await get(`SELECT id, capacidad, estado FROM clases WHERE id = ?`, [classId]);
+      const classRow = await get(`SELECT id, capacidad, estado, programacion_id AS programacionId FROM clases WHERE id = ?`, [classId]);
       if (!classRow || classRow.estado !== 'programada') throw new Error('Clase no disponible');
-      const count = await get(`SELECT COUNT(*) AS total FROM inscripciones_clase WHERE clase_id = ? AND estado = 'inscripto'`, [classId]);
+      const existing = classRow.programacionId
+        ? await get(`SELECT id FROM inscripciones_programacion_clase WHERE programacion_id = ? AND usuario_ci = ? AND estado = 'inscripto'`, [classRow.programacionId, userCi])
+        : await get(`SELECT id FROM inscripciones_clase WHERE clase_id = ? AND usuario_ci = ? AND estado = 'inscripto'`, [classId, userCi]);
+      if (existing) throw new Error('El socio ya está inscripto en esta clase');
+      const count = classRow.programacionId
+        ? await get(`SELECT COUNT(*) AS total FROM inscripciones_programacion_clase WHERE programacion_id = ? AND estado = 'inscripto'`, [classRow.programacionId])
+        : await get(`SELECT COUNT(*) AS total FROM inscripciones_clase WHERE clase_id = ? AND estado = 'inscripto'`, [classId]);
       if (Number(count?.total || 0) >= Number(classRow.capacidad || 0)) throw new Error('La clase no tiene cupos disponibles');
       try {
+        if (classRow.programacionId) {
+          const result = await run(`
+            INSERT INTO inscripciones_programacion_clase (programacion_id, usuario_ci, usuario_nombre, estado, creado_ts)
+            VALUES (?, ?, ?, 'inscripto', ?)
+          `, [classRow.programacionId, userCi, userName, createdTs]);
+          return { id: result.lastID, classId, programacionId: classRow.programacionId, userCi, userName };
+        }
         const result = await run(`
-          INSERT INTO inscripciones_clase (clase_id, usuario_ci, usuario_nombre, estado, creado_ts)
-          VALUES (?, ?, ?, 'inscripto', ?)
-        `, [classId, userCi, userName, createdTs]);
-        return { id: result.lastID, classId, userCi, userName };
+            INSERT INTO inscripciones_clase (clase_id, usuario_ci, usuario_nombre, estado, creado_ts)
+            VALUES (?, ?, ?, 'inscripto', ?)
+          `, [classId, userCi, userName, createdTs]);
+        return { id: result.lastID, classId, programacionId: null, userCi, userName };
       } catch (error) {
         if (String(error?.message || '').includes('UNIQUE')) throw new Error('El socio ya está inscripto en esta clase');
         throw error;
@@ -217,6 +317,10 @@ function createOperationsRepository(db) {
   return {
     listStockByLocation,
     transferStock,
+    listLocations,
+    listActiveClassSchedules,
+    addScheduleOccurrences,
+    createClassSchedule,
     listClasses,
     createClass,
     listClassEnrollments,
