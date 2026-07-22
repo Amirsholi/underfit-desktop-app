@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.4">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.5">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -182,7 +182,10 @@
         <section class="app-view" data-admin-view="classes">
           <div class="section-heading">
             <div><span class="section-kicker">Agenda de funcional</span><h2 class="section-title">Clases</h2><p class="section-subtitle">Programá clases, revisá cupos e inscribí socios desde recepción.</p></div>
-            <button class="app-button app-button-primary" type="button" data-open-modal="modal-nueva-clase"><i class="fa-solid fa-plus"></i>Nueva clase</button>
+            <div class="dashboard-inline-actions">
+              <button class="app-button" type="button" data-open-modal="modal-profesor"><i class="fa-solid fa-user-plus"></i>Agregar profesor</button>
+              <button class="app-button app-button-primary" type="button" data-open-modal="modal-nueva-clase"><i class="fa-solid fa-plus"></i>Nueva clase</button>
+            </div>
           </div>
           <div class="classes-summary-grid">
             <article class="operational-stat"><span>Clases de hoy</span><strong id="classes-today-count">0</strong><small>programadas</small></article>
@@ -202,6 +205,14 @@
               <button id="class-enroll-open" class="app-button app-button-primary class-enroll-action" type="button" disabled><i class="fa-solid fa-user-plus"></i>Inscribir socio</button>
             </aside>
           </div>
+          <section class="operations-surface professors-surface">
+            <div class="surface-heading">
+              <div><span class="section-kicker">Equipo</span><h3>Profesores</h3><p>El PIN identifica quién opera la tablet; no reemplaza una cuenta de usuario.</p></div>
+              <span id="professors-count" class="surface-meta">0 activos</span>
+            </div>
+            <div id="professors-list" class="professors-list"></div>
+            <div id="professors-empty" class="surface-empty compact"><i class="fa-solid fa-user-lock"></i><strong>No hay profesores cargados</strong><span>Agregá uno para asignarlo a clases y registrar su actividad.</span></div>
+          </section>
         </section>
       </main>
     </div>
@@ -798,7 +809,7 @@
       </div>
       <div class="app-modal-body app-modal-body-two-columns">
         <div class="form-field"><label for="class-name">Nombre de la clase</label><input id="class-name" type="text" placeholder="Ej: Funcional inicial"></div>
-        <div class="form-field"><label for="class-coach">Profesor</label><input id="class-coach" type="text" placeholder="Nombre del profesor"></div>
+        <div class="form-field"><label for="class-coach">Profesor</label><select id="class-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
         <div class="form-field"><label for="class-date">Fecha</label><input id="class-date" type="date"></div>
         <div class="form-field"><label for="class-time">Hora</label><input id="class-time" type="time"></div>
         <div class="form-field"><label for="class-capacity">Cupos</label><input id="class-capacity" type="number" min="1" step="1" value="12"></div>
@@ -806,6 +817,26 @@
         <div class="form-field form-field-full"><label for="class-notes">Notas</label><input id="class-notes" type="text" placeholder="Indicaciones para recepción o el profesor"></div>
       </div>
       <div class="app-modal-footer"><button id="class-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-calendar-check"></i>Programar clase</button></div>
+    </div>
+  </div>
+
+  <div id="modal-profesor" class="app-modal">
+    <div class="app-modal-card">
+      <div class="app-modal-header">
+        <h3>Agregar profesor</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-profesor">Cerrar</button>
+      </div>
+      <div class="app-modal-body">
+        <input id="professor-id" type="hidden">
+        <div class="form-field"><label for="professor-name">Nombre</label><input id="professor-name" type="text" autocomplete="off" placeholder="Nombre del profesor"></div>
+        <div class="form-field"><label for="professor-pin">PIN de tablet</label><input id="professor-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="new-password" placeholder="4 dígitos"></div>
+        <p id="professor-pin-help" class="field-help">Se usará solamente para identificar al profesor al iniciar su turno.</p>
+        <label class="settings-switch-row" for="professor-active">
+          <span><strong>Profesor activo</strong><small>Puede iniciar sesión y ser asignado a nuevas clases.</small></span>
+          <span class="settings-switch"><input id="professor-active" type="checkbox" checked><span></span></span>
+        </label>
+      </div>
+      <div class="app-modal-footer"><button id="professor-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-floppy-disk"></i>Guardar profesor</button></div>
     </div>
   </div>
 
@@ -1032,12 +1063,12 @@
 
   <script src="membershipRules.js?v=2.5.0.2"></script>
   <script src="adminShared.js?v=2.5.0.2"></script>
-  <script src="adminLayout.js?v=2.5.0.6"></script>
+  <script src="adminLayout.js?v=2.5.0.7"></script>
   <script src="adminUsers.js?v=2.5.0.3"></script>
   <script src="adminMemberships.js?v=2.5.0.2"></script>
   <script src="adminProducts.js?v=2.5.0.3"></script>
   <script src="adminEntries.js?v=2.5.0.8"></script>
-  <script src="adminOperations.js?v=2.5.0.2"></script>
+  <script src="adminOperations.js?v=2.5.0.3"></script>
   <script src="homeDashboard.js?v=2.5.0.2"></script>
   <script src="renderer.js?v=2.5.0.6"></script>
 </body>

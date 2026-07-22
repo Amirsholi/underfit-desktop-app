@@ -49,6 +49,7 @@ function createAdminLayoutController() {
       'modal-editar-producto': ['fa-pen', 'Actualiza los datos y existencias del articulo.'],
       'modal-anular-ingreso': ['fa-ban', 'El registro quedara anulado con trazabilidad.'],
       'modal-nueva-clase': ['fa-calendar-plus', 'Defini horario, cupos y profesor para el Local 2.'],
+      'modal-profesor': ['fa-user-lock', 'Crea una identidad simple para operar la tablet.'],
       'modal-inscribir-clase': ['fa-user-check', 'Asocia un socio a la clase seleccionada.'],
       'modal-cobrar-pendiente': ['fa-hand-holding-dollar', 'El cobro ingresara a la caja abierta del Local 1.'],
     };

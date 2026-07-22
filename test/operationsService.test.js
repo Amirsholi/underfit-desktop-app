@@ -75,3 +75,35 @@ test('creating a Local 2 sale ties together product, member and professor', asyn
   assert.equal(created.cantidad, 2);
   assert.equal(created.total, 120);
 });
+
+test('a tablet sale records the exact active professor session', async () => {
+  let created;
+  const service = createOperationsService({
+    operationsRepository: {
+      createPendingSale: async payload => {
+        created = payload;
+        return { id: 19, ...payload };
+      },
+    },
+    userRepository: { findByCi: async () => ({ ci: 49876543, nombre: 'Martina Silva' }) },
+    productRepository: { findById: async () => ({ id: 3, nombre: 'Agua 600 ml', precio: 60 }) },
+    cashService: {},
+    staffService: {
+      resolveIdentity: async payload => {
+        assert.equal(payload.profesorSesionId, 41);
+        return { profesorId: 7, profesorSesionId: 41, profesorNombre: 'Valentina' };
+      },
+    },
+  });
+
+  await service.createPendingSale({
+    productoId: 3,
+    usuarioCi: 49876543,
+    cantidad: 1,
+    profesorSesionId: 41,
+  });
+
+  assert.equal(created.profesor, 'Valentina');
+  assert.equal(created.profesorId, 7);
+  assert.equal(created.profesorSesionId, 41);
+});

@@ -503,6 +503,46 @@ async function migrarOperacionesMultiLocal(dbPath) {
   }
 }
 
+async function migrarProfesores(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS profesores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        pin_hash TEXT NOT NULL,
+        pin_salt TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS sesiones_profesor (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profesor_id INTEGER NOT NULL,
+        local_id INTEGER NOT NULL DEFAULT 2,
+        dispositivo_id TEXT NOT NULL,
+        inicio_ts TEXT NOT NULL,
+        fin_ts TEXT,
+        estado TEXT NOT NULL DEFAULT 'activa'
+      )
+    `);
+
+    await addColumnIfMissing(db, 'clases', 'profesor_id', 'INTEGER');
+    await addColumnIfMissing(db, 'ventas_pendientes', 'profesor_id', 'INTEGER');
+    await addColumnIfMissing(db, 'ventas_pendientes', 'profesor_sesion_id', 'INTEGER');
+
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_profesores_activo ON profesores(activo, nombre)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_sesiones_profesor_estado ON sesiones_profesor(estado, dispositivo_id)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_sesiones_profesor_profesor ON sesiones_profesor(profesor_id, inicio_ts)`);
+    await runAsync(db, `CREATE UNIQUE INDEX IF NOT EXISTS unq_sesion_profesor_dispositivo_activa ON sesiones_profesor(dispositivo_id) WHERE estado = 'activa'`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
 async function ejecutarMigraciones(dbPath) {
   await migrarUsuarios(dbPath);
   await migrarIngresos(dbPath);
@@ -510,6 +550,7 @@ async function ejecutarMigraciones(dbPath) {
   await migrarCaja(dbPath);
   await migrarConfiguracion(dbPath);
   await migrarOperacionesMultiLocal(dbPath);
+  await migrarProfesores(dbPath);
 }
 
 module.exports = {
@@ -519,5 +560,6 @@ module.exports = {
   migrarCaja,
   migrarConfiguracion,
   migrarOperacionesMultiLocal,
+  migrarProfesores,
   ejecutarMigraciones,
 };

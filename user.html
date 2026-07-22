@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Under-Fit</title>
-  <link rel="stylesheet" href="styles/user-dark.css">
+  <link rel="stylesheet" href="styles/user-dark.css?v=2.5.0.1">
 </head>
 <body class="user-page">
   <main class="user-shell">
@@ -40,7 +40,7 @@
     </section>
   </main>
 
-  <script src="underRunningEvent.js"></script>
+  <script src="underRunningEvent.js?v=2.5.0.1"></script>
   <script>
     window.onload = async () => {
       const inputCI = document.getElementById('ci-usuario');
@@ -115,11 +115,9 @@
           const restantes = resultado.daysRemaining;
 
           if (resultado.allowed) {
-            if (runningEvent?.active) {
-              await runningEvent.playEntryTransition();
-            }
             const texto = `${restantes} día${restantes === 1 ? '' : 's'} restantes`;
-            mostrarFeedback('Puede ingresar', texto, 'success');
+            const nombre = String(resultado.user?.nombre || 'Socio').trim();
+            mostrarFeedback('Ingreso registrado', `${nombre} · ${texto}`, 'success');
           } else {
             mostrarFeedback('Membresía vencida', `${restantes} días restantes`, 'error');
           }

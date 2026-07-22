@@ -37,11 +37,11 @@ Se eliminó el saludo de Inicio, se alinearon socios y productos desde el mismo 
 - Interacciones verificadas: venta rápida, cantidad de venta dentro del formulario, navegación, transferencia de stock Local 1 → Local 2, Caja y Registros.
 - Viewports: 1920×1080 y 1280×720. Sin desbordamiento horizontal; en el ancho compacto la barra lateral se transforma en riel de iconos y las tablas conservan columnas legibles.
 - Iconos y activos: se conserva el logo real, el fondo de gimnasio y Font Awesome; no se agregaron ilustraciones falsas ni SVG improvisados.
-- Pruebas: sintaxis validada y 7 pruebas automatizadas aprobadas, incluida una integración SQLite temporal para stock y ventas pendientes.
+- Pruebas: sintaxis validada y 11 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores y sesiones de tablet.
 
 ## Alcance futuro explícito
 
-La sincronización central en línea, la interfaz exclusiva de la tablet del profesor y la segunda pantalla de ingresos no se presentan como terminadas en este corte. La interfaz indica correctamente “Datos locales” y la estructura multi-local queda preparada para conectar ese servicio en la siguiente fase. El flujo objetivo de tablet quedó documentado con sesión persistente del profesor, ingreso autónomo por CI y venta pendiente que retorna automáticamente al modo ingreso.
+La sincronización central en línea y la interfaz exclusiva de la tablet todavía no se presentan como terminadas en este corte. La interfaz indica correctamente “Datos locales”. Ya quedó implementada la identidad simple del profesor, una única sesión activa por dispositivo y la trazabilidad de las ventas pendientes; la siguiente fase conectará estas bases con la experiencia táctil de ingreso y venta rápida.
 
 No quedan hallazgos P0, P1 ni P2 abiertos en el alcance implementado.
 

@@ -16,6 +16,15 @@ The main location currently runs one reception PC with two displays: the adminis
 
 ## Delivery phases
 
+### Implemented foundation in the current cut
+
+- Professor catalog with a four-digit PIN stored as a salted hash.
+- One active professor session per tablet/device, with explicit start and end timestamps.
+- Classes reference the selected professor while preserving the readable name on historical records.
+- Pending Local 2 sales preserve the professor and the exact tablet session that created them.
+- Reception can create, edit, deactivate and assign professors from the Classes page.
+- Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
+
 ### 1. Cash integrity
 
 - Correct manual income and cash-output movements through an auditable annulment and replacement.

@@ -192,7 +192,7 @@
         <p class="running-event-date"><span>///</span> ${dateLabel} <span>///</span></p>
         <div class="running-event-divider"><span></span><strong>FALTAN</strong><span></span></div>
         <div class="running-event-countdown" aria-live="polite"></div>
-        <p class="running-event-question">&iquest;Est&aacute;s listo para el <span>desaf&iacute;o</span>?</p>
+        <p class="running-event-question">Viv&iacute este <span>evento</span> con Under-Fit</p>
       </div>
     `;
     const panel = options.panel || document.querySelector('.kiosk-panel');
@@ -234,7 +234,7 @@
           <div class="running-transition-flash"></div>
           <div class="running-transition-panel">
             <strong>${eventName}</strong>
-            <em>inscribite ya</em>
+            <em>ya falta menos</em>
           </div>
         `;
         document.body.appendChild(overlay);

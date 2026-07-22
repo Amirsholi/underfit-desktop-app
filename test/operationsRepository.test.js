@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const sqlite3 = require('sqlite3').verbose();
-const { migrarProductos, migrarOperacionesMultiLocal } = require('../migrations');
+const { migrarProductos, migrarOperacionesMultiLocal, migrarProfesores } = require('../migrations');
 const { createOperationsRepository } = require('../repositories/operationsRepository');
 
 function run(db, sql, params = []) {
@@ -33,6 +33,7 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
     db = null;
 
     await migrarOperacionesMultiLocal(dbPath);
+    await migrarProfesores(dbPath);
     db = new sqlite3.Database(dbPath);
     const repository = createOperationsRepository(db);
 
@@ -56,6 +57,8 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
       cantidad: 2,
       total: 120,
       profesor: 'Santiago',
+      profesorId: null,
+      profesorSesionId: null,
       fecha: '2026-07-20',
       hora: '18:05:00',
       ts: '2026-07-20T21:05:00.000Z',

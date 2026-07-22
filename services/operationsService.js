@@ -1,4 +1,4 @@
-function createOperationsService({ operationsRepository, userRepository, productRepository, cashService }) {
+function createOperationsService({ operationsRepository, userRepository, productRepository, cashService, staffService = null }) {
   function nowLocalParts() {
     const d = new Date();
     const pad = value => String(value).padStart(2, '0');
@@ -21,6 +21,15 @@ function createOperationsService({ operationsRepository, userRepository, product
     return normalized;
   }
 
+  async function resolveProfessor(payload = {}) {
+    if (staffService) return staffService.resolveIdentity(payload);
+    return {
+      id: payload.profesorId ? normalizePositiveInteger(payload.profesorId, 'Profesor') : null,
+      sesionId: payload.profesorSesionId ? normalizePositiveInteger(payload.profesorSesionId, 'Sesion') : null,
+      nombre: requiredText(payload.profesor, 'Profesor'),
+    };
+  }
+
   function listStock() {
     return operationsRepository.listStockByLocation();
   }
@@ -39,12 +48,14 @@ function createOperationsService({ operationsRepository, userRepository, product
     return operationsRepository.listClasses({ fromDate: String(fromDate || nowLocalParts().fecha) });
   }
 
-  function createClass(payload = {}) {
+  async function createClass(payload = {}) {
     const fecha = requiredText(payload.fecha, 'Fecha');
     const hora = requiredText(payload.hora, 'Hora');
+    const professor = await resolveProfessor(payload);
     return operationsRepository.createClass({
       nombre: requiredText(payload.nombre, 'Nombre'),
-      profesor: requiredText(payload.profesor, 'Profesor'),
+      profesor: professor.profesorNombre || professor.nombre,
+      profesorId: professor.profesorId || professor.id,
       fecha,
       hora,
       capacidad: normalizePositiveInteger(payload.capacidad || 12, 'Capacidad'),
@@ -88,6 +99,7 @@ function createOperationsService({ operationsRepository, userRepository, product
     ]);
     if (!product) throw new Error('Producto no encontrado');
     if (!user) throw new Error('Socio no encontrado');
+    const professor = await resolveProfessor(payload);
     const now = nowLocalParts();
     return operationsRepository.createPendingSale({
       productoId: productId,
@@ -96,7 +108,9 @@ function createOperationsService({ operationsRepository, userRepository, product
       usuarioNombre: user.nombre,
       cantidad: quantity,
       total: Number(product.precio || 0) * quantity,
-      profesor: requiredText(payload.profesor, 'Profesor'),
+      profesor: professor.profesorNombre || professor.nombre,
+      profesorId: professor.profesorId || professor.id,
+      profesorSesionId: professor.profesorSesionId || professor.sesionId,
       observacion: String(payload.observacion || '').trim() || null,
       ...now,
     });

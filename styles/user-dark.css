@@ -83,7 +83,7 @@ body.user-page.under-running-active::after {
 
 body.user-page.under-running-active.feedback-success::after {
   background:
-    radial-gradient(circle at center, rgba(67, 220, 116, 0.42), rgba(67, 220, 116, 0.16) 34%, transparent 70%),
+    radial-gradient(circle at center, rgba(255, 106, 26, 0.34), rgba(255, 106, 26, 0.12) 34%, transparent 70%),
     rgba(5, 6, 8, 0.3);
   transition: opacity 0.2s ease;
 }
@@ -675,15 +675,16 @@ body.user-page.under-running-active .feedback-panel {
 }
 
 body.user-page.under-running-active .feedback-panel.feedback-success .feedback-title {
+  color: #ff6a1a;
   font-size: clamp(30px, 4.4vw, 42px);
   text-transform: uppercase;
   text-shadow:
-    0 0 26px rgba(67, 220, 116, 0.56),
+    0 0 26px rgba(255, 106, 26, 0.5),
     0 12px 28px rgba(0, 0, 0, 0.4);
 }
 
 body.user-page.under-running-active .feedback-panel.feedback-success .feedback-text {
-  color: rgba(226, 255, 235, 0.92);
+  color: rgba(248, 250, 252, 0.92);
   font-size: 18px;
   font-weight: 900;
 }

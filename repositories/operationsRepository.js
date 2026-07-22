@@ -103,7 +103,7 @@ function createOperationsRepository(db) {
   function listClasses({ fromDate, limit = 50 }) {
     return all(`
       SELECT c.id, c.nombre, c.fecha, c.hora, c.duracion_minutos AS duracionMinutos,
-             c.capacidad, c.profesor, c.local_id AS localId, c.notas, c.estado,
+             c.capacidad, c.profesor, c.profesor_id AS profesorId, c.local_id AS localId, c.notas, c.estado,
              COUNT(i.id) AS inscriptos
       FROM clases c
       LEFT JOIN inscripciones_clase i ON i.clase_id = c.id AND i.estado = 'inscripto'
@@ -117,9 +117,10 @@ function createOperationsRepository(db) {
   async function createClass(data) {
     const result = await run(`
       INSERT INTO clases (
-        nombre, fecha, hora, duracion_minutos, capacidad, profesor, local_id, notas, estado, creado_ts
-      ) VALUES (?, ?, ?, ?, ?, ?, 2, ?, 'programada', ?)
-    `, [data.nombre, data.fecha, data.hora, data.duracionMinutos, data.capacidad, data.profesor, data.notas, data.creadoTs]);
+        nombre, fecha, hora, duracion_minutos, capacidad, profesor, profesor_id, local_id, notas, estado, creado_ts
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, 'programada', ?)
+    `, [data.nombre, data.fecha, data.hora, data.duracionMinutos, data.capacidad, data.profesor,
+      data.profesorId, data.notas, data.creadoTs]);
     return get(`SELECT * FROM clases WHERE id = ?`, [result.lastID]);
   }
 
@@ -166,6 +167,7 @@ function createOperationsRepository(db) {
     return all(`
       SELECT id, local_id AS localId, producto_id AS productoId, producto_nombre AS productoNombre,
              usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre, cantidad, total, profesor,
+             profesor_id AS profesorId, profesor_sesion_id AS profesorSesionId,
              fecha, hora, ts, estado, cobrado_ts AS cobradoTs, forma_pago AS formaPago,
              caja_movimiento_id AS cajaMovimientoId, observacion
       FROM ventas_pendientes
@@ -203,10 +205,11 @@ function createOperationsRepository(db) {
       const result = await run(`
         INSERT INTO ventas_pendientes (
           local_id, producto_id, producto_nombre, usuario_ci, usuario_nombre, cantidad, total,
-          profesor, fecha, hora, ts, estado, observacion
-        ) VALUES (2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)
+          profesor, profesor_id, profesor_sesion_id, fecha, hora, ts, estado, observacion
+        ) VALUES (2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)
       `, [data.productoId, data.productoNombre, data.usuarioCi, data.usuarioNombre, data.cantidad,
-        data.total, data.profesor, data.fecha, data.hora, data.ts, data.observacion]);
+        data.total, data.profesor, data.profesorId, data.profesorSesionId, data.fecha, data.hora,
+        data.ts, data.observacion]);
       return { id: result.lastID, ...data, estado: 'pendiente' };
     });
   }

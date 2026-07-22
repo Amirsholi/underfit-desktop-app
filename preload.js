@@ -56,6 +56,18 @@ contextBridge.exposeInMainWorld('api', {
 
   cobrarVentaPendiente: (payload) => ipcRenderer.invoke('cobrar-venta-pendiente', payload),
 
+  obtenerProfesores: (incluirInactivos = false) => ipcRenderer.invoke('obtener-profesores', incluirInactivos),
+
+  crearProfesor: (payload) => ipcRenderer.invoke('crear-profesor', payload),
+
+  actualizarProfesor: (id, datos) => ipcRenderer.invoke('actualizar-profesor', { id, datos }),
+
+  iniciarSesionProfesor: (payload) => ipcRenderer.invoke('iniciar-sesion-profesor', payload),
+
+  obtenerSesionProfesorActiva: (dispositivoId) => ipcRenderer.invoke('obtener-sesion-profesor-activa', dispositivoId),
+
+  finalizarSesionProfesor: (sesionId) => ipcRenderer.invoke('finalizar-sesion-profesor', sesionId),
+
   abrirCajaDia: (payload) => ipcRenderer.invoke('abrir-caja-dia', payload),
 
   obtenerAperturaCajaDia: (fecha) => ipcRenderer.invoke('obtener-apertura-caja-dia', fecha),

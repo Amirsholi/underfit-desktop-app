@@ -16,6 +16,17 @@ function createAdminOperationsController({ shared }) {
   const modalNewClass = document.getElementById('modal-nueva-clase');
   const modalEnrollClass = document.getElementById('modal-inscribir-clase');
   const classSave = document.getElementById('class-save');
+  const classCoach = document.getElementById('class-coach');
+  const professorsList = document.getElementById('professors-list');
+  const professorsEmpty = document.getElementById('professors-empty');
+  const professorsCount = document.getElementById('professors-count');
+  const professorModal = document.getElementById('modal-profesor');
+  const professorId = document.getElementById('professor-id');
+  const professorName = document.getElementById('professor-name');
+  const professorPin = document.getElementById('professor-pin');
+  const professorPinHelp = document.getElementById('professor-pin-help');
+  const professorActive = document.getElementById('professor-active');
+  const professorSave = document.getElementById('professor-save');
 
   const stockProduct = document.getElementById('stock-transfer-product');
   const stockQuantity = document.getElementById('stock-transfer-quantity');
@@ -36,6 +47,7 @@ function createAdminOperationsController({ shared }) {
   const pendingCollectSave = document.getElementById('pending-collect-save');
 
   let classes = [];
+  let professors = [];
   let selectedClass = null;
   let enrollments = new Map();
   let stock = [];
@@ -89,6 +101,134 @@ function createAdminOperationsController({ shared }) {
       { id: 2, nombre: 'Funcional intenso', fecha: base, hora: '19:15', duracionMinutos: 60, capacidad: 10, profesor: 'Santiago', inscriptos: 8 },
       { id: 3, nombre: 'Movilidad y core', fecha: addDays(base, 1), hora: '17:30', duracionMinutos: 45, capacidad: 12, profesor: 'Valentina', inscriptos: 4 },
     ];
+  }
+
+  function demoProfessors() {
+    return [
+      { id: 1, nombre: 'Santiago', activo: true, pinConfigurado: true },
+      { id: 2, nombre: 'Valentina', activo: true, pinConfigurado: true },
+    ];
+  }
+
+  async function loadProfessors() {
+    try {
+      if (window.api) professors = await window.api.obtenerProfesores(true);
+      else if (!professors.length) professors = demoProfessors();
+    } catch (error) {
+      console.error('No se pudieron cargar los profesores:', error);
+      professors = [];
+      shared.mostrarNotificacion('No se pudieron cargar los profesores', 'error');
+    }
+    renderProfessors();
+    populateProfessorSelect();
+  }
+
+  function populateProfessorSelect() {
+    if (!classCoach) return;
+    const selectedValue = classCoach.value;
+    const activeProfessors = professors.filter(item => item.activo === true || Number(item.activo) === 1);
+    classCoach.innerHTML = '<option value="">Seleccionar profesor</option>';
+    activeProfessors.forEach(item => {
+      const option = document.createElement('option');
+      option.value = String(item.id);
+      option.textContent = item.nombre;
+      classCoach.appendChild(option);
+    });
+    if ([...classCoach.options].some(option => option.value === selectedValue)) classCoach.value = selectedValue;
+  }
+
+  function renderProfessors() {
+    if (!professorsList || !professorsEmpty || !professorsCount) return;
+    professorsList.innerHTML = '';
+    professorsEmpty.style.display = professors.length ? 'none' : 'grid';
+    const activeCount = professors.filter(item => item.activo === true || Number(item.activo) === 1).length;
+    professorsCount.textContent = `${activeCount} ${activeCount === 1 ? 'activo' : 'activos'}`;
+    professors.forEach(item => {
+      const active = item.activo === true || Number(item.activo) === 1;
+      const row = document.createElement('article');
+      row.className = `professor-row${active ? '' : ' is-inactive'}`;
+      const identity = document.createElement('div');
+      identity.className = 'professor-identity';
+      const initials = item.nombre.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+      identity.innerHTML = `<span class="professor-avatar">${initials}</span>`;
+      const copy = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = item.nombre;
+      const detail = document.createElement('small');
+      detail.textContent = item.pinConfigurado ? 'PIN configurado' : 'PIN pendiente';
+      copy.append(name, detail);
+      identity.appendChild(copy);
+      const status = document.createElement('span');
+      status.className = `professor-status${active ? ' is-active' : ''}`;
+      status.textContent = active ? 'Activo' : 'Inactivo';
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'table-action-button';
+      edit.dataset.editProfessor = String(item.id);
+      edit.textContent = 'Editar';
+      row.append(identity, status, edit);
+      professorsList.appendChild(row);
+    });
+  }
+
+  function setProfessorModalTitle(text) {
+    const refinedTitle = professorModal?.querySelector('.modal-title-copy > span');
+    const plainTitle = professorModal?.querySelector('.app-modal-header > h3');
+    if (refinedTitle) refinedTitle.textContent = text;
+    else if (plainTitle) plainTitle.textContent = text;
+  }
+
+  function openNewProfessor() {
+    professorId.value = '';
+    professorName.value = '';
+    professorPin.value = '';
+    professorActive.checked = true;
+    professorActive.disabled = true;
+    professorPinHelp.textContent = 'Se usará solamente para identificar al profesor al iniciar su turno.';
+    setProfessorModalTitle('Agregar profesor');
+  }
+
+  function openEditProfessor(id) {
+    const professor = professors.find(item => Number(item.id) === Number(id));
+    if (!professor) return;
+    professorId.value = String(professor.id);
+    professorName.value = professor.nombre;
+    professorPin.value = '';
+    professorActive.checked = professor.activo === true || Number(professor.activo) === 1;
+    professorActive.disabled = false;
+    professorPinHelp.textContent = 'Dejá el PIN vacío para conservar el actual.';
+    setProfessorModalTitle('Editar profesor');
+    professorModal.style.display = 'flex';
+  }
+
+  async function saveProfessor() {
+    const id = Number(professorId.value || 0);
+    const pin = professorPin.value.trim();
+    const payload = {
+      nombre: professorName.value.trim(),
+      activo: professorActive.checked,
+    };
+    if (pin) payload.pin = pin;
+    if (!payload.nombre || (!id && !/^\d{4}$/.test(pin)) || (pin && !/^\d{4}$/.test(pin))) {
+      shared.mostrarNotificacion('Ingresá un nombre y un PIN de exactamente 4 números', 'warning');
+      return;
+    }
+    try {
+      if (window.api) {
+        if (id) await window.api.actualizarProfesor(id, payload);
+        else await window.api.crearProfesor(payload);
+      } else if (id) {
+        const current = professors.find(item => Number(item.id) === id);
+        Object.assign(current, payload, { pinConfigurado: true });
+      } else {
+        professors.push({ id: Date.now(), ...payload, activo: true, pinConfigurado: true });
+      }
+      professorModal.style.display = 'none';
+      shared.mostrarNotificacion(id ? 'Profesor actualizado' : 'Profesor agregado', 'success');
+      await loadProfessors();
+    } catch (error) {
+      shared.mostrarNotificacion(error?.message || 'No se pudo guardar el profesor', 'error');
+    }
   }
 
   function demoStock() {
@@ -188,16 +328,18 @@ function createAdminOperationsController({ shared }) {
   }
 
   async function saveClass() {
+    const selectedProfessor = professors.find(item => String(item.id) === classCoach.value);
     const payload = {
       nombre: document.getElementById('class-name').value.trim(),
-      profesor: document.getElementById('class-coach').value.trim(),
+      profesorId: Number(classCoach.value || 0),
+      profesor: selectedProfessor?.nombre || '',
       fecha: document.getElementById('class-date').value,
       hora: document.getElementById('class-time').value,
       capacidad: Number(document.getElementById('class-capacity').value || 0),
       duracionMinutos: Number(document.getElementById('class-duration').value || 60),
       notas: document.getElementById('class-notes').value.trim(),
     };
-    if (!payload.nombre || !payload.profesor || !payload.fecha || !payload.hora || payload.capacidad <= 0) {
+    if (!payload.nombre || !payload.profesorId || !payload.fecha || !payload.hora || payload.capacidad <= 0) {
       shared.mostrarNotificacion('Completá nombre, profesor, fecha, hora y cupos', 'warning');
       return;
     }
@@ -394,11 +536,18 @@ function createAdminOperationsController({ shared }) {
   }
 
   async function refreshAll() {
+    await loadProfessors();
     await Promise.all([loadClasses(), loadStock(), loadPending()]);
   }
 
   function init() {
     initializeNewClassDefaults();
+    document.querySelector('[data-open-modal="modal-profesor"]')?.addEventListener('click', openNewProfessor);
+    professorSave?.addEventListener('click', saveProfessor);
+    professorsList?.addEventListener('click', event => {
+      const button = event.target.closest('[data-edit-professor]');
+      if (button) openEditProfessor(button.dataset.editProfessor);
+    });
     classSave?.addEventListener('click', saveClass);
     classEnrollOpen?.addEventListener('click', openEnrollment);
     classEnrollSave?.addEventListener('click', saveEnrollment);
@@ -411,7 +560,7 @@ function createAdminOperationsController({ shared }) {
     });
     pendingCollectSave?.addEventListener('click', savePendingCollection);
     document.addEventListener('admin-section:show', event => {
-      if (event.detail?.section === 'classes') loadClasses();
+      if (event.detail?.section === 'classes') Promise.all([loadProfessors(), loadClasses()]);
       if (event.detail?.section === 'locations') loadStock();
       if (event.detail?.section === 'pending') loadPending();
     });
