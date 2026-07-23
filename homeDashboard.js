@@ -23,8 +23,7 @@ function createHomeDashboardController({ shared }) {
   function renderMembers(filter = '') {
     if (!membersList || !membersEmpty) return;
     const query = filter.trim().toLocaleLowerCase('es');
-    const visible = members
-      .filter(member => shared.esMembresiaActiva(member?.fecha_vencimiento))
+    const visible = shared.ordenarSociosPorVencimiento(members)
       .filter(member => !query || String(member?.ci || '').includes(query) || String(member?.nombre || '').toLocaleLowerCase('es').includes(query))
       .slice(0, 6);
     membersList.innerHTML = '';
@@ -32,18 +31,23 @@ function createHomeDashboardController({ shared }) {
 
     visible.forEach(member => {
       const days = shared.calcularDiasRestantes(member?.fecha_vencimiento);
+      const active = shared.esMembresiaActiva(member?.fecha_vencimiento);
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'home-member-row home-member-columns';
       row.innerHTML = `
         <span class="home-person"><span class="home-avatar"></span><span class="home-person-name"></span></span>
         <span class="home-member-date"></span>
-        <span class="home-member-state"><span class="home-active-pill">Activo</span><strong></strong><i class="fa-solid fa-chevron-right"></i></span>
+        <span class="home-member-state"><span class="home-active-pill"></span><strong></strong><i class="fa-solid fa-chevron-right"></i></span>
       `;
       row.querySelector('.home-avatar').textContent = initials(member?.nombre);
       row.querySelector('.home-person-name').textContent = member?.nombre || 'Sin nombre';
       row.querySelector('.home-member-date').textContent = member?.fecha_vencimiento || '-';
       row.querySelector('.home-member-state strong').textContent = `${days} dias`;
+      const status = row.querySelector('.home-active-pill');
+      status.textContent = active && days === 0 ? 'Vence hoy' : active ? 'Activo' : 'Vencido';
+      status.classList.toggle('is-warning', active && days === 0);
+      status.classList.toggle('is-expired', !active);
       row.addEventListener('click', () => document.querySelector(`#cuerpo-usuarios [data-ci="${CSS.escape(String(member?.ci || ''))}"]`)?.click());
       membersList.appendChild(row);
     });
@@ -68,16 +72,8 @@ function createHomeDashboardController({ shared }) {
       row.querySelector('.home-product-price').textContent = money(product?.precio);
       row.querySelector('.home-product-stock').textContent = String(product?.stock ?? 0);
       row.querySelector('.home-quick-sale').addEventListener('click', () => {
-        const sourceButton = document.querySelector(`#cuerpo-productos [data-vender-producto="${CSS.escape(String(product?.id || ''))}"]`);
-        if (sourceButton) {
-          sourceButton.click();
-          const quantityInput = document.getElementById('producto-venta-cantidad');
-          if (quantityInput) {
-            quantityInput.value = '1';
-            quantityInput.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-          return;
-        }
+        document.dispatchEvent(new CustomEvent('product:sell', { detail: { id: product?.id } }));
+        if (window.api) return;
         if (!window.api) {
           document.getElementById('producto-venta-nombre').value = product?.nombre || '';
           document.getElementById('producto-venta-cantidad').value = '1';
@@ -98,6 +94,7 @@ function createHomeDashboardController({ shared }) {
         { ci: '51234567', nombre: 'Lucas Pereira', fecha_vencimiento: '2026-08-30' },
         { ci: '56781234', nombre: 'Diego Martinez', fecha_vencimiento: '2026-10-16' },
         { ci: '37654321', nombre: 'Camila Fernandez', fecha_vencimiento: '2027-02-26' },
+        { ci: '40127896', nombre: 'Valentina Suarez', fecha_vencimiento: '2026-07-01' },
       ];
       renderMembers('');
       renderProducts([

@@ -9,7 +9,7 @@ The main location currently runs one reception PC with two displays: the adminis
 - The second location is a functional-training room operated from a tablet.
 - Members, memberships and business data are shared between locations.
 - The main location assigns stock to the second location.
-- The instructor signs in, sees stock and members, can open a read-only member profile, records attendance and sends product sales to the main location for collection.
+- The instructor signs in, records attendance and sends product sales to the main location for collection. Product availability is shown only inside the sale flow; stock allocation and adjustment stay in the main location.
 - A tablet sale must be associated with a member. It remains pending and does not affect cash until reception records payment.
 - The owner decides how to resolve unpaid sales; cancellations and corrections remain auditable.
 - Administration at the main location can enroll members in classes.
@@ -31,7 +31,7 @@ The main location currently runs one reception PC with two displays: the adminis
 - Professor identification is operational only: it leaves a responsible person on pending sales and does not control or claim the class.
 - Multiple tablets can operate in either location; duplicate attendance is prevented per member and class, even across devices.
 - Access history and class history now have a dedicated Records page with daily summaries and an integrated present/absent roster.
-- The touch-first tablet surface now supports professor sign-in, automatic schedule detection, student CI entry, quick pending sales, local stock and end-of-turn closure.
+- The touch-first tablet surface now supports professor sign-in, automatic schedule detection, student CI entry, quick pending sales with local availability and end-of-turn closure. It does not expose stock-management actions.
 - After the scheduled end, administration can keep the automatic completed result or correct it to not held without entering a reason.
 - Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
 
@@ -69,7 +69,7 @@ The main location currently runs one reception PC with two displays: the adminis
 - Product sale is a short instructor-only detour: product, member, quantity and send. After sending, the tablet returns to attendance mode automatically.
 - Fast member lookup and attendance registration remain separate from administrative editing.
 - Read-only member details.
-- Stock is visible as a compact reference; stock assignment remains exclusive to the main location.
+- Product availability is visible while creating a sale; stock assignment and management remain exclusive to the main location.
 - Every tablet sale is member-associated, tagged with location and instructor, and sent as pending collection to the main location.
 - Pending-operation visibility and clear connection status, with a local retry queue that prevents duplicate attendance or sales after a temporary network loss.
 

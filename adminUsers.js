@@ -119,13 +119,7 @@ function createAdminUsersController({ shared }) {
   function renderizarTabla(usuarios) {
     if (!tablaUsuarios || !contadorUsuarios) return;
 
-    const ordenados = [...usuarios].sort((a, b) => {
-      const da = shared.calcularDiasRestantes(a.fecha_vencimiento);
-      const db = shared.calcularDiasRestantes(b.fecha_vencimiento);
-      const activaA = shared.esMembresiaActiva(a?.fecha_vencimiento) ? 0 : 1;
-      const activaB = shared.esMembresiaActiva(b?.fecha_vencimiento) ? 0 : 1;
-      return activaA - activaB || da - db;
-    });
+    const ordenados = shared.ordenarSociosPorVencimiento(usuarios);
 
     const activos = ordenados.filter(u => shared.esMembresiaActiva(u?.fecha_vencimiento)).length;
     contadorUsuarios.textContent = String(activos);

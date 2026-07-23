@@ -32,8 +32,6 @@
   const saleSubmit = document.getElementById('tablet-sale-submit');
   const quantityMinus = document.getElementById('tablet-quantity-minus');
   const quantityPlus = document.getElementById('tablet-quantity-plus');
-  const stockBody = document.getElementById('tablet-stock-body');
-  const stockRefresh = document.getElementById('tablet-stock-refresh');
   const toast = document.getElementById('tablet-toast');
 
   const state = {
@@ -44,13 +42,16 @@
     selectedProfessorId: null,
     session: null,
     activeClass: null,
+    upcomingClass: null,
     classCandidates: [],
+    classMembers: [],
     attendanceCount: 0,
     entryDigits: '',
     users: [],
     stock: [],
     selectedProduct: null,
     selectedMember: null,
+    saleCandidates: [],
     quantity: 1,
     classPoll: null,
     feedbackTimer: null,
@@ -138,12 +139,8 @@
       duracionMinutos: 60,
       localId: state.localId,
       localNombre: currentLocal().nombre,
-      estado: 'programada',
+      estado: 'en_curso',
     };
-  }
-
-  function updateClock() {
-    document.getElementById('tablet-clock').textContent = new Date().toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
   }
 
   function renderLocations() {
@@ -238,6 +235,7 @@
         ? await api.obtenerClaseActual({ localId: state.localId })
         : { clase: demoCurrentClass(), candidatas: [demoCurrentClass()], requiereSeleccion: false };
       state.classCandidates = current.candidatas || [];
+      state.upcomingClass = current.proxima || null;
       if (current.requiereSeleccion) {
         const selected = state.classCandidates.find(item => Number(item.id) === Number(state.activeClass?.id));
         if (selected) {
@@ -256,6 +254,7 @@
         attendanceCount.textContent = '0';
       }
       state.activeClass = null;
+      state.classMembers = [];
       classPicker.hidden = true;
       renderCurrentClass();
     } catch (error) {
@@ -280,17 +279,27 @@
     state.activeClass = selected;
     classPicker.hidden = true;
     renderCurrentClass();
+    loadClassMembers();
+  }
+
+  function formatUpcomingClass(item) {
+    if (!item) return 'No hay otra clase programada';
+    const date = new Date(`${item.fecha}T${item.hora || '00:00'}`);
+    const label = Number.isNaN(date.getTime())
+      ? `${item.fecha || ''} · ${String(item.hora || '').slice(0, 5)}`
+      : new Intl.DateTimeFormat('es-UY', { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
+    return `${label} · ${currentLocal().nombre}`;
   }
 
   function renderCurrentClass() {
     if (!state.activeClass) {
-      classState.textContent = 'Sin clase vigente';
+      classState.textContent = 'Próxima clase';
       classState.classList.add('is-idle');
-      className.textContent = 'Esperando próxima clase';
-      classMeta.textContent = `${currentLocal().nombre} · se actualizará automáticamente`;
+      className.textContent = state.upcomingClass?.nombre || 'No hay clases programadas';
+      classMeta.textContent = formatUpcomingClass(state.upcomingClass);
       entrySubmit.disabled = true;
-      entryTitle.textContent = 'Aún no hay una clase activa';
-      entryCopy.textContent = 'La pantalla quedará habilitada al entrar en la franja programada.';
+      entryTitle.textContent = 'Ingreso todavía no habilitado';
+      entryCopy.textContent = state.upcomingClass ? `La próxima clase es ${state.upcomingClass.nombre}.` : 'Consultá la programación en recepción.';
       return;
     }
     const inProgress = state.activeClass.estado === 'en_curso';
@@ -343,6 +352,7 @@
       state.entryDigits = '';
       entryDisplay.textContent = '—';
       state.feedbackTimer = setTimeout(resetEntryFeedback, 1800);
+      loadClassMembers();
     } catch (error) {
       entryFeedback.classList.remove('is-success');
       entryFeedback.classList.add('is-error');
@@ -375,7 +385,6 @@
       state.stock = [];
     }
     renderProducts();
-    renderStock();
   }
 
   function renderProducts() {
@@ -389,18 +398,41 @@
     }).join('') || '<p class="tablet-form-message">No hay productos disponibles.</p>';
   }
 
-  function renderStock() {
-    stockBody.innerHTML = state.stock.map(item => `
-      <div class="tablet-stock-row"><strong>${escapeHtml(item.nombre)}</strong><span>${money(item.precio)}</span><strong>${stockAmount(item)}</strong></div>
-    `).join('') || '<div class="tablet-stock-row"><span>Sin stock cargado</span><span>—</span><strong>0</strong></div>';
+  async function loadClassMembers() {
+    if (!state.activeClass) {
+      state.classMembers = [];
+      return;
+    }
+    try {
+      const detail = api?.obtenerDetalleRegistroClase
+        ? await api.obtenerDetalleRegistroClase(state.activeClass.id)
+        : { students: demoUsers().slice(0, 3).map((user, index) => ({ usuarioCi: user.ci, usuarioNombre: user.nombre, presente: index < 2 })) };
+      state.classMembers = Array.isArray(detail?.students) ? detail.students : [];
+    } catch (_) {
+      state.classMembers = [];
+    }
+  }
+
+  function hasActiveMembership(user) {
+    if (!user?.fecha_vencimiento) return true;
+    const expiration = new Date(`${user.fecha_vencimiento}T23:59:59`);
+    return !Number.isNaN(expiration.getTime()) && expiration >= new Date();
   }
 
   function searchMembers() {
     const query = memberSearch.value.trim().toLocaleLowerCase('es');
-    const matches = query.length < 2 ? [] : state.users.filter(user => String(user.ci).includes(query) || String(user.nombre || '').toLocaleLowerCase('es').includes(query)).slice(0, 6);
+    const presentIds = new Set(state.classMembers.filter(item => item.presente).map(item => Number(item.usuarioCi)));
+    const ordered = [...state.users]
+      .filter(hasActiveMembership)
+      .sort((a, b) => Number(presentIds.has(Number(b.ci))) - Number(presentIds.has(Number(a.ci))) || String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    const matches = ordered
+      .filter(user => query.length < 2 ? presentIds.has(Number(user.ci)) : String(user.ci).includes(query) || String(user.nombre || '').toLocaleLowerCase('es').includes(query))
+      .slice(0, 8);
+    state.saleCandidates = matches;
     memberResults.innerHTML = matches.map(user => `
-      <button class="tablet-member-result${Number(state.selectedMember?.ci) === Number(user.ci) ? ' is-selected' : ''}" type="button" data-member-ci="${Number(user.ci)}"><span><strong>${escapeHtml(user.nombre)}</strong><small>CI ${escapeHtml(user.ci)}</small></span><i class="fa-solid fa-chevron-right"></i></button>
+      <button class="tablet-member-result${Number(state.selectedMember?.ci) === Number(user.ci) ? ' is-selected' : ''}" type="button" data-member-ci="${Number(user.ci)}"><span><strong>${escapeHtml(user.nombre)}</strong><small>CI ${escapeHtml(user.ci)}</small></span><em>${presentIds.has(Number(user.ci)) ? 'Ingresó a clase' : 'Socio activo'}</em><i class="fa-solid fa-chevron-right"></i></button>
     `).join('');
+    if (!matches.length) memberResults.innerHTML = `<p class="tablet-form-message">${query.length < 2 ? 'Buscá un socio activo por nombre o CI.' : 'No se encontraron socios activos.'}</p>`;
   }
 
   function updateSaleSummary() {
@@ -448,8 +480,7 @@
   function showView(viewId) {
     document.querySelectorAll('[data-tablet-view]').forEach(button => button.classList.toggle('is-active', button.dataset.tabletView === viewId));
     document.querySelectorAll('[data-tablet-panel]').forEach(panel => panel.classList.toggle('is-active', panel.dataset.tabletPanel === viewId));
-    if (viewId === 'sale') Promise.all([loadUsers(), loadStock()]);
-    if (viewId === 'stock') loadStock();
+    if (viewId === 'sale') Promise.all([loadUsers(), loadStock(), loadClassMembers()]).then(searchMembers);
   }
 
   async function logout() {
@@ -464,6 +495,7 @@
     clearInterval(state.classPoll);
     state.session = null;
     state.activeClass = null;
+    state.upcomingClass = null;
     state.selectedProfessorId = null;
     resetSale();
     workspace.hidden = true;
@@ -524,7 +556,6 @@
       updateSaleSummary();
     });
     saleSubmit.addEventListener('click', submitSale);
-    stockRefresh.addEventListener('click', loadStock);
     logoutButton.addEventListener('click', logout);
     window.addEventListener('keydown', event => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
@@ -537,8 +568,6 @@
   }
 
   async function init() {
-    updateClock();
-    setInterval(updateClock, 30000);
     bindEvents();
     try {
       [state.locations, state.professors] = await Promise.all([

@@ -233,6 +233,9 @@ function createOperationsService({
       if (b.estado === 'en_curso' && a.estado !== 'en_curso') return 1;
       return Math.abs(timeToMinutes(a.hora) - currentMinutes) - Math.abs(timeToMinutes(b.hora) - currentMinutes);
     });
+    const upcoming = operationsRepository.findNextClass
+      ? await operationsRepository.findNextClass({ localId, fecha, hora })
+      : null;
     return {
       localId,
       fecha,
@@ -240,6 +243,7 @@ function createOperationsService({
       clase: ordered.length === 1 ? ordered[0] : null,
       requiereSeleccion: ordered.length > 1,
       candidatas: ordered,
+      proxima: upcoming,
     };
   }
 

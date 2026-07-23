@@ -28,6 +28,11 @@ function createAdminProductsController({ shared }) {
   const ventaTotalPreview = document.getElementById('producto-venta-total-preview');
   const inputVentaObservacion = document.getElementById('producto-venta-observacion');
   const guardarVentaBtn = document.getElementById('guardar-venta-producto');
+  const sellSelectedButton = document.getElementById('product-sell-selected');
+  const editSelectedButton = document.getElementById('product-edit-selected');
+  const selectedProductCopy = document.querySelector('#product-local1-selection strong');
+  const locationTabs = Array.from(document.querySelectorAll('[data-product-location]'));
+  const locationPanels = Array.from(document.querySelectorAll('[data-product-location-panel]'));
 
   let productos = [];
   let productoSeleccionadoId = null;
@@ -84,7 +89,18 @@ function createAdminProductsController({ shared }) {
       { id: 5, nombre: 'Barrita de cereal frutos rojos', precio: 70, stock: 24 },
       { id: 6, nombre: 'Bebida isotonica 500 ml', precio: 120, stock: 16 },
     ];
+    if (!productos.some(item => Number(item.id) === Number(productoSeleccionadoId))) productoSeleccionadoId = null;
     renderizarProductos();
+  }
+
+  function updateSelectedProduct() {
+    const selected = productos.find(item => Number(item.id) === Number(productoSeleccionadoId));
+    if (selectedProductCopy) selectedProductCopy.textContent = selected?.nombre || 'Ninguno';
+    if (sellSelectedButton) sellSelectedButton.disabled = !selected;
+    if (editSelectedButton) editSelectedButton.disabled = !selected;
+    cuerpoProductos.querySelectorAll('[data-product-row]').forEach(row => {
+      row.classList.toggle('is-selected', Number(row.dataset.productRow) === Number(productoSeleccionadoId));
+    });
   }
 
   function renderizarProductos() {
@@ -93,27 +109,26 @@ function createAdminProductsController({ shared }) {
 
     productos.forEach(producto => {
       const tr = document.createElement('tr');
+      tr.dataset.productRow = String(producto.id);
+      tr.tabIndex = 0;
       tr.innerHTML = `
         <td>${producto.nombre}</td>
         <td>${producto.precio}</td>
         <td>${producto.stock}</td>
-        <td>
-          <div class="table-action-group">
-            <button class="table-action-button primary" data-vender-producto="${producto.id}"><i class="fa-solid fa-cart-shopping"></i>Vender</button>
-            <button class="table-action-button table-action-icon" data-editar-producto="${producto.id}" aria-label="Editar ${producto.nombre}" title="Editar"><i class="fa-solid fa-pen"></i></button>
-          </div>
-        </td>
       `;
+      tr.addEventListener('click', () => {
+        productoSeleccionadoId = producto.id;
+        updateSelectedProduct();
+      });
+      tr.addEventListener('keydown', event => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        productoSeleccionadoId = producto.id;
+        updateSelectedProduct();
+      });
       cuerpoProductos.appendChild(tr);
     });
-
-    document.querySelectorAll('[data-vender-producto]').forEach(btn => {
-      btn.addEventListener('click', () => abrirVentaProducto(btn.getAttribute('data-vender-producto')));
-    });
-
-    document.querySelectorAll('[data-editar-producto]').forEach(btn => {
-      btn.addEventListener('click', () => abrirEdicionProducto(btn.getAttribute('data-editar-producto')));
-    });
+    updateSelectedProduct();
   }
 
   async function renderizarVentasDashboard(fecha = dashboardFecha?.value || hoyYYYYMMDD()) {
@@ -152,6 +167,7 @@ function createAdminProductsController({ shared }) {
     inputEditarStock.value = producto.stock;
     inputEditarSumarStock.value = '';
     modalEditarProducto.style.display = 'flex';
+    updateSelectedProduct();
   }
 
   function abrirVentaProducto(id) {
@@ -198,6 +214,7 @@ function createAdminProductsController({ shared }) {
       await renderizarVentasDashboard();
       await actualizarWidgetVentasHoy();
       document.dispatchEvent(new CustomEvent('cash:updated'));
+      document.dispatchEvent(new CustomEvent('stock:updated'));
     } catch (error) {
       console.error(error);
       shared.mostrarNotificacion(
@@ -224,6 +241,7 @@ function createAdminProductsController({ shared }) {
       shared.mostrarNotificacion('Producto agregado', 'success');
       await cargarProductos();
       await actualizarWidgetVentasHoy();
+      document.dispatchEvent(new CustomEvent('stock:updated'));
     } catch (error) {
       console.error(error);
       shared.mostrarNotificacion('No se pudo agregar el producto', 'error');
@@ -250,6 +268,7 @@ function createAdminProductsController({ shared }) {
       modalEditarProducto.style.display = 'none';
       shared.mostrarNotificacion('Producto actualizado', 'success');
       await cargarProductos();
+      document.dispatchEvent(new CustomEvent('stock:updated'));
     } catch (error) {
       console.error(error);
       shared.mostrarNotificacion('No se pudo actualizar el producto', 'error');
@@ -266,6 +285,7 @@ function createAdminProductsController({ shared }) {
         modalEditarProducto.style.display = 'none';
         shared.mostrarNotificacion('Producto eliminado', 'success');
         await cargarProductos();
+        document.dispatchEvent(new CustomEvent('stock:updated'));
       },
     });
 
@@ -280,11 +300,22 @@ function createAdminProductsController({ shared }) {
     await actualizarWidgetVentasHoy();
 
     abrirProductoBtn?.addEventListener('click', limpiarFormularioNuevo);
+    document.querySelectorAll('[data-open-modal="modal-nuevo-producto"]').forEach(button => button.addEventListener('click', limpiarFormularioNuevo));
     guardarProductoBtn?.addEventListener('click', crearProducto);
     guardarEdicionBtn?.addEventListener('click', guardarEdicionProducto);
     eliminarProductoBtn?.addEventListener('click', eliminarProducto);
     inputVentaCantidad?.addEventListener('input', actualizarTotalVenta);
     guardarVentaBtn?.addEventListener('click', venderProductoSeleccionado);
+    sellSelectedButton?.addEventListener('click', () => abrirVentaProducto(productoSeleccionadoId));
+    editSelectedButton?.addEventListener('click', () => abrirEdicionProducto(productoSeleccionadoId));
+    document.addEventListener('product:sell', event => abrirVentaProducto(event.detail?.id));
+    document.addEventListener('stock:updated', cargarProductos);
+    locationTabs.forEach(button => button.addEventListener('click', () => {
+      const location = button.dataset.productLocation;
+      locationTabs.forEach(item => item.classList.toggle('is-active', item === button));
+      locationPanels.forEach(panel => panel.classList.toggle('is-active', panel.dataset.productLocationPanel === location));
+      if (location === 'local2') document.dispatchEvent(new CustomEvent('stock:show'));
+    }));
 
     document.addEventListener('admin-dashboard:show', async () => {
       await renderizarVentasDashboard();

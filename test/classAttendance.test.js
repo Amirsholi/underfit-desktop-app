@@ -182,3 +182,33 @@ test('classes enter progress and finish automatically from their schedule', asyn
     [2, 'en_curso'],
   ]);
 });
+
+test('tablet receives the next scheduled class when there is no active class', async () => {
+  let requestedWindow = null;
+  const upcoming = {
+    id: 22,
+    nombre: 'Funcional tarde',
+    fecha: '2026-07-22',
+    hora: '17:00',
+    estado: 'programada',
+  };
+  const service = createOperationsService({
+    operationsRepository: {
+      listClassCandidates: async () => [],
+      findNextClass: async payload => {
+        requestedWindow = payload;
+        return upcoming;
+      },
+    },
+    userRepository: {},
+    productRepository: {},
+    cashService: {},
+    clock: () => new Date(2026, 6, 22, 15, 30, 0),
+  });
+
+  const result = await service.getCurrentClass({ localId: 2 });
+
+  assert.deepEqual(requestedWindow, { localId: 2, fecha: '2026-07-22', hora: '15:30:00' });
+  assert.equal(result.clase, null);
+  assert.deepEqual(result.proxima, upcoming);
+});

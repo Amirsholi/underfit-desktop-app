@@ -11,6 +11,8 @@ function createAdminOperationsController({ shared }) {
   const classEnrollOpen = document.getElementById('class-enroll-open');
   const classEnrollSummary = document.getElementById('class-enroll-summary');
   const classEnrollMember = document.getElementById('class-enroll-member');
+  const classEnrollSearch = document.getElementById('class-enroll-search');
+  const classEnrollResults = document.getElementById('class-enroll-results');
   const classEnrollSave = document.getElementById('class-enroll-save');
   const classesRefresh = document.getElementById('classes-refresh');
   const modalNewClass = document.getElementById('modal-nueva-clase');
@@ -31,7 +33,6 @@ function createAdminOperationsController({ shared }) {
   const professorSave = document.getElementById('professor-save');
   const openTabletButton = document.getElementById('classes-open-tablet');
 
-  const stockProduct = document.getElementById('stock-transfer-product');
   const stockQuantity = document.getElementById('stock-transfer-quantity');
   const stockAvailability = document.getElementById('stock-transfer-availability');
   const stockTransferSubmit = document.getElementById('stock-transfer-submit');
@@ -54,7 +55,9 @@ function createAdminOperationsController({ shared }) {
   let locations = [];
   let selectedClass = null;
   let enrollments = new Map();
+  let enrollmentUsers = [];
   let stock = [];
+  let selectedStockProductId = null;
   let pendingSales = [];
   let pendingSaleSelected = null;
 
@@ -435,24 +438,49 @@ function createAdminOperationsController({ shared }) {
     if (classEnrollHelp) classEnrollHelp.textContent = selectedClass.programacionId
       ? 'El socio quedará inscripto en todas las próximas fechas de esta programación.'
       : 'La inscripción corresponde solamente a esta fecha.';
-    classEnrollMember.innerHTML = '<option value="">Seleccionar socio</option>';
+    classEnrollMember.value = '';
+    classEnrollSearch.value = '';
+    classEnrollResults.innerHTML = '';
     try {
-      const users = window.api ? await window.api.obtenerUsuarios() : [
-        { ci: 49876543, nombre: 'Martina Silva' },
-        { ci: 43219876, nombre: 'Bruno Rodriguez' },
-        { ci: 51234567, nombre: 'Lucas Pereira' },
-        { ci: 56781234, nombre: 'Diego Martinez' },
+      enrollmentUsers = window.api ? await window.api.obtenerUsuarios() : [
+        { ci: 49876543, nombre: 'Martina Silva', fecha_vencimiento: '2026-08-11' },
+        { ci: 43219876, nombre: 'Bruno Rodriguez', fecha_vencimiento: '2026-08-20' },
+        { ci: 51234567, nombre: 'Lucas Pereira', fecha_vencimiento: '2026-08-30' },
+        { ci: 56781234, nombre: 'Diego Martinez', fecha_vencimiento: '2026-10-16' },
       ];
-      users.forEach(user => {
-        const option = document.createElement('option');
-        option.value = String(user.ci);
-        option.textContent = `${user.nombre} · CI ${user.ci}`;
-        classEnrollMember.appendChild(option);
-      });
+      renderEnrollmentSearch('');
       modalEnrollClass.style.display = 'flex';
+      setTimeout(() => classEnrollSearch.focus(), 50);
     } catch (error) {
       shared.mostrarNotificacion('No se pudieron cargar los socios', 'error');
     }
+  }
+
+  function renderEnrollmentSearch(filter = '') {
+    const query = filter.trim().toLocaleLowerCase('es');
+    const visible = shared.ordenarSociosPorVencimiento(enrollmentUsers)
+      .filter(user => !query || String(user.ci).includes(query) || String(user.nombre || '').toLocaleLowerCase('es').includes(query))
+      .slice(0, 8);
+    classEnrollResults.innerHTML = '';
+    visible.forEach(user => {
+      const active = shared.esMembresiaActiva(user.fecha_vencimiento);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.enrollMember = String(user.ci);
+      button.className = Number(classEnrollMember.value) === Number(user.ci) ? 'is-selected' : '';
+      const identity = document.createElement('span');
+      const name = document.createElement('strong');
+      const detail = document.createElement('small');
+      name.textContent = user.nombre;
+      detail.textContent = `CI ${user.ci}`;
+      identity.append(name, detail);
+      const status = document.createElement('span');
+      status.className = `member-search-status${active ? ' is-active' : ''}`;
+      status.textContent = active ? 'Activo' : 'Vencido';
+      button.append(identity, status);
+      classEnrollResults.appendChild(button);
+    });
+    if (!visible.length) classEnrollResults.innerHTML = '<div class="modal-search-empty">No se encontraron socios.</div>';
   }
 
   async function saveEnrollment() {
@@ -465,8 +493,7 @@ function createAdminOperationsController({ shared }) {
       if (window.api) {
         await window.api.inscribirSocioClase({ classId: selectedClass.id, userCi });
       } else {
-        const text = classEnrollMember.options[classEnrollMember.selectedIndex]?.textContent || String(userCi);
-        const userName = text.split(' · ')[0];
+        const userName = enrollmentUsers.find(user => Number(user.ci) === userCi)?.nombre || String(userCi);
         const list = enrollments.get(Number(selectedClass.id)) || [];
         if (!list.some(item => Number(item.usuarioCi) === userCi)) list.push({ usuarioCi: userCi, usuarioNombre: userName });
         enrollments.set(Number(selectedClass.id), list);
@@ -492,32 +519,42 @@ function createAdminOperationsController({ shared }) {
   }
 
   function renderStock() {
-    if (!stockBody || !stockProduct) return;
-    const selectedValue = stockProduct.value;
+    if (!stockBody) return;
+    if (!stock.some(item => Number(item.productoId) === Number(selectedStockProductId))) selectedStockProductId = null;
     stockBody.innerHTML = '';
-    stockProduct.innerHTML = '<option value="">Seleccionar producto</option>';
     stock.forEach(item => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td><strong>${item.nombre}</strong></td><td>${money(item.precio)}</td><td>${item.local1}</td><td><span class="stock-local-two">${item.local2}</span></td><td>${item.total}</td>`;
+      tr.dataset.stockProduct = String(item.productoId);
+      tr.tabIndex = 0;
+      tr.classList.toggle('is-selected', Number(item.productoId) === Number(selectedStockProductId));
+      tr.innerHTML = `<td><strong>${item.nombre}</strong></td><td>${money(item.precio)}</td><td><span class="stock-local-two">${item.local2}</span></td><td>${item.local1}</td>`;
+      const selectRow = () => {
+        selectedStockProductId = Number(item.productoId);
+        renderStock();
+      };
+      tr.addEventListener('click', selectRow);
+      tr.addEventListener('keydown', event => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        selectRow();
+      });
       stockBody.appendChild(tr);
-      const option = document.createElement('option');
-      option.value = String(item.productoId);
-      option.textContent = item.nombre;
-      stockProduct.appendChild(option);
     });
-    if ([...stockProduct.options].some(option => option.value === selectedValue)) stockProduct.value = selectedValue;
     stockUpdated.textContent = `Actualizado ${new Date().toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })}`;
     updateStockAvailability();
   }
 
   function updateStockAvailability() {
-    const item = stock.find(row => String(row.productoId) === stockProduct.value);
-    stockAvailability.querySelector('strong').textContent = item ? `${item.local1} unidades` : '—';
+    const item = stock.find(row => Number(row.productoId) === Number(selectedStockProductId));
+    stockAvailability.querySelector('strong').textContent = item?.nombre || 'Ninguno';
+    const detail = stockAvailability.querySelector('small');
+    if (detail) detail.textContent = item ? `${item.local1} unidades disponibles en Local 1` : 'Selecciona una fila de la tabla';
     if (item) stockQuantity.max = String(item.local1);
+    stockTransferSubmit.disabled = !item || Number(item.local1) <= 0;
   }
 
   async function transferStock() {
-    const productoId = Number(stockProduct.value || 0);
+    const productoId = Number(selectedStockProductId || 0);
     const cantidad = Number(stockQuantity.value || 0);
     const item = stock.find(row => Number(row.productoId) === productoId);
     if (!item || !Number.isInteger(cantidad) || cantidad <= 0 || cantidad > Number(item.local1)) {
@@ -626,13 +663,27 @@ function createAdminOperationsController({ shared }) {
     classSave?.addEventListener('click', saveClass);
     classEnrollOpen?.addEventListener('click', openEnrollment);
     classEnrollSave?.addEventListener('click', saveEnrollment);
+    classEnrollSearch?.addEventListener('input', () => {
+      classEnrollMember.value = '';
+      renderEnrollmentSearch(classEnrollSearch.value);
+    });
+    classEnrollResults?.addEventListener('click', event => {
+      const button = event.target.closest('[data-enroll-member]');
+      if (!button) return;
+      const user = enrollmentUsers.find(item => Number(item.ci) === Number(button.dataset.enrollMember));
+      if (!user) return;
+      classEnrollMember.value = String(user.ci);
+      classEnrollSearch.value = `${user.nombre} · ${user.ci}`;
+      renderEnrollmentSearch(user.nombre);
+    });
     classesRefresh?.addEventListener('click', loadClasses);
     openTabletButton?.addEventListener('click', async () => {
       if (window.api?.abrirPantallaTablet) await window.api.abrirPantallaTablet();
       else window.open('tablet.html', 'underfit-tablet-preview', 'width=1100,height=780');
     });
-    stockProduct?.addEventListener('change', updateStockAvailability);
     stockTransferSubmit?.addEventListener('click', transferStock);
+    document.addEventListener('stock:show', loadStock);
+    document.addEventListener('stock:updated', loadStock);
     pendingBody?.addEventListener('click', event => {
       const button = event.target.closest('[data-collect-pending]');
       if (button) openPendingCollection(button.dataset.collectPending);

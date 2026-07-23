@@ -266,6 +266,22 @@ function createOperationsRepository(db) {
     `, [localId, fecha]);
   }
 
+  function findNextClass({ localId, fecha, hora }) {
+    return get(`
+      SELECT c.id, c.nombre, c.fecha, c.hora,
+             c.duracion_minutos AS duracionMinutos, c.capacidad,
+             c.profesor AS profesorProgramado, c.profesor_id AS profesorProgramadoId,
+             c.local_id AS localId, l.nombre AS localNombre, c.estado,
+             c.programacion_id AS programacionId
+      FROM clases c
+      LEFT JOIN locales l ON l.id = c.local_id
+      WHERE c.local_id = ? AND c.estado = 'programada'
+        AND (c.fecha > ? OR (c.fecha = ? AND c.hora > ?))
+      ORDER BY c.fecha, c.hora, c.id
+      LIMIT 1
+    `, [localId, fecha, fecha, hora]);
+  }
+
   function listClassLifecycleCandidates(fecha) {
     return all(`
       SELECT id, nombre, fecha, hora, duracion_minutos AS duracionMinutos,
@@ -539,6 +555,7 @@ function createOperationsRepository(db) {
     listClassEnrollments,
     enrollMember,
     listClassCandidates,
+    findNextClass,
     listClassLifecycleCandidates,
     setClassLifecycleState,
     registerClassAttendance,

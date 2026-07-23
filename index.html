@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.8">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.10">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -53,21 +53,15 @@
             <article><i class="fa-solid fa-dollar-sign"></i><span>Dinero ingresado hoy<strong id="widget-ventas-hoy">$ 0</strong></span></article>
             <article data-admin-section="pending" tabindex="0"><i class="fa-regular fa-clock"></i><span>Cobros pendientes<strong id="widget-cobros-pendientes">0</strong></span></article>
           </section>
-          <section class="home-utility-bar" aria-label="Herramientas de recepcion">
-            <div class="home-search-block">
+          <div class="home-table-tools">
+            <div class="home-search-block home-table-search">
               <label for="home-member-search">Buscar socio</label>
               <div class="home-search"><input id="home-member-search" placeholder="CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
             </div>
-            <div class="home-command-actions" aria-label="Acciones frecuentes">
-              <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
-              <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar</span></button>
-              <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
-              <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
-            </div>
-          </section>
+          </div>
           <div class="home-workspace-grid">
             <section class="home-operational-pane home-members-pane">
-              <div class="home-pane-heading"><div><span class="home-pane-kicker">Recepcion</span><h3>Socios activos</h3></div><button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button></div>
+              <div class="home-pane-heading"><div><span class="home-pane-kicker">Recepcion</span><h3>Socios por vencimiento</h3></div><button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button></div>
               <div class="home-list-header home-member-columns"><span>Socio</span><span>Vencimiento</span><span>Plan / Estado</span></div>
               <div id="home-members-list" class="home-data-list"></div>
               <div id="home-members-empty" class="home-list-empty">No hay socios para mostrar.</div>
@@ -78,6 +72,12 @@
               <div id="home-products-list" class="home-data-list"></div>
               <div id="home-products-empty" class="home-list-empty">No hay productos disponibles.</div>
             </section>
+          </div>
+          <div class="home-command-actions home-bottom-actions" aria-label="Acciones frecuentes">
+            <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
+            <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripcion</span></button>
+            <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+            <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
           </div>
         </section>
 
@@ -104,10 +104,6 @@
         <section class="app-view" data-admin-view="users">
           <div class="section-heading">
             <div><h2 class="section-title">Usuarios</h2><p class="section-subtitle">Socios, membresias y datos personales.</p></div>
-            <div class="dashboard-inline-actions">
-              <button class="app-button" type="button" data-open-modal="modal-renovar-suscripcion">Renovar suscripcion</button>
-              <button class="app-button app-button-primary" type="button" data-open-modal="modal-alta-usuario">Agregar socio</button>
-            </div>
           </div>
           <div class="search-row"><input id="filtro-busqueda" class="users-search-field" placeholder="CI o Nombre"></div>
           <section class="content-panel">
@@ -127,6 +123,10 @@
                 </div>
               </div>
           </section>
+          <div class="page-action-dock users-action-dock" aria-label="Acciones de usuarios">
+            <button class="page-dock-action" type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
+            <button class="page-dock-action" type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripcion</span></button>
+          </div>
         </section>
 
         <section class="app-view records-page" data-admin-view="records">
@@ -189,52 +189,43 @@
           </div>
         </section>
 
-        <section class="app-view" data-admin-view="products">
-          <div class="section-heading">
-            <div><h2 class="section-title">Productos</h2><p class="section-subtitle">Catalogo, ventas y distribucion de stock entre locales.</p></div>
-            <div class="dashboard-inline-actions">
-              <button class="app-button" type="button" data-scroll-to="product-stock-allocation"><i class="fa-solid fa-arrow-right-arrow-left"></i>Asignar stock</button>
-              <button class="app-button app-button-primary" type="button" data-open-modal="modal-nuevo-producto">Nuevo producto</button>
-            </div>
+        <section class="app-view product-page" data-admin-view="products">
+          <div class="section-heading product-page-heading">
+            <div><h2 class="section-title">Productos</h2><p class="section-subtitle">Venta en recepcion y asignacion de stock al salon funcional.</p></div>
+            <nav class="product-local-tabs" aria-label="Stock por local">
+              <button class="is-active" type="button" data-product-location="local1"><i class="fa-solid fa-building"></i><span>Local 1</span></button>
+              <button type="button" data-product-location="local2"><i class="fa-solid fa-dumbbell"></i><span>Local 2</span></button>
+            </nav>
           </div>
-          <section class="content-panel product-catalog-section">
-              <div class="surface-heading product-catalog-heading"><div><h3>Catalogo general</h3><p>Precio y existencias totales disponibles.</p></div></div>
-              <div class="table-card">
-                <div class="table-scroll table-scroll-products">
-                  <table class="data-table" id="tabla-productos">
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Precio</th>
-                        <th>Stock</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody id="cuerpo-productos"></tbody>
-                  </table>
-                </div>
-                <div id="sin-productos" class="table-empty">Todavia no hay productos cargados.</div>
+
+          <section class="product-local-view is-active" data-product-location-panel="local1">
+            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Recepcion</span><h3>Stock del Local 1</h3><p>Selecciona una fila para vender o editar el producto.</p></div></div>
+            <div class="table-card product-fixed-table">
+              <div class="table-scroll table-scroll-products">
+                <table class="data-table" id="tabla-productos">
+                  <thead><tr><th>Producto</th><th>Precio</th><th>Stock</th></tr></thead>
+                  <tbody id="cuerpo-productos"></tbody>
+                </table>
               </div>
-          </section>
-          <section id="product-stock-allocation" class="product-location-section">
-            <div class="product-location-heading">
-              <div><span class="section-kicker">Operacion multi-local</span><h3>Stock por local</h3><p>Recepcion asigna mercaderia al salon funcional y conserva la trazabilidad.</p></div>
-              <div class="location-legend"><span><i class="fa-solid fa-building"></i>Local 1 · Recepcion</span><span><i class="fa-solid fa-dumbbell"></i>Local 2 · Funcional</span></div>
+              <div id="sin-productos" class="table-empty">Todavia no hay productos cargados.</div>
             </div>
-            <div class="product-location-grid">
-              <section class="operations-surface stock-allocation-surface">
-                <div class="surface-heading"><div><h3>Asignar al Local 2</h3><p>Se descuenta del stock disponible en recepcion.</p></div></div>
-                <div class="stock-transfer-form">
-                  <div class="form-field"><label for="stock-transfer-product">Producto</label><select id="stock-transfer-product" class="app-select"></select></div>
-                  <div class="form-field"><label for="stock-transfer-quantity">Cantidad</label><input id="stock-transfer-quantity" type="number" min="1" step="1" value="1"></div>
-                  <div id="stock-transfer-availability" class="stock-availability"><span>Disponible en Local 1</span><strong>—</strong></div>
-                  <button id="stock-transfer-submit" class="app-button app-button-primary" type="button"><i class="fa-solid fa-arrow-right-arrow-left"></i>Asignar</button>
-                </div>
-              </section>
-              <section class="operations-surface location-stock-surface">
-                <div class="surface-heading"><div><h3>Distribucion actual</h3><p>Unidades disponibles en cada sede.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
-                <div class="table-scroll"><table class="data-table location-stock-table"><thead><tr><th>Producto</th><th>Precio</th><th>Local 1</th><th>Local 2</th><th>Total</th></tr></thead><tbody id="location-stock-body"></tbody></table></div>
-              </section>
+            <div class="page-action-dock product-action-dock">
+              <div id="product-local1-selection" class="dock-selection"><span>Producto seleccionado</span><strong>Ninguno</strong></div>
+              <button id="product-sell-selected" class="page-dock-action" type="button" disabled><i class="fa-solid fa-cart-shopping"></i><span>Vender</span></button>
+              <button id="product-edit-selected" class="page-dock-action" type="button" disabled><i class="fa-solid fa-pen"></i><span>Editar</span></button>
+              <button class="page-dock-action is-primary" type="button" data-open-modal="modal-nuevo-producto"><i class="fa-solid fa-plus"></i><span>Nuevo producto</span></button>
+            </div>
+          </section>
+
+          <section class="product-local-view" data-product-location-panel="local2">
+            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Salon funcional</span><h3>Stock del Local 2</h3><p>Selecciona un producto y asigna unidades desde recepcion.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
+            <div class="table-card product-fixed-table">
+              <div class="table-scroll location-stock-scroll"><table class="data-table location-stock-table"><thead><tr><th>Producto</th><th>Precio</th><th>Stock Local 2</th><th>Disponible Local 1</th></tr></thead><tbody id="location-stock-body"></tbody></table></div>
+            </div>
+            <div class="page-action-dock product-action-dock stock-action-dock">
+              <div id="stock-transfer-availability" class="dock-selection"><span>Producto seleccionado</span><strong>Ninguno</strong><small>Selecciona una fila de la tabla</small></div>
+              <label class="dock-quantity" for="stock-transfer-quantity"><span>Cantidad</span><input id="stock-transfer-quantity" type="number" min="1" step="1" value="1"></label>
+              <button id="stock-transfer-submit" class="page-dock-action is-primary" type="button" disabled><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Asignar al Local 2</span></button>
             </div>
           </section>
         </section>
@@ -289,32 +280,33 @@
       <div class="app-modal-body app-modal-dashboard-body">
         <div class="dashboard-top-grid">
           <div class="dashboard-top-left">
-            <div class="cash-page-intro">
-              <span id="dashboard-page-kicker" class="section-kicker">Control de jornada</span>
-              <h4 id="dashboard-page-heading">Caja del local principal</h4>
-              <p id="dashboard-page-copy">Abrí la jornada, controlá los movimientos y cerrá con el detalle completo.</p>
-            </div>
             <div class="dashboard-toolbar">
               <div class="dashboard-toolbar-date">
-                <label for="dashboard-fecha">Fecha de trabajo</label>
+                <label for="dashboard-fecha">Jornada</label>
                 <input id="dashboard-fecha" type="date">
                 <span id="dashboard-estado-ingresos" class="dashboard-status"></span>
               </div>
             </div>
-
-            <div class="dashboard-tabs">
-              <button class="dashboard-tab-button is-active" type="button" data-dashboard-tab="caja">Caja</button>
-              <button class="dashboard-tab-button" type="button" data-dashboard-tab="ingresos" hidden>Ingresos al gym</button>
+            <div class="dashboard-state-block">
+              <span id="dashboard-estado-caja-pill" class="cash-state-pill cash-state-closed">
+                <span class="cash-state-dot"></span>
+                <span id="dashboard-estado-caja-texto">Caja cerrada</span>
+              </span>
+              <p id="dashboard-cierre-estado" class="dashboard-state-copy">Sin apertura registrada para esta fecha.</p>
             </div>
+            <div id="dashboard-apertura-resumen" class="dashboard-opening-summary" style="display: none;">
+              <span id="dashboard-apertura-estado" class="dashboard-opening-title">Caja abierta</span>
+              <span id="dashboard-apertura-resumen-monto" class="dashboard-opening-meta">$ 0</span>
+              <span id="dashboard-apertura-resumen-observacion" class="dashboard-opening-note"></span>
+              <button id="dashboard-editar-apertura" class="app-button" type="button">Editar apertura</button>
+            </div>
+            <div class="dashboard-tabs" hidden><button class="dashboard-tab-button is-active" type="button" data-dashboard-tab="caja">Caja</button></div>
           </div>
 
           <section id="dashboard-apertura-card" class="dashboard-compact-card dashboard-opening-card" data-caja-only>
-            <div class="section-heading dashboard-opening-card-heading">
-              <div>
-                <span class="section-kicker">Inicio de turno</span>
-                <h3 class="section-title"><i class="fa-solid fa-cash-register"></i>Abrir caja</h3>
-                <p class="section-subtitle">Identificá al cajero y el efectivo inicial.</p>
-              </div>
+            <div class="cash-opening-label">
+              <i class="fa-solid fa-key"></i>
+              <span><strong>Iniciar jornada</strong><small>Fondo inicial y persona en caja</small></span>
             </div>
             <div class="dashboard-inline-form">
               <div class="form-field">
@@ -336,22 +328,6 @@
 
         <section class="content-panel dashboard-caja-panel" data-dashboard-panel="caja">
           <section class="dashboard-overview">
-            <div class="dashboard-overview-top">
-              <div class="dashboard-state-block">
-                <span id="dashboard-estado-caja-pill" class="cash-state-pill cash-state-closed">
-                  <span class="cash-state-dot"></span>
-                  <span id="dashboard-estado-caja-texto">Caja cerrada</span>
-                </span>
-                <p id="dashboard-cierre-estado" class="dashboard-state-copy">Sin apertura registrada para esta fecha.</p>
-              </div>
-              <div id="dashboard-apertura-resumen" class="dashboard-opening-summary" style="display: none;">
-                <span id="dashboard-apertura-estado" class="dashboard-opening-title">Caja abierta</span>
-                <span id="dashboard-apertura-resumen-monto" class="dashboard-opening-meta">$ 0</span>
-                <span id="dashboard-apertura-resumen-observacion" class="dashboard-opening-note"></span>
-                <button id="dashboard-editar-apertura" class="app-button" type="button">Editar apertura</button>
-              </div>
-            </div>
-
             <section class="dashboard-compact-card dashboard-legacy-opening-card" style="display: none;">
               <div class="section-heading">
                 <div>
@@ -811,9 +787,9 @@
       </div>
 
       <div class="app-modal-body">
-        <input type="text" id="producto-nuevo-nombre" placeholder="Nombre del producto">
-        <input type="number" id="producto-nuevo-precio" min="0" step="1" placeholder="Precio">
-        <input type="number" id="producto-nuevo-stock" min="0" step="1" placeholder="Stock inicial">
+        <div class="form-field"><label for="producto-nuevo-nombre">Nombre</label><input type="text" id="producto-nuevo-nombre" placeholder="Nombre del producto"></div>
+        <div class="form-field"><label for="producto-nuevo-precio">Precio</label><input type="number" id="producto-nuevo-precio" min="0" step="1" placeholder="$ 0"></div>
+        <div class="form-field"><label for="producto-nuevo-stock">Stock inicial del Local 1</label><input type="number" id="producto-nuevo-stock" min="0" step="1" placeholder="0"></div>
       </div>
 
       <div class="app-modal-footer">
@@ -823,37 +799,37 @@
   </div>
 
   <div id="modal-vender-producto" class="app-modal">
-    <div class="app-modal-card">
+    <div class="app-modal-card app-modal-card-sale">
       <div class="app-modal-header">
         <h3>Registrar venta</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-vender-producto">Cerrar</button>
       </div>
 
-      <div class="app-modal-body">
-        <label for="producto-venta-nombre">Producto</label>
-        <input type="text" id="producto-venta-nombre" placeholder="Producto" readonly>
-        <div class="sale-quantity-row">
-          <div class="form-field">
-            <label for="producto-venta-cantidad">Cantidad</label>
-            <input type="number" id="producto-venta-cantidad" min="1" step="1" value="1">
+      <div class="app-modal-body sale-dialog-grid">
+        <section class="sale-product-panel">
+          <span class="section-kicker">Producto seleccionado</span>
+          <input type="text" id="producto-venta-nombre" class="sale-product-name" placeholder="Producto" readonly>
+          <div class="sale-quantity-row">
+            <div class="form-field">
+              <label for="producto-venta-cantidad">Cantidad</label>
+              <input type="number" id="producto-venta-cantidad" min="1" step="1" value="1">
+            </div>
+            <div class="sale-total-preview"><span>Total de la venta</span><strong id="producto-venta-total-preview">$ 0</strong></div>
           </div>
-          <div class="sale-total-preview"><span>Total de la venta</span><strong id="producto-venta-total-preview">$ 0</strong></div>
-        </div>
-        <label for="producto-venta-monto">Monto cobrado</label>
-        <input type="number" id="producto-venta-monto" min="0" step="1" placeholder="Monto cobrado">
-        <label>Forma de pago</label>
-        <div class="binary-choice">
-          <label class="binary-choice-option">
-            <input type="radio" name="producto-venta-forma-pago" value="efectivo" checked>
-            <span>Efectivo</span>
-          </label>
-            <label class="binary-choice-option">
-              <input type="radio" name="producto-venta-forma-pago" value="transferencia">
-              <span>Transferencia</span>
-            </label>
-        </div>
-        <label for="producto-venta-observacion">Observacion</label>
-        <input type="text" id="producto-venta-observacion" placeholder="Observacion del pago">
+        </section>
+        <section class="sale-payment-panel">
+          <div class="form-field"><label for="producto-venta-monto">Monto cobrado</label><input type="number" id="producto-venta-monto" min="0" step="1" placeholder="$ 0"></div>
+          <div class="form-field"><label>Forma de pago</label>
+            <div class="binary-choice">
+              <label class="binary-choice-option"><input type="radio" name="producto-venta-forma-pago" value="efectivo" checked><span>Efectivo</span></label>
+              <label class="binary-choice-option">
+                <input type="radio" name="producto-venta-forma-pago" value="transferencia">
+                <span>Transferencia</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-field"><label for="producto-venta-observacion">Observacion</label><input type="text" id="producto-venta-observacion" placeholder="Opcional"></div>
+        </section>
       </div>
 
       <div class="app-modal-footer">
@@ -912,8 +888,9 @@
       </div>
       <div class="app-modal-body">
         <div id="class-enroll-summary" class="task-context-card"></div>
-        <label for="class-enroll-member">Socio</label>
-        <select id="class-enroll-member" class="app-select"></select>
+        <div class="form-field"><label for="class-enroll-search">Buscar socio</label><div class="modal-search-field"><i class="fa-solid fa-magnifying-glass"></i><input id="class-enroll-search" type="search" placeholder="Nombre o CI" autocomplete="off"></div></div>
+        <input id="class-enroll-member" type="hidden">
+        <div id="class-enroll-results" class="modal-member-results"></div>
         <p id="class-enroll-help" class="field-help">La inscripción quedará visible para recepción y para el profesor en la tablet.</p>
       </div>
       <div class="app-modal-footer"><button id="class-enroll-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-user-check"></i>Confirmar inscripción</button></div>
@@ -948,10 +925,10 @@
       </div>
 
       <div class="app-modal-body">
-        <input type="text" id="producto-editar-nombre" placeholder="Nombre del producto">
-        <input type="number" id="producto-editar-precio" min="0" step="1" placeholder="Precio">
-        <input type="number" id="producto-editar-stock" min="0" step="1" placeholder="Stock actual">
-        <input type="number" id="producto-editar-sumar-stock" min="0" step="1" placeholder="Sumar stock manualmente">
+        <div class="form-field"><label for="producto-editar-nombre">Nombre</label><input type="text" id="producto-editar-nombre" placeholder="Nombre del producto"></div>
+        <div class="form-field"><label for="producto-editar-precio">Precio</label><input type="number" id="producto-editar-precio" min="0" step="1" placeholder="$ 0"></div>
+        <div class="form-field"><label for="producto-editar-stock">Stock actual del Local 1</label><input type="number" id="producto-editar-stock" min="0" step="1" placeholder="0"></div>
+        <div class="form-field"><label for="producto-editar-sumar-stock">Agregar unidades al Local 1</label><input type="number" id="producto-editar-sumar-stock" min="0" step="1" placeholder="0"><span class="field-help">Se suma al stock actual al guardar.</span></div>
       </div>
 
       <div class="app-modal-footer app-modal-footer-split">
@@ -1125,16 +1102,16 @@
 
   <div id="notificaciones"></div>
 
-  <script src="membershipRules.js?v=2.5.0.2"></script>
-  <script src="adminShared.js?v=2.5.0.2"></script>
+  <script src="membershipRules.js?v=2.5.0.3"></script>
+  <script src="adminShared.js?v=2.5.0.3"></script>
   <script src="adminLayout.js?v=2.5.0.9"></script>
-  <script src="adminUsers.js?v=2.5.0.3"></script>
+  <script src="adminUsers.js?v=2.5.0.4"></script>
   <script src="adminMemberships.js?v=2.5.0.3"></script>
-  <script src="adminProducts.js?v=2.5.0.3"></script>
+  <script src="adminProducts.js?v=2.5.0.4"></script>
   <script src="adminEntries.js?v=2.5.0.9"></script>
   <script src="adminRecords.js?v=2.5.0.2"></script>
-  <script src="adminOperations.js?v=2.5.0.6"></script>
-  <script src="homeDashboard.js?v=2.5.0.2"></script>
+  <script src="adminOperations.js?v=2.5.0.7"></script>
+  <script src="homeDashboard.js?v=2.5.0.4"></script>
   <script src="renderer.js?v=2.5.0.7"></script>
 </body>
 </html>

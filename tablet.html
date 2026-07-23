@@ -4,30 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Under-Fit · Tablet</title>
-  <link rel="stylesheet" href="styles/tablet.css?v=2.5.0.2">
+  <link rel="stylesheet" href="styles/tablet.css?v=2.5.0.3">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="tablet-page">
-  <header class="tablet-topbar">
-    <div class="tablet-brand">
-      <img src="logo.jpg" alt="" class="tablet-brand-symbol">
-      <span><strong>UNDER <b>- FIT</b></strong><small>OPERACIÓN DE CLASES</small></span>
-    </div>
-    <div class="tablet-connection"><i class="fa-solid fa-circle"></i><span>Datos locales</span><small id="tablet-clock"></small></div>
-  </header>
-
   <main class="tablet-shell">
     <section id="tablet-login" class="tablet-login-screen">
-      <div class="tablet-login-copy">
-        <span class="tablet-kicker">Inicio de turno</span>
-        <h1>Identificate una vez.<br>La tablet hace el resto.</h1>
-        <p>Al ingresar podés dejar la pantalla lista para los alumnos. Las clases siguen su horario sin que tengas que iniciarlas ni cerrarlas.</p>
-        <div class="tablet-login-rule"><i class="fa-solid fa-shield-halved"></i><span>El PIN identifica al responsable de las ventas enviadas a recepción. No permite modificar socios ni caja.</span></div>
-      </div>
-
       <section class="tablet-login-card">
         <div class="tablet-login-card-heading">
-          <div><span>Paso 1</span><h2>Elegí local y profesor</h2></div>
+          <div><span>Inicio de turno</span><h1>Identificate</h1><p>Elegí tu nombre e ingresá el PIN.</p></div>
           <i class="fa-solid fa-user-lock"></i>
         </div>
         <label class="tablet-field">
@@ -36,7 +21,7 @@
         </label>
         <div id="tablet-professor-list" class="tablet-professor-list"></div>
         <div class="tablet-pin-area">
-          <div class="tablet-pin-heading"><span>Paso 2</span><strong>Ingresá tu PIN</strong></div>
+          <div class="tablet-pin-heading"><strong>PIN</strong></div>
           <input id="tablet-login-pin" type="password" inputmode="none" maxlength="4" readonly aria-label="PIN del profesor">
           <div class="tablet-login-keypad" aria-label="Teclado de PIN">
             <button type="button" data-login-key="1">1</button><button type="button" data-login-key="2">2</button><button type="button" data-login-key="3">3</button>
@@ -52,7 +37,7 @@
 
     <section id="tablet-workspace" class="tablet-workspace" hidden>
       <header class="tablet-session-bar">
-        <div class="tablet-session-person"><span class="tablet-session-avatar" id="tablet-session-avatar">—</span><span><small>Responsable de ventas</small><strong id="tablet-session-professor">—</strong></span></div>
+        <div class="tablet-session-person"><span class="tablet-session-avatar" id="tablet-session-avatar">—</span><span><small>Profesor</small><strong id="tablet-session-professor">—</strong></span></div>
         <div class="tablet-current-class"><span id="tablet-class-state" class="tablet-class-state">Buscando clase</span><span><strong id="tablet-class-name">Clase actual</strong><small id="tablet-class-meta">Consultando horario…</small></span></div>
         <button id="tablet-logout" class="tablet-logout" type="button"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Finalizar turno</span></button>
       </header>
@@ -60,7 +45,6 @@
       <nav class="tablet-nav" aria-label="Herramientas del turno">
         <button class="is-active" type="button" data-tablet-view="attendance"><i class="fa-solid fa-keyboard"></i><span>Ingreso de alumnos</span></button>
         <button type="button" data-tablet-view="sale"><i class="fa-solid fa-bottle-water"></i><span>Venta rápida</span></button>
-        <button type="button" data-tablet-view="stock"><i class="fa-solid fa-boxes-stacked"></i><span>Stock</span></button>
       </nav>
 
       <div id="tablet-class-picker" class="tablet-class-picker" hidden>
@@ -69,16 +53,12 @@
       </div>
 
       <section class="tablet-view is-active" data-tablet-panel="attendance">
-        <div class="tablet-entry-stage">
+        <div class="tablet-entry-simple">
           <div id="tablet-entry-feedback" class="tablet-entry-feedback" aria-live="polite">
             <span class="tablet-kicker">Ingreso a clase</span>
             <h1 id="tablet-entry-title">Ingresá tu documento</h1>
             <p id="tablet-entry-copy">Marcá tu CI y presioná Ingresar.</p>
-            <div class="tablet-entry-count"><i class="fa-solid fa-user-check"></i><span><strong id="tablet-attendance-count">0</strong> asistencias registradas</span></div>
           </div>
-          <div class="tablet-entry-privacy"><i class="fa-solid fa-eye-slash"></i><span>La pantalla vuelve a quedar limpia después de cada alumno.</span></div>
-        </div>
-        <div class="tablet-entry-control">
           <div id="tablet-entry-display" class="tablet-entry-display" aria-label="Documento ingresado">—</div>
           <div class="tablet-entry-keypad" aria-label="Teclado de documento">
             <button type="button" data-entry-key="1">1</button><button type="button" data-entry-key="2">2</button><button type="button" data-entry-key="3">3</button>
@@ -87,6 +67,7 @@
             <button class="tablet-key-secondary" type="button" data-entry-key="clear">Limpiar</button><button type="button" data-entry-key="0">0</button><button class="tablet-key-secondary" type="button" data-entry-key="backspace"><i class="fa-solid fa-delete-left"></i></button>
           </div>
           <button id="tablet-entry-submit" class="tablet-primary-action tablet-entry-submit" type="button"><i class="fa-solid fa-arrow-right-to-bracket"></i>Ingresar</button>
+          <div class="tablet-entry-count"><i class="fa-solid fa-user-check"></i><span><strong id="tablet-attendance-count">0</strong> ingresos registrados</span></div>
         </div>
       </section>
 
@@ -109,14 +90,10 @@
         </div>
       </section>
 
-      <section class="tablet-view tablet-stock-view" data-tablet-panel="stock">
-        <div class="tablet-view-heading"><div><span class="tablet-kicker">Referencia rápida</span><h2>Stock disponible</h2><p>La asignación se administra desde recepción.</p></div><button id="tablet-stock-refresh" class="tablet-icon-button" type="button" aria-label="Actualizar stock"><i class="fa-solid fa-rotate"></i></button></div>
-        <div class="tablet-stock-table"><div class="tablet-stock-header"><span>Producto</span><span>Precio</span><span>Unidades</span></div><div id="tablet-stock-body"></div></div>
-      </section>
     </section>
   </main>
 
   <div id="tablet-toast" class="tablet-toast" role="status"></div>
-  <script src="tablet.js?v=2.5.0.2"></script>
+  <script src="tablet.js?v=2.5.0.3"></script>
 </body>
 </html>

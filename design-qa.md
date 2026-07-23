@@ -34,6 +34,10 @@ Registros dejó de ser una pestaña secundaria dentro de Caja y pasó a ser una 
 
 Se agregó la superficie táctil de profesor: identificación simple para responsabilizar ventas, detección automática de la clase vigente, teclado de ingreso persistente, venta rápida asociada a socio, consulta de stock y cierre de turno. El horario inicia y termina las clases sin intervención del profesor.
 
+### Pasada 7
+
+Se devolvieron los accesos frecuentes debajo de las tablas, se fijó el alto de las superficies con scroll interno y se unificó el orden de socios por urgencia: días positivos de menor a mayor y todos los resultados de 0 días al final. Productos se separó en Local 1 y Local 2 con selección de fila y acciones inferiores; la tablet eliminó la administración de stock y prioriza ingreso por CI y venta a asistentes o socios activos. Caja usa una franja compacta de jornada en lugar del bloque introductorio anterior.
+
 ## Verificación final
 
 - Tipografía y jerarquía: base de 16 px, títulos, cifras y acciones legibles; no quedan textos operativos de 10–12 px como estructura principal.
@@ -45,7 +49,8 @@ Se agregó la superficie táctil de profesor: identificación simple para respon
 - Interacciones verificadas: venta rápida, cantidad de venta dentro del formulario, navegación, transferencia de stock Local 1 → Local 2, Caja y Registros.
 - Viewports: 1920×1080 y 1280×720. Sin desbordamiento horizontal; en el ancho compacto la barra lateral se transforma en riel de iconos y las tablas conservan columnas legibles.
 - Iconos y activos: se conserva el logo real, el fondo de gimnasio y Font Awesome; no se agregaron ilustraciones falsas ni SVG improvisados.
-- Pruebas: sintaxis validada y 14 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores, sesiones de tablet, clases recurrentes, ciclo horario automático, asistencia atómica y prevención de duplicados entre dispositivos.
+- Pruebas: sintaxis validada y 18 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores, sesiones de tablet, clases recurrentes, ciclo horario automático, próxima clase, asistencia atómica, orden de vencimientos y activación de Under Running.
+- Validación renderizada de este corte: administración a 1440×900 y tablet a 1024×768, sin errores de consola.
 
 ## Alcance futuro explícito
 

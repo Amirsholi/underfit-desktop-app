@@ -77,12 +77,21 @@ function createAdminShared(membershipRules) {
     return membershipRules.isMembershipActive(fechaVencimientoISO);
   }
 
+  function ordenarSociosPorVencimiento(usuarios = []) {
+    return [...usuarios].sort((a, b) => {
+      const urgency = membershipRules.compareMembershipUrgency(a?.fecha_vencimiento, b?.fecha_vencimiento);
+      if (urgency !== 0) return urgency;
+      return String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es');
+    });
+  }
+
   return {
     mostrarNotificacion,
     confirmAction,
     confirmarAccion,
     calcularDiasRestantes,
     esMembresiaActiva,
+    ordenarSociosPorVencimiento,
   };
 }
 

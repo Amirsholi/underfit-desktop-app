@@ -52,7 +52,7 @@
   }
 
   function isActive(config = CONFIG, now = new Date()) {
-    return config.enabled && now <= config.activeUntil;
+    return config.enabled === true;
   }
 
   function getCountdownParts(targetDate, now = new Date()) {
@@ -262,5 +262,7 @@
     return { active: true, playEntryTransition, destroy };
   }
 
-  window.UnderRunningEvent = { init, isActive };
+  const publicApi = { init, isActive };
+  if (typeof window !== 'undefined') window.UnderRunningEvent = publicApi;
+  if (typeof module !== 'undefined' && module.exports) module.exports = { buildConfig, isActive };
 })();

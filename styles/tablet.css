@@ -507,3 +507,89 @@ button { -webkit-tap-highlight-color: transparent; }
   .tablet-entry-feedback { min-height: 180px; }
   .tablet-entry-keypad button { min-height: 42px; }
 }
+
+/* Simplified tablet operation */
+.tablet-shell { height: 100vh; padding: 16px 20px 20px; }
+
+.tablet-login-screen {
+  grid-template-columns: 1fr;
+  width: min(520px, 100%);
+  gap: 0;
+}
+
+.tablet-login-card { width: 100%; max-height: calc(100vh - 32px); padding: 20px 22px; }
+.tablet-login-card-heading h1 { margin: 2px 0 0; font: 700 30px/1 Plate, sans-serif; }
+.tablet-login-card-heading p { margin: 3px 0 0; color: var(--tablet-muted); font-size: 12px; }
+.tablet-login-card-heading > i { font-size: 22px; }
+.tablet-field { margin-top: 12px; }
+.tablet-field select { color-scheme: dark; color: var(--tablet-text); background: #101319; }
+.tablet-field select option { color: var(--tablet-text); background: #101319; }
+.tablet-professor-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 128px; overflow-y: auto; }
+.tablet-professor-option { min-height: 44px; }
+.tablet-pin-area { margin-top: 12px; }
+#tablet-login-pin { height: 42px; margin: 6px 0; }
+.tablet-login-keypad button { min-height: 34px; }
+#tablet-login-submit { min-height: 44px; margin-top: 9px; }
+
+.tablet-workspace { grid-template-rows: 62px 58px minmax(0, 1fr); gap: 10px; }
+.tablet-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.tablet-view[data-tablet-panel="attendance"] {
+  display: none;
+  place-items: center;
+  grid-template-columns: 1fr;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.tablet-view[data-tablet-panel="attendance"].is-active { display: grid; }
+
+.tablet-entry-simple {
+  display: grid;
+  grid-template-rows: auto 58px minmax(250px, 1fr) 50px auto;
+  width: min(520px, 100%);
+  max-height: 100%;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--tablet-border-soft);
+  border-radius: 14px;
+  background: rgba(5, 7, 10, 0.34);
+}
+
+.tablet-entry-feedback { min-height: 78px; place-items: center; text-align: center; }
+.tablet-entry-feedback h1 { margin: 6px 0 4px; font-size: clamp(30px, 4vw, 43px); }
+.tablet-entry-feedback > p { font-size: 13px; }
+.tablet-entry-display { min-height: 58px; }
+.tablet-entry-keypad button { min-height: 48px; font-size: clamp(19px, 2.3vw, 26px); }
+.tablet-entry-submit { min-height: 50px; }
+.tablet-entry-count { justify-self: center; margin: 0; padding: 7px 11px; }
+
+.tablet-member-result em {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #72e79d;
+  background: rgba(69, 215, 126, 0.09);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.tablet-member-result > i { color: var(--tablet-muted); font-size: 10px; }
+
+@media (max-width: 900px) {
+  .tablet-shell { height: 100vh; padding: 12px; }
+  .tablet-login-screen { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 700px) {
+  .tablet-shell { height: 100vh; padding-top: 10px; }
+  .tablet-login-card { padding: 14px 18px; }
+  .tablet-login-card-heading h1 { font-size: 25px; }
+  .tablet-professor-list { max-height: 92px; }
+  .tablet-entry-simple { grid-template-rows: auto 50px minmax(210px, 1fr) 46px auto; padding: 12px 16px; }
+  .tablet-entry-feedback { min-height: 58px; }
+  .tablet-entry-feedback h1 { font-size: 29px; }
+  .tablet-entry-keypad button { min-height: 38px; }
+}
