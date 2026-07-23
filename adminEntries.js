@@ -208,6 +208,7 @@ function createAdminEntriesController({ shared }) {
       const fecha = fechaDashboard?.value || hoyYYYYMMDD();
       await cargarIngresosDelDia(fecha);
       await actualizarWidgetIngresosHoy();
+      document.dispatchEvent(new CustomEvent('entries:updated'));
     } catch (error) {
       shared.mostrarNotificacion(error?.message || 'No se pudo anular el ingreso', 'error');
     }

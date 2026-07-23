@@ -52,6 +52,7 @@ function createAdminMembershipsController({ shared, actualizarTabla }) {
   }
 
   async function cargarPreciosBotones() {
+    if (!window.api?.obtenerInfoSistema) return;
     try {
       const info = await window.api.obtenerInfoSistema();
       const settings = info?.settings || {};

@@ -252,27 +252,216 @@ function createOperationsRepository(db) {
     });
   }
 
+  function listClassCandidates({ localId, fecha }) {
+    return all(`
+      SELECT c.id, c.nombre, c.fecha, c.hora,
+             c.duracion_minutos AS duracionMinutos, c.capacidad,
+             c.profesor AS profesorProgramado, c.profesor_id AS profesorProgramadoId,
+             c.local_id AS localId, l.nombre AS localNombre, c.estado,
+             c.programacion_id AS programacionId
+      FROM clases c
+      LEFT JOIN locales l ON l.id = c.local_id
+      WHERE c.local_id = ? AND c.fecha = ? AND c.estado IN ('programada', 'en_curso')
+      ORDER BY c.hora, c.id
+    `, [localId, fecha]);
+  }
+
+  async function registerClassAttendance(data) {
+    return inTransaction(async () => {
+      const classRow = await get(`
+        SELECT id, nombre, fecha, hora, duracion_minutos AS duracionMinutos,
+               local_id AS localId, programacion_id AS programacionId, estado
+        FROM clases
+        WHERE id = ?
+      `, [data.claseId]);
+      if (!classRow || !['programada', 'en_curso'].includes(classRow.estado)) {
+        throw new Error('La clase no esta disponible para registrar asistencia');
+      }
+      if (Number(classRow.localId) !== Number(data.localId)) {
+        throw new Error('La clase pertenece a otro local');
+      }
+
+      const duplicate = await get(`
+        SELECT id FROM asistencias_clase
+        WHERE clase_id = ? AND usuario_ci = ? AND COALESCE(anulado, 0) = 0
+      `, [data.claseId, data.usuarioCi]);
+      if (duplicate) throw new Error('La asistencia de este socio ya fue registrada');
+
+      const entry = await run(`
+        INSERT INTO ingresos (
+          ci, fecha, hora, ts, fuente, observacion, local_id, dispositivo_id, clase_id
+        ) VALUES (?, ?, ?, ?, 'tablet_clase', ?, ?, ?, ?)
+      `, [data.usuarioCi, data.fecha, data.hora, data.ts, data.observacion,
+        data.localId, data.dispositivoId, data.claseId]);
+
+      let attendance;
+      try {
+        attendance = await run(`
+          INSERT INTO asistencias_clase (
+            clase_id, programacion_id, usuario_ci, ingreso_id, local_id,
+            profesor_id, profesor_sesion_id, dispositivo_id, fecha, hora, ts, estado
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'presente')
+        `, [data.claseId, classRow.programacionId, data.usuarioCi, entry.lastID, data.localId,
+          data.profesorId, data.profesorSesionId, data.dispositivoId, data.fecha, data.hora, data.ts]);
+      } catch (error) {
+        if (String(error?.message || '').includes('UNIQUE')) {
+          throw new Error('La asistencia de este socio ya fue registrada');
+        }
+        throw error;
+      }
+
+      await run(`
+        UPDATE clases
+        SET estado = 'en_curso',
+            profesor_real_id = COALESCE(profesor_real_id, ?),
+            profesor_sesion_id = COALESCE(profesor_sesion_id, ?),
+            inicio_real_ts = COALESCE(inicio_real_ts, ?)
+        WHERE id = ?
+      `, [data.profesorId, data.profesorSesionId, data.ts, data.claseId]);
+
+      return {
+        id: attendance.lastID,
+        ingresoId: entry.lastID,
+        claseId: data.claseId,
+        claseNombre: classRow.nombre,
+        usuarioCi: data.usuarioCi,
+        fecha: data.fecha,
+        hora: data.hora,
+      };
+    });
+  }
+
+  async function finishClass({ classId, professorId, professorSessionId, finishedTs }) {
+    const result = await run(`
+      UPDATE clases
+      SET estado = 'dictada',
+          profesor_real_id = COALESCE(profesor_real_id, ?),
+          profesor_sesion_id = COALESCE(profesor_sesion_id, ?),
+          inicio_real_ts = COALESCE(inicio_real_ts, ?),
+          fin_real_ts = ?
+      WHERE id = ? AND estado IN ('programada', 'en_curso')
+    `, [professorId, professorSessionId, finishedTs, finishedTs, classId]);
+    if (!result.changes) throw new Error('La clase ya no se puede finalizar');
+    return { classId, estado: 'dictada', finRealTs: finishedTs };
+  }
+
+  function listClassRecordsByDate(fecha) {
+    return all(`
+      SELECT c.id, c.nombre, c.fecha, c.hora,
+             c.duracion_minutos AS duracionMinutos, c.capacidad,
+             c.local_id AS localId, l.nombre AS localNombre,
+             c.profesor AS profesorProgramado,
+             c.profesor_id AS profesorProgramadoId,
+             pr.nombre AS profesorReal,
+             c.profesor_real_id AS profesorRealId,
+             c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
+             c.programacion_id AS programacionId,
+             CASE WHEN c.programacion_id IS NOT NULL THEN (
+               SELECT COUNT(*) FROM inscripciones_programacion_clase ip
+               WHERE ip.programacion_id = c.programacion_id AND ip.estado = 'inscripto'
+             ) ELSE (
+               SELECT COUNT(*) FROM inscripciones_clase ic
+               WHERE ic.clase_id = c.id AND ic.estado = 'inscripto'
+             ) END AS inscriptos,
+             (SELECT COUNT(*) FROM asistencias_clase ac
+              WHERE ac.clase_id = c.id AND COALESCE(ac.anulado, 0) = 0) AS presentes
+      FROM clases c
+      LEFT JOIN locales l ON l.id = c.local_id
+      LEFT JOIN profesores pr ON pr.id = c.profesor_real_id
+      WHERE c.fecha = ?
+      ORDER BY c.hora, c.id
+    `, [fecha]);
+  }
+
+  async function getClassRecordDetail(classId) {
+    const classRow = await get(`
+      SELECT c.id, c.nombre, c.fecha, c.hora,
+             c.duracion_minutos AS duracionMinutos, c.capacidad,
+             c.local_id AS localId, l.nombre AS localNombre,
+             c.profesor AS profesorProgramado,
+             c.profesor_id AS profesorProgramadoId,
+             pr.nombre AS profesorReal, c.profesor_real_id AS profesorRealId,
+             c.profesor_sesion_id AS profesorSesionId,
+             c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
+             c.programacion_id AS programacionId
+      FROM clases c
+      LEFT JOIN locales l ON l.id = c.local_id
+      LEFT JOIN profesores pr ON pr.id = c.profesor_real_id
+      WHERE c.id = ?
+    `, [classId]);
+    if (!classRow) return null;
+
+    const enrolledSql = classRow.programacionId
+      ? `SELECT usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre
+         FROM inscripciones_programacion_clase
+         WHERE programacion_id = ? AND estado = 'inscripto'`
+      : `SELECT usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre
+         FROM inscripciones_clase
+         WHERE clase_id = ? AND estado = 'inscripto'`;
+    const enrolled = await all(enrolledSql, [classRow.programacionId || classId]);
+    const attendances = await all(`
+      SELECT ac.id, ac.usuario_ci AS usuarioCi, u.nombre AS usuarioNombre,
+             ac.hora, ac.dispositivo_id AS dispositivoId,
+             p.nombre AS profesorRegistro
+      FROM asistencias_clase ac
+      LEFT JOIN usuarios u ON u.ci = ac.usuario_ci
+      LEFT JOIN profesores p ON p.id = ac.profesor_id
+      WHERE ac.clase_id = ? AND COALESCE(ac.anulado, 0) = 0
+      ORDER BY ac.hora, LOWER(u.nombre), ac.id
+    `, [classId]);
+    const attendanceByUser = new Map(attendances.map(row => [Number(row.usuarioCi), row]));
+    const students = enrolled.map(student => {
+      const attendance = attendanceByUser.get(Number(student.usuarioCi));
+      attendanceByUser.delete(Number(student.usuarioCi));
+      return {
+        ...student,
+        presente: Boolean(attendance),
+        horaIngreso: attendance?.hora || null,
+        dispositivoId: attendance?.dispositivoId || null,
+        profesorRegistro: attendance?.profesorRegistro || null,
+      };
+    });
+    for (const attendance of attendanceByUser.values()) {
+      students.push({
+        usuarioCi: attendance.usuarioCi,
+        usuarioNombre: attendance.usuarioNombre || `Socio ${attendance.usuarioCi}`,
+        presente: true,
+        noInscripto: true,
+        horaIngreso: attendance.hora,
+        dispositivoId: attendance.dispositivoId,
+        profesorRegistro: attendance.profesorRegistro,
+      });
+    }
+    students.sort((a, b) => Number(b.presente) - Number(a.presente)
+      || String(a.usuarioNombre).localeCompare(String(b.usuarioNombre), 'es'));
+    return { ...classRow, students };
+  }
+
   function listPendingSales({ estado = 'pendiente', fecha = null } = {}) {
     const conditions = [];
     const params = [];
     if (estado) {
-      conditions.push('estado = ?');
+      conditions.push('vp.estado = ?');
       params.push(estado);
     }
     if (fecha) {
-      conditions.push('fecha = ?');
+      conditions.push('vp.fecha = ?');
       params.push(fecha);
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     return all(`
-      SELECT id, local_id AS localId, producto_id AS productoId, producto_nombre AS productoNombre,
-             usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre, cantidad, total, profesor,
-             profesor_id AS profesorId, profesor_sesion_id AS profesorSesionId,
-             fecha, hora, ts, estado, cobrado_ts AS cobradoTs, forma_pago AS formaPago,
-             caja_movimiento_id AS cajaMovimientoId, observacion
-      FROM ventas_pendientes
+      SELECT vp.id, vp.local_id AS localId, l.nombre AS localNombre,
+             vp.producto_id AS productoId, vp.producto_nombre AS productoNombre,
+             vp.usuario_ci AS usuarioCi, vp.usuario_nombre AS usuarioNombre,
+             vp.cantidad, vp.total, vp.profesor,
+             vp.profesor_id AS profesorId, vp.profesor_sesion_id AS profesorSesionId,
+             vp.fecha, vp.hora, vp.ts, vp.estado, vp.cobrado_ts AS cobradoTs,
+             vp.forma_pago AS formaPago, vp.caja_movimiento_id AS cajaMovimientoId,
+             vp.observacion
+      FROM ventas_pendientes vp
+      LEFT JOIN locales l ON l.id = vp.local_id
       ${where}
-      ORDER BY ts DESC, id DESC
+      ORDER BY vp.ts DESC, vp.id DESC
     `, params);
   }
 
@@ -299,18 +488,32 @@ function createOperationsRepository(db) {
 
   async function createPendingSale(data) {
     return inTransaction(async () => {
-      const stock = await get(`SELECT cantidad FROM stock_local WHERE local_id = 2 AND producto_id = ?`, [data.productoId]);
-      if (!stock || Number(stock.cantidad) < data.cantidad) throw new Error('Stock insuficiente en el Local 2');
-      await run(`UPDATE stock_local SET cantidad = cantidad - ?, actualizado_ts = ? WHERE local_id = 2 AND producto_id = ?`, [data.cantidad, data.ts, data.productoId]);
+      const localId = Number(data.localId || 2);
+      if (localId === 1) {
+        const product = await get(`SELECT stock FROM productos WHERE id = ?`, [data.productoId]);
+        if (!product || Number(product.stock) < data.cantidad) throw new Error('Stock insuficiente en el local de la tablet');
+        const nextStock = Number(product.stock) - data.cantidad;
+        await run(`UPDATE productos SET stock = ? WHERE id = ?`, [nextStock, data.productoId]);
+        await run(`
+          INSERT INTO stock_local (local_id, producto_id, cantidad, actualizado_ts)
+          VALUES (1, ?, ?, ?)
+          ON CONFLICT(local_id, producto_id) DO UPDATE
+          SET cantidad = excluded.cantidad, actualizado_ts = excluded.actualizado_ts
+        `, [data.productoId, nextStock, data.ts]);
+      } else {
+        const stock = await get(`SELECT cantidad FROM stock_local WHERE local_id = ? AND producto_id = ?`, [localId, data.productoId]);
+        if (!stock || Number(stock.cantidad) < data.cantidad) throw new Error('Stock insuficiente en el local de la tablet');
+        await run(`UPDATE stock_local SET cantidad = cantidad - ?, actualizado_ts = ? WHERE local_id = ? AND producto_id = ?`, [data.cantidad, data.ts, localId, data.productoId]);
+      }
       const result = await run(`
         INSERT INTO ventas_pendientes (
           local_id, producto_id, producto_nombre, usuario_ci, usuario_nombre, cantidad, total,
           profesor, profesor_id, profesor_sesion_id, fecha, hora, ts, estado, observacion
-        ) VALUES (2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)
-      `, [data.productoId, data.productoNombre, data.usuarioCi, data.usuarioNombre, data.cantidad,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)
+      `, [localId, data.productoId, data.productoNombre, data.usuarioCi, data.usuarioNombre, data.cantidad,
         data.total, data.profesor, data.profesorId, data.profesorSesionId, data.fecha, data.hora,
         data.ts, data.observacion]);
-      return { id: result.lastID, ...data, estado: 'pendiente' };
+      return { id: result.lastID, ...data, localId, estado: 'pendiente' };
     });
   }
 
@@ -325,6 +528,11 @@ function createOperationsRepository(db) {
     createClass,
     listClassEnrollments,
     enrollMember,
+    listClassCandidates,
+    registerClassAttendance,
+    finishClass,
+    listClassRecordsByDate,
+    getClassRecordDetail,
     listPendingSales,
     getPendingSummaryByDate,
     findPendingSaleById,

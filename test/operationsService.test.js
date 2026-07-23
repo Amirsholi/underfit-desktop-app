@@ -53,7 +53,7 @@ test('collecting a pending sale records it in the current cash session', async (
   });
 });
 
-test('creating a Local 2 sale ties together product, member and professor', async () => {
+test('creating a tablet sale ties together product, member, professor and location', async () => {
   let created;
   const service = createOperationsService({
     operationsRepository: {
@@ -91,7 +91,7 @@ test('a tablet sale records the exact active professor session', async () => {
     staffService: {
       resolveIdentity: async payload => {
         assert.equal(payload.profesorSesionId, 41);
-        return { profesorId: 7, profesorSesionId: 41, profesorNombre: 'Valentina' };
+        return { profesorId: 7, profesorSesionId: 41, profesorNombre: 'Valentina', localId: 1 };
       },
     },
   });
@@ -106,4 +106,5 @@ test('a tablet sale records the exact active professor session', async () => {
   assert.equal(created.profesor, 'Valentina');
   assert.equal(created.profesorId, 7);
   assert.equal(created.profesorSesionId, 41);
+  assert.equal(created.localId, 1);
 });

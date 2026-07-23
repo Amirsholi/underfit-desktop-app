@@ -21,11 +21,16 @@ The main location currently runs one reception PC with two displays: the adminis
 - Professor catalog with a four-digit PIN stored as a salted hash.
 - One active professor session per tablet/device, with explicit start and end timestamps.
 - Classes reference the selected professor while preserving the readable name on historical records.
-- Pending Local 2 sales preserve the professor and the exact tablet session that created them.
+- Pending tablet sales preserve the location, professor and exact device session that created them.
 - Reception can create, edit, deactivate and assign professors from the Classes page.
 - Class schedules now include location, professor, weekdays, time, duration, capacity and optional end date.
 - Upcoming occurrences are generated automatically and replenished as the calendar advances.
 - Enrollment belongs to the recurring group, so one reception action applies to every upcoming occurrence.
+- Class attendance now creates the member's general gym entry in the same database transaction.
+- The real instructor is taken from the active device session, preserving substitutions without overwriting the scheduled instructor.
+- Each class occurrence can progress through scheduled, in-progress and taught states, with actual start and finish timestamps.
+- Multiple tablets can operate in either location; duplicate attendance is prevented per member and class, even across devices.
+- Access history and class history now have a dedicated Records page with daily summaries and an integrated present/absent roster.
 - Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
 
 ### 1. Cash integrity

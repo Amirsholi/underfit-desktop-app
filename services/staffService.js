@@ -123,6 +123,8 @@ function createStaffService({ staffRepository }) {
         profesorId: session.profesorId,
         profesorSesionId: session.id,
         profesorNombre: session.profesorNombre,
+        localId: session.localId,
+        dispositivoId: session.dispositivoId,
       };
     }
 

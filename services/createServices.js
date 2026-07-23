@@ -39,6 +39,7 @@ function createServices() {
     productRepository,
     cashService,
     staffService,
+    membershipRules,
   });
 
   return {

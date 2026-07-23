@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.6">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.7">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -83,7 +83,7 @@
 
         <section class="app-view" data-admin-view="pending">
           <div class="section-heading">
-            <div><span class="section-kicker">Recepción · Local principal</span><h2 class="section-title">Cobros pendientes</h2><p class="section-subtitle">Ventas entregadas en el local de funcional que todavía no ingresaron a caja.</p></div>
+            <div><span class="section-kicker">Recepción · Local principal</span><h2 class="section-title">Cobros pendientes</h2><p class="section-subtitle">Ventas entregadas por instructores desde una tablet que todavía no ingresaron a caja.</p></div>
             <div class="pending-summary-inline"><span>Pendiente total</span><strong id="pending-sales-total">$ 0</strong></div>
           </div>
           <div class="table-card pending-sales-card">
@@ -96,7 +96,7 @@
             <div class="pending-empty-state">
               <i class="fa-regular fa-circle-check"></i>
               <strong>No hay cobros pendientes</strong>
-              <span>Las ventas enviadas desde el segundo local apareceran aqui.</span>
+              <span>Las ventas enviadas desde cualquier tablet de clase aparecerán aquí.</span>
             </div>
           </div>
         </section>
@@ -127,6 +127,66 @@
                 </div>
               </div>
           </section>
+        </section>
+
+        <section class="app-view records-page" data-admin-view="records">
+          <div class="section-heading records-heading">
+            <div>
+              <span class="section-kicker">Historial operativo</span>
+              <h2 class="section-title">Registros</h2>
+              <p class="section-subtitle">Ingresos generales y asistencia a clases, separados para leer cada jornada con claridad.</p>
+            </div>
+            <div class="records-date-control">
+              <label for="records-date">Jornada</label>
+              <input id="records-date" type="date">
+              <button id="records-refresh" class="icon-action" type="button" aria-label="Actualizar registros" title="Actualizar"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+          </div>
+
+          <div class="records-summary-grid">
+            <article><span>Ingresos al gimnasio</span><strong id="records-entry-count">0</strong><small>accesos registrados</small></article>
+            <article><span>Clases programadas</span><strong id="records-class-count">0</strong><small>en todos los locales</small></article>
+            <article><span>Asistencias a clases</span><strong id="records-attendance-count">0</strong><small>presencias confirmadas</small></article>
+          </div>
+
+          <div class="records-tabs" role="tablist" aria-label="Tipo de registro">
+            <button class="is-active" type="button" data-records-tab="entries" role="tab"><i class="fa-solid fa-door-open"></i>Ingresos al gimnasio</button>
+            <button type="button" data-records-tab="classes" role="tab"><i class="fa-solid fa-people-group"></i>Clases por día</button>
+          </div>
+
+          <section class="operations-surface records-panel is-active" data-records-panel="entries">
+            <div class="surface-heading">
+              <div><h3>Personas que ingresaron</h3><p>Incluye recepción, pantalla de ingreso y asistencias registradas desde tablets.</p></div>
+              <span id="records-entry-status" class="surface-meta"></span>
+            </div>
+            <div class="table-scroll records-table-scroll">
+              <table class="data-table records-table">
+                <thead><tr><th>Hora</th><th>Socio</th><th>Local</th><th>Origen</th><th></th></tr></thead>
+                <tbody id="records-entry-body"></tbody>
+              </table>
+            </div>
+            <div id="records-entry-empty" class="surface-empty"><i class="fa-solid fa-door-open"></i><strong>No hay ingresos en esta jornada</strong><span>Los accesos aparecerán aquí al ser registrados.</span></div>
+          </section>
+
+          <div class="records-class-workspace" data-records-panel="classes">
+            <section class="operations-surface records-panel records-class-list-panel">
+              <div class="surface-heading"><div><h3>Clases de la jornada</h3><p>Profesor programado, profesor real y asistencia efectiva.</p></div></div>
+              <div class="table-scroll records-table-scroll">
+                <table class="data-table records-class-table">
+                  <thead><tr><th>Horario</th><th>Clase / Local</th><th>Profesor</th><th>Asistencia</th><th>Estado</th></tr></thead>
+                  <tbody id="records-class-body"></tbody>
+                </table>
+              </div>
+              <div id="records-class-empty" class="surface-empty"><i class="fa-regular fa-calendar-xmark"></i><strong>No hay clases programadas</strong><span>Cambiá la fecha o creá una programación desde Clases.</span></div>
+            </section>
+
+            <aside class="operations-surface records-class-detail">
+              <div class="surface-heading"><div><span class="section-kicker">Detalle de asistencia</span><h3 id="records-detail-title">Seleccioná una clase</h3><p id="records-detail-meta">El detalle se abre en esta misma página.</p></div></div>
+              <div id="records-detail-summary" class="records-detail-summary"></div>
+              <div id="records-detail-roster" class="records-detail-roster"></div>
+              <div id="records-detail-empty" class="surface-empty compact"><i class="fa-solid fa-user-check"></i><span>Elegí una clase para revisar presentes y ausentes.</span></div>
+            </aside>
+          </div>
         </section>
 
         <section class="app-view" data-admin-view="products">
@@ -243,7 +303,7 @@
 
             <div class="dashboard-tabs">
               <button class="dashboard-tab-button is-active" type="button" data-dashboard-tab="caja">Caja</button>
-              <button class="dashboard-tab-button" type="button" data-dashboard-tab="ingresos">Ingresos al gym</button>
+              <button class="dashboard-tab-button" type="button" data-dashboard-tab="ingresos" hidden>Ingresos al gym</button>
             </div>
           </div>
 
@@ -1066,13 +1126,14 @@
 
   <script src="membershipRules.js?v=2.5.0.2"></script>
   <script src="adminShared.js?v=2.5.0.2"></script>
-  <script src="adminLayout.js?v=2.5.0.8"></script>
+  <script src="adminLayout.js?v=2.5.0.9"></script>
   <script src="adminUsers.js?v=2.5.0.3"></script>
-  <script src="adminMemberships.js?v=2.5.0.2"></script>
+  <script src="adminMemberships.js?v=2.5.0.3"></script>
   <script src="adminProducts.js?v=2.5.0.3"></script>
-  <script src="adminEntries.js?v=2.5.0.8"></script>
-  <script src="adminOperations.js?v=2.5.0.4"></script>
+  <script src="adminEntries.js?v=2.5.0.9"></script>
+  <script src="adminRecords.js?v=2.5.0.1"></script>
+  <script src="adminOperations.js?v=2.5.0.5"></script>
   <script src="homeDashboard.js?v=2.5.0.2"></script>
-  <script src="renderer.js?v=2.5.0.6"></script>
+  <script src="renderer.js?v=2.5.0.7"></script>
 </body>
 </html>

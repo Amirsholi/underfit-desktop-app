@@ -35,7 +35,14 @@ function createEntryService({ userRepository, entryRepository, membershipRules }
     };
   }
 
-  async function validateAndRegisterEntry({ ci, fuente = 'kiosk', observacion = null }) {
+  async function validateAndRegisterEntry({
+    ci,
+    fuente = 'kiosk',
+    observacion = null,
+    localId = 1,
+    dispositivoId = null,
+    claseId = null,
+  }) {
     const usuario = await userRepository.findByCi(ci);
     const resultado = buildAccessResult(usuario);
 
@@ -47,6 +54,9 @@ function createEntryService({ userRepository, entryRepository, membershipRules }
       ci: usuario.ci,
       fuente,
       observacion,
+      localId,
+      dispositivoId,
+      claseId,
       ...nowLocalParts(),
     });
 

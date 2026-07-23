@@ -288,8 +288,8 @@ function createAdminOperationsController({ shared }) {
 
   function demoPending() {
     return [
-      { id: 1, fecha: today(), hora: '18:42', usuarioNombre: 'Martina Silva', productoNombre: 'Agua mineral 600 ml', cantidad: 1, profesor: 'Santiago', total: 60, estado: 'pendiente' },
-      { id: 2, fecha: today(), hora: '19:08', usuarioNombre: 'Bruno Rodriguez', productoNombre: 'Barrita de cereal chocolate', cantidad: 2, profesor: 'Santiago', total: 140, estado: 'pendiente' },
+      { id: 1, localId: 2, localNombre: 'Salón funcional', fecha: today(), hora: '18:42', usuarioNombre: 'Martina Silva', productoNombre: 'Agua mineral 600 ml', cantidad: 1, profesor: 'Santiago', total: 60, estado: 'pendiente' },
+      { id: 2, localId: 1, localNombre: 'Recepción principal', fecha: today(), hora: '19:08', usuarioNombre: 'Bruno Rodriguez', productoNombre: 'Barrita de cereal chocolate', cantidad: 2, profesor: 'Valentina', total: 140, estado: 'pendiente' },
     ];
   }
 
@@ -566,7 +566,7 @@ function createAdminOperationsController({ shared }) {
         <td>${formatDateTime(item.fecha, item.hora)}</td>
         <td><strong>${item.usuarioNombre}</strong></td>
         <td>${item.productoNombre}${Number(item.cantidad || 1) > 1 ? ` × ${item.cantidad}` : ''}</td>
-        <td>${item.profesor}</td>
+        <td><span class="pending-registered"><strong>${item.profesor}</strong><small>${item.localNombre || `Local ${item.localId || 2}`}</small></span></td>
         <td><strong>${money(item.total)}</strong></td>
         <td><span class="pending-status-pill">Pendiente</span></td>
         <td><button class="table-action-button primary" type="button" data-collect-pending="${item.id}">Cobrar</button></td>
@@ -578,7 +578,7 @@ function createAdminOperationsController({ shared }) {
   function openPendingCollection(id) {
     pendingSaleSelected = pendingSales.find(item => Number(item.id) === Number(id)) || null;
     if (!pendingSaleSelected) return;
-    pendingCollectSummary.innerHTML = `<span>Venta de ${pendingSaleSelected.productoNombre}</span><strong>${money(pendingSaleSelected.total)}</strong><span>${pendingSaleSelected.usuarioNombre} · registrado por ${pendingSaleSelected.profesor}</span>`;
+    pendingCollectSummary.innerHTML = `<span>Venta de ${pendingSaleSelected.productoNombre}</span><strong>${money(pendingSaleSelected.total)}</strong><span>${pendingSaleSelected.usuarioNombre} · ${pendingSaleSelected.localNombre || `Local ${pendingSaleSelected.localId || 2}`} · registrado por ${pendingSaleSelected.profesor}</span>`;
     pendingCollectNote.value = '';
     document.querySelectorAll('input[name="pending-payment-method"]').forEach(input => { input.checked = input.value === 'efectivo'; });
     pendingCollectModal.style.display = 'flex';

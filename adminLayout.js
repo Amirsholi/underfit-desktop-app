@@ -96,12 +96,20 @@ function createAdminLayoutController() {
     function showSection(section) {
       if (section === 'locations') section = 'products';
       document.dispatchEvent(new CustomEvent('admin-section:show', { detail: { section } }));
-      if (section === 'cash' || section === 'records') {
+      if (section === 'cash') {
         views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'operations'));
         document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
           button.classList.toggle('is-active', button.dataset.adminSection === section);
         });
-        document.dispatchEvent(new CustomEvent('admin-dashboard:show', { detail: { tab: section === 'cash' ? 'caja' : 'ingresos' } }));
+        document.dispatchEvent(new CustomEvent('admin-dashboard:show', { detail: { tab: 'caja' } }));
+        return;
+      }
+      if (section === 'records') {
+        views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'records'));
+        document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
+          button.classList.toggle('is-active', button.dataset.adminSection === section);
+        });
+        document.dispatchEvent(new CustomEvent('admin-records:show'));
         return;
       }
       if (section === 'settings') {

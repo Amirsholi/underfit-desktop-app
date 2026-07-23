@@ -1,6 +1,14 @@
-function createOperationsService({ operationsRepository, userRepository, productRepository, cashService, staffService = null }) {
+function createOperationsService({
+  operationsRepository,
+  userRepository,
+  productRepository,
+  cashService,
+  staffService = null,
+  membershipRules = null,
+  clock = () => new Date(),
+}) {
   function nowLocalParts() {
-    const d = new Date();
+    const d = clock();
     const pad = value => String(value).padStart(2, '0');
     return {
       fecha: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
@@ -27,6 +35,17 @@ function createOperationsService({ operationsRepository, userRepository, product
     const parsed = new Date(`${normalized}T12:00:00`);
     if (Number.isNaN(parsed.getTime()) || formatLocalDate(parsed) !== normalized) throw new Error(`${fieldName} invalida`);
     return normalized;
+  }
+
+  function normalizeTime(value, fieldName = 'Hora') {
+    const normalized = requiredText(value, fieldName);
+    if (!/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(normalized)) throw new Error(`${fieldName} invalida`);
+    return normalized.length === 5 ? `${normalized}:00` : normalized;
+  }
+
+  function timeToMinutes(value) {
+    const [hours, minutes] = String(value).split(':').map(Number);
+    return (hours * 60) + minutes;
   }
 
   function formatLocalDate(date) {
@@ -168,6 +187,118 @@ function createOperationsService({ operationsRepository, userRepository, product
     });
   }
 
+  async function getCurrentClass(payload = {}) {
+    const localId = normalizePositiveInteger(payload.localId || 1, 'Local');
+    const now = nowLocalParts();
+    const fecha = normalizeDate(payload.fecha || now.fecha, 'Fecha');
+    const hora = normalizeTime(payload.hora || now.hora);
+    await ensureUpcomingClasses(fecha);
+    const candidates = await operationsRepository.listClassCandidates({ localId, fecha });
+    const currentMinutes = timeToMinutes(hora);
+    const matching = candidates.filter(item => {
+      const start = timeToMinutes(item.hora);
+      const end = start + Number(item.duracionMinutos || 60);
+      return currentMinutes >= start - 45 && currentMinutes <= end + 30;
+    });
+    const ordered = [...matching].sort((a, b) => {
+      if (a.estado === 'en_curso' && b.estado !== 'en_curso') return -1;
+      if (b.estado === 'en_curso' && a.estado !== 'en_curso') return 1;
+      return Math.abs(timeToMinutes(a.hora) - currentMinutes) - Math.abs(timeToMinutes(b.hora) - currentMinutes);
+    });
+    return {
+      localId,
+      fecha,
+      hora,
+      clase: ordered.length === 1 ? ordered[0] : null,
+      requiereSeleccion: ordered.length > 1,
+      candidatas: ordered,
+    };
+  }
+
+  async function resolveActiveStaffSession(payload = {}) {
+    if (!payload.profesorSesionId) throw new Error('El profesor debe iniciar su turno en este dispositivo');
+    const identity = await resolveProfessor({ profesorSesionId: payload.profesorSesionId });
+    if (!identity.profesorSesionId || !identity.profesorId) throw new Error('La sesion del profesor no esta activa');
+    if (payload.dispositivoId && identity.dispositivoId !== String(payload.dispositivoId).trim()) {
+      throw new Error('La sesion pertenece a otro dispositivo');
+    }
+    if (payload.localId && Number(identity.localId) !== Number(payload.localId)) {
+      throw new Error('La sesion pertenece a otro local');
+    }
+    return identity;
+  }
+
+  async function registerClassAttendance(payload = {}) {
+    const ci = normalizePositiveInteger(payload.ci || payload.usuarioCi, 'Socio');
+    const user = await userRepository.findByCi(ci);
+    if (!user) throw new Error('Socio no encontrado');
+    if (!membershipRules?.isMembershipActive?.(user.fecha_vencimiento)) {
+      throw new Error('La membresia del socio no esta activa');
+    }
+
+    const staff = await resolveActiveStaffSession(payload);
+    const localId = Number(staff.localId);
+    const dispositivoId = staff.dispositivoId;
+    const current = await getCurrentClass({
+      localId,
+      fecha: payload.fecha,
+      hora: payload.hora,
+    });
+    let classId = payload.claseId ? normalizePositiveInteger(payload.claseId, 'Clase') : null;
+    if (!classId) {
+      if (current.requiereSeleccion) {
+        return { registered: false, reason: 'class_selection_required', ...current };
+      }
+      classId = current.clase?.id || null;
+    }
+    const selected = current.candidatas.find(item => Number(item.id) === Number(classId));
+    if (!selected) throw new Error('No hay una clase activa para este local y horario');
+
+    const now = nowLocalParts();
+    const attendance = await operationsRepository.registerClassAttendance({
+      claseId: classId,
+      usuarioCi: ci,
+      localId,
+      dispositivoId,
+      profesorId: staff.profesorId,
+      profesorSesionId: staff.profesorSesionId,
+      observacion: `Asistencia a ${selected.nombre}`,
+      ...now,
+    });
+    return {
+      registered: true,
+      reason: 'attendance_registered',
+      user: { ci: user.ci, nombre: user.nombre },
+      class: selected,
+      professor: { id: staff.profesorId, nombre: staff.profesorNombre },
+      attendance,
+    };
+  }
+
+  async function finishClass(payload = {}) {
+    const staff = await resolveActiveStaffSession(payload);
+    const classId = normalizePositiveInteger(payload.claseId, 'Clase');
+    const detail = await operationsRepository.getClassRecordDetail(classId);
+    if (!detail) throw new Error('Clase no encontrada');
+    if (Number(detail.localId) !== Number(staff.localId)) throw new Error('La clase pertenece a otro local');
+    return operationsRepository.finishClass({
+      classId,
+      professorId: staff.profesorId,
+      professorSessionId: staff.profesorSesionId,
+      finishedTs: clock().toISOString(),
+    });
+  }
+
+  function listClassRecordsByDate(fecha = null) {
+    return operationsRepository.listClassRecordsByDate(normalizeDate(fecha || nowLocalParts().fecha, 'Fecha'));
+  }
+
+  async function getClassRecordDetail(classId) {
+    const detail = await operationsRepository.getClassRecordDetail(normalizePositiveInteger(classId, 'Clase'));
+    if (!detail) throw new Error('Clase no encontrada');
+    return detail;
+  }
+
   function listPendingSales() {
     return operationsRepository.listPendingSales({ estado: 'pendiente' });
   }
@@ -198,6 +329,7 @@ function createOperationsService({ operationsRepository, userRepository, product
       profesor: professor.profesorNombre || professor.nombre,
       profesorId: professor.profesorId || professor.id,
       profesorSesionId: professor.profesorSesionId || professor.sesionId,
+      localId: professor.localId || normalizePositiveInteger(payload.localId || 2, 'Local'),
       observacion: String(payload.observacion || '').trim() || null,
       ...now,
     });
@@ -211,12 +343,12 @@ function createOperationsService({ operationsRepository, userRepository, product
     const payment = cashService.normalizePaymentDetails({
       monto: Number(sale.total || 0),
       formaPago,
-      observacion: observacion || `Cobro pendiente del Local 2 - ${sale.profesor}`,
+      observacion: observacion || `Cobro pendiente del Local ${sale.local_id || 2} - ${sale.profesor}`,
     });
     const collectionDate = nowLocalParts().fecha;
     const movement = await cashService.registerMovement({
       tipoIngreso: 'venta_producto',
-      descripcion: `${sale.producto_nombre} · venta pendiente Local 2`,
+      descripcion: `${sale.producto_nombre} · venta pendiente Local ${sale.local_id || 2}`,
       payment,
       usuario: { ci: sale.usuario_ci, nombre: sale.usuario_nombre },
       producto: { id: sale.producto_id, nombre: sale.producto_nombre },
@@ -241,6 +373,11 @@ function createOperationsService({ operationsRepository, userRepository, product
     createClass,
     listClassEnrollments,
     enrollMember,
+    getCurrentClass,
+    registerClassAttendance,
+    finishClass,
+    listClassRecordsByDate,
+    getClassRecordDetail,
     listPendingSales,
     getPendingSummaryByDate,
     createPendingSale,

@@ -75,6 +75,8 @@ test('professor PIN opens a traceable tablet session without exposing credential
     profesorId: professor.id,
     profesorSesionId: session.id,
     profesorNombre: 'Valentina Suárez',
+    localId: 2,
+    dispositivoId: 'tablet-local-2',
   });
 });
 

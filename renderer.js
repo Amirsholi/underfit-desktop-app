@@ -219,6 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   window.createHomeDashboardController({ shared }).init();
   window.createAdminEntriesController({ shared }).init();
+  window.createAdminRecordsController({ shared }).init();
   try {
     await window.createAdminOperationsController({ shared }).init();
   } catch (error) {

@@ -9,8 +9,8 @@ contextBridge.exposeInMainWorld('api', {
 
   obtenerPagosMembresiaUsuario: (ci) => ipcRenderer.invoke('obtener-pagos-membresia-usuario', ci),
 
-  validarYRegistrarIngreso: (ci, fuente = 'kiosk', observacion = null) =>
-    ipcRenderer.invoke('validar-y-registrar-ingreso', { ci, fuente, observacion }),
+  validarYRegistrarIngreso: (ci, fuente = 'kiosk', observacion = null, contexto = {}) =>
+    ipcRenderer.invoke('validar-y-registrar-ingreso', { ...contexto, ci, fuente, observacion }),
 
   guardarEdicionManualUsuario: (ci, datos) =>
     ipcRenderer.invoke('guardar-edicion-manual-usuario', ci, datos),
@@ -49,6 +49,16 @@ contextBridge.exposeInMainWorld('api', {
   obtenerInscripcionesClase: (claseId) => ipcRenderer.invoke('obtener-inscripciones-clase', claseId),
 
   inscribirSocioClase: (payload) => ipcRenderer.invoke('inscribir-socio-clase', payload),
+
+  obtenerClaseActual: (payload) => ipcRenderer.invoke('obtener-clase-actual', payload),
+
+  registrarAsistenciaClase: (payload) => ipcRenderer.invoke('registrar-asistencia-clase', payload),
+
+  finalizarClase: (payload) => ipcRenderer.invoke('finalizar-clase', payload),
+
+  obtenerRegistrosClases: (fecha) => ipcRenderer.invoke('obtener-registros-clases', fecha),
+
+  obtenerDetalleRegistroClase: (claseId) => ipcRenderer.invoke('obtener-detalle-registro-clase', claseId),
 
   obtenerVentasPendientes: () => ipcRenderer.invoke('obtener-ventas-pendientes'),
 

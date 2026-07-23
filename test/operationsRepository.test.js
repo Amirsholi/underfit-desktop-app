@@ -67,7 +67,29 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
 
     [stock] = await repository.listStockByLocation();
     assert.equal(stock.local2, 4);
-    assert.deepEqual(await repository.getPendingSummaryByDate('2026-07-20'), { cantidad: 1, total: 120 });
+
+    await repository.createPendingSale({
+      localId: 1,
+      productoId: 1,
+      productoNombre: 'Agua 600 ml',
+      usuarioCi: 43219876,
+      usuarioNombre: 'Bruno Rodriguez',
+      cantidad: 3,
+      total: 180,
+      profesor: 'Valentina',
+      profesorId: 2,
+      profesorSesionId: 8,
+      fecha: '2026-07-20',
+      hora: '18:15:00',
+      ts: '2026-07-20T21:15:00.000Z',
+      observacion: null,
+    });
+
+    [stock] = await repository.listStockByLocation();
+    assert.deepEqual({ local1: stock.local1, local2: stock.local2, total: stock.total }, { local1: 9, local2: 4, total: 13 });
+    assert.deepEqual(await repository.getPendingSummaryByDate('2026-07-20'), { cantidad: 2, total: 300 });
+    const pendingSales = await repository.listPendingSales();
+    assert.deepEqual(pendingSales.map(sale => sale.localId).sort(), [1, 2]);
   } finally {
     if (db) await close(db);
     fs.rmSync(tempDirectory, { recursive: true, force: true });
