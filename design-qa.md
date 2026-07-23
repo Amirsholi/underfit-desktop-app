@@ -32,11 +32,13 @@ Registros dejó de ser una pestaña secundaria dentro de Caja y pasó a ser una 
 
 ### Pasada 6
 
-Se agregó la superficie táctil de profesor: identificación simple para responsabilizar ventas, detección automática de la clase vigente, teclado de ingreso persistente, venta rápida asociada a socio, consulta de stock y cierre de turno. El horario inicia y termina las clases sin intervención del profesor.
+Se agregó la superficie táctil de profesor: identificación simple para responsabilizar ventas, detección automática de la clase vigente, teclado de ingreso persistente y venta rápida asociada a socio. El horario inicia y termina las clases sin intervención del profesor y la sesión del dispositivo se cierra automáticamente luego de dos horas.
 
 ### Pasada 7
 
 Se devolvieron los accesos frecuentes debajo de las tablas, se fijó el alto de las superficies con scroll interno y se unificó el orden de socios por urgencia: días positivos de menor a mayor y todos los resultados de 0 días al final. Productos se separó en Local 1 y Local 2 con selección de fila y acciones inferiores; la tablet eliminó la administración de stock y prioriza ingreso por CI y venta a asistentes o socios activos. Caja usa una franja compacta de jornada en lugar del bloque introductorio anterior.
+
+En el ajuste visual siguiente, Inicio integró el buscador dentro del módulo de socios y alineó ambas tablas; se retiraron los iconos de productos, se ampliaron y reorganizaron los editores de socios, productos y ventas, y la agenda quedó limitada a la semana actual con scroll interno. La tablet quedó reducida a encabezado operativo, ingreso por CI y un carrito modal, sin navegación ni cierre manual.
 
 ## Verificación final
 

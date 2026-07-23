@@ -3110,3 +3110,171 @@ select option,
     border-bottom: 1px solid var(--uf-border-soft);
   }
 }
+
+/* Revision 2.5.0.11 — clearer atmosphere, aligned home modules and roomier dialogs */
+body.admin-page {
+  --uf-panel: rgba(15, 18, 24, 0.78);
+  --uf-panel-soft: rgba(11, 14, 19, 0.58);
+}
+
+body.admin-page::before {
+  filter: blur(2px) saturate(0.92) contrast(1.02);
+  opacity: 1;
+  transform: scale(1.025);
+}
+
+body.admin-page::after {
+  background:
+    radial-gradient(circle at 76% 8%, rgba(255, 104, 31, 0.09), transparent 30%),
+    linear-gradient(90deg, rgba(4, 6, 9, 0.54), rgba(5, 7, 10, 0.34) 58%, rgba(5, 7, 10, 0.48));
+}
+
+.topbar { background: rgba(6, 8, 11, 0.62); }
+.workspace-sidebar { background: rgba(7, 9, 13, 0.66); }
+.workspace-main { background-image: none; }
+
+.home-workspace-grid { align-items: stretch; }
+.home-operational-pane { height: 100%; }
+
+.home-pane-heading {
+  display: grid;
+  height: 155px;
+  min-height: 155px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  align-items: start;
+  gap: 10px 14px;
+}
+
+.home-pane-heading-with-search .home-table-search {
+  grid-column: 1 / -1;
+  gap: 5px;
+  padding: 8px 0 0;
+  border: 0;
+  border-top: 1px solid var(--uf-border-soft);
+  border-radius: 0;
+  background: transparent;
+}
+
+.home-pane-heading-products p {
+  max-width: 380px;
+  margin: 7px 0 0;
+  color: var(--uf-muted);
+  font-size: 13px;
+}
+
+.home-pane-heading-products > button { align-self: start; }
+.home-product-name { gap: 0; }
+.home-product-name > span { padding-left: 0; }
+
+.refined-modal .app-modal-card-user-detail,
+.refined-modal .app-modal-card-form-wide.app-modal-card-user-detail {
+  width: min(1180px, calc(100vw - 72px));
+  max-height: calc(100vh - 54px);
+}
+
+.refined-modal .app-modal-card-user-detail .user-detail-body {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: calc(100vh - 190px);
+}
+
+.refined-modal .app-modal-card-product {
+  width: min(760px, calc(100vw - 64px));
+}
+
+.product-editor-body { gap: 18px !important; }
+
+.product-editor-intro {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--uf-orange);
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(90deg, rgba(255, 104, 31, 0.1), rgba(255, 255, 255, 0.018));
+}
+
+.product-editor-intro strong { font-size: 18px; }
+.product-editor-intro p { margin: 0; color: var(--uf-muted); font-size: 13px; }
+
+.product-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.product-editor-name { grid-column: 1 / -1; }
+
+.product-stock-add {
+  padding: 14px;
+  border: 1px solid rgba(255, 104, 31, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 104, 31, 0.045);
+}
+
+.refined-modal .app-modal-card-sale {
+  width: min(790px, calc(100vw - 64px));
+}
+
+.sale-dialog-body { gap: 18px !important; }
+
+.sale-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 170px;
+  align-items: end;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 104, 31, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(100deg, rgba(255, 104, 31, 0.09), rgba(255, 255, 255, 0.018));
+}
+
+.sale-product-identity { display: grid; gap: 7px; min-width: 0; }
+.sale-product-identity .sale-product-name { min-width: 0; }
+.sale-quantity-field { min-width: 0; }
+
+.sale-payment-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.72fr) minmax(300px, 1.28fr);
+  gap: 16px;
+}
+
+.sale-observation { grid-column: 1 / -1; }
+
+.classes-list-surface { min-height: 0; overflow: hidden; }
+
+.classes-list {
+  height: clamp(330px, 48vh, 520px);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.classes-next-stat strong {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: clamp(20px, 2vw, 28px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classes-next-stat {
+  grid-template-columns: 1fr;
+  align-content: center;
+}
+
+.classes-next-stat > span,
+.classes-next-stat > strong,
+.classes-next-stat > small {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+.classes-next-stat strong { margin-top: 2px; }
+
+@media (max-width: 980px) {
+  .refined-modal .app-modal-card-user-detail .user-detail-body { grid-template-columns: 1fr; }
+  .sale-overview { grid-template-columns: minmax(0, 1fr) 110px; }
+  .sale-total-preview { grid-column: 1 / -1; }
+  .sale-payment-grid { grid-template-columns: 1fr; }
+  .sale-observation { grid-column: auto; }
+}

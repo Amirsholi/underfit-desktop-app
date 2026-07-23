@@ -20,9 +20,12 @@
   const entryFeedback = document.getElementById('tablet-entry-feedback');
   const entryTitle = document.getElementById('tablet-entry-title');
   const entryCopy = document.getElementById('tablet-entry-copy');
-  const logoutButton = document.getElementById('tablet-logout');
+  const saleModal = document.getElementById('tablet-sale-modal');
+  const openSaleButton = document.getElementById('tablet-open-sale');
+  const closeSaleButton = document.getElementById('tablet-close-sale');
   const productGrid = document.getElementById('tablet-product-grid');
   const memberSearch = document.getElementById('tablet-member-search');
+  const memberKeypad = document.querySelector('.tablet-member-keypad');
   const memberResults = document.getElementById('tablet-member-results');
   const saleLocal = document.getElementById('tablet-sale-local');
   const saleProductName = document.getElementById('tablet-sale-product-name');
@@ -54,9 +57,13 @@
     saleCandidates: [],
     quantity: 1,
     classPoll: null,
+    autoLogoutTimer: null,
+    isLoggingOut: false,
     feedbackTimer: null,
     toastTimer: null,
   };
+
+  const SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
   function getDeviceId() {
     const stored = localStorage.getItem('underfit-tablet-device');
@@ -190,6 +197,7 @@
             profesorNombre: state.professors.find(item => Number(item.id) === Number(state.selectedProfessorId))?.nombre,
             localId: state.localId,
             dispositivoId: state.deviceId,
+            inicioTs: new Date().toISOString(),
           };
       loginPin.value = '';
       await enterWorkspace();
@@ -204,6 +212,13 @@
     try {
       const session = await api.obtenerSesionProfesorActiva(state.deviceId);
       if (!session) return false;
+      const startedAt = new Date(session.inicioTs || 0).getTime();
+      if (Number.isFinite(startedAt) && startedAt > 0 && Date.now() - startedAt >= SESSION_DURATION_MS) {
+        try {
+          await api.finalizarSesionProfesor(session.id);
+        } catch (_) {}
+        return false;
+      }
       state.session = session;
       state.localId = Number(session.localId);
       await enterWorkspace();
@@ -223,10 +238,20 @@
     saleLocal.textContent = currentLocal().nombre;
     await Promise.all([loadUsers(), loadStock()]);
     await connectToCurrentClass();
+    scheduleAutomaticLogout();
     clearInterval(state.classPoll);
     state.classPoll = setInterval(() => {
       if (state.session) connectToCurrentClass();
     }, 30000);
+  }
+
+  function scheduleAutomaticLogout(delayOverride = null) {
+    clearTimeout(state.autoLogoutTimer);
+    if (!state.session) return;
+    if (!state.session.inicioTs) state.session.inicioTs = new Date().toISOString();
+    const startedAt = new Date(state.session.inicioTs).getTime();
+    const remaining = delayOverride ?? Math.max(0, (startedAt + SESSION_DURATION_MS) - Date.now());
+    state.autoLogoutTimer = setTimeout(() => logout({ automatic: true }), remaining);
   }
 
   async function connectToCurrentClass() {
@@ -435,6 +460,15 @@
     if (!matches.length) memberResults.innerHTML = `<p class="tablet-form-message">${query.length < 2 ? 'Buscá un socio activo por nombre o CI.' : 'No se encontraron socios activos.'}</p>`;
   }
 
+  function handleMemberKey(key) {
+    if (key === 'clear') memberSearch.value = '';
+    else if (key === 'backspace') memberSearch.value = memberSearch.value.slice(0, -1);
+    else if (/^\d$/.test(key) && memberSearch.value.length < 8) memberSearch.value += key;
+    state.selectedMember = null;
+    searchMembers();
+    updateSaleSummary();
+  }
+
   function updateSaleSummary() {
     saleProductName.textContent = state.selectedProduct?.nombre || 'Sin seleccionar';
     saleMemberName.textContent = state.selectedMember?.nombre || 'Sin seleccionar';
@@ -453,6 +487,20 @@
     updateSaleSummary();
   }
 
+  async function openSale() {
+    resetSale();
+    saleModal.hidden = false;
+    document.body.classList.add('tablet-modal-open');
+    await Promise.all([loadUsers(), loadStock(), loadClassMembers()]);
+    searchMembers();
+  }
+
+  function closeSale() {
+    saleModal.hidden = true;
+    document.body.classList.remove('tablet-modal-open');
+    resetSale();
+  }
+
   async function submitSale() {
     if (saleSubmit.disabled) return;
     saleSubmit.disabled = true;
@@ -469,40 +517,38 @@
       const memberName = state.selectedMember.nombre;
       showToast(`Venta enviada · queda pendiente para ${memberName}`);
       await loadStock();
-      resetSale();
-      showView('attendance');
+      closeSale();
     } catch (error) {
       showToast(String(error?.message || 'No se pudo enviar la venta').replace(/^Error invoking remote method '[^']+': Error: /, ''), 'error');
       updateSaleSummary();
     }
   }
 
-  function showView(viewId) {
-    document.querySelectorAll('[data-tablet-view]').forEach(button => button.classList.toggle('is-active', button.dataset.tabletView === viewId));
-    document.querySelectorAll('[data-tablet-panel]').forEach(panel => panel.classList.toggle('is-active', panel.dataset.tabletPanel === viewId));
-    if (viewId === 'sale') Promise.all([loadUsers(), loadStock(), loadClassMembers()]).then(searchMembers);
-  }
-
-  async function logout() {
-    logoutButton.disabled = true;
+  async function logout({ automatic = false } = {}) {
+    if (!state.session || state.isLoggingOut) return;
+    state.isLoggingOut = true;
     try {
       if (api?.finalizarSesionProfesor) await api.finalizarSesionProfesor(state.session.id);
     } catch (error) {
-      showToast(error?.message || 'No se pudo cerrar el turno', 'error');
-      logoutButton.disabled = false;
+      showToast(automatic ? 'No se pudo cerrar el turno; se reintentará automáticamente.' : (error?.message || 'No se pudo cerrar el turno'), 'error');
+      state.isLoggingOut = false;
+      if (automatic) scheduleAutomaticLogout(60000);
       return;
     }
     clearInterval(state.classPoll);
+    clearTimeout(state.autoLogoutTimer);
     state.session = null;
     state.activeClass = null;
     state.upcomingClass = null;
     state.selectedProfessorId = null;
+    saleModal.hidden = true;
+    document.body.classList.remove('tablet-modal-open');
     resetSale();
     workspace.hidden = true;
     loginScreen.hidden = false;
     loginMessage.textContent = '';
     renderProfessors();
-    logoutButton.disabled = false;
+    state.isLoggingOut = false;
   }
 
   function bindEvents() {
@@ -532,7 +578,11 @@
       const selected = state.classCandidates.find(item => Number(item.id) === Number(button.dataset.selectClass));
       if (selected) selectClass(selected);
     });
-    document.querySelectorAll('[data-tablet-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.tabletView)));
+    openSaleButton.addEventListener('click', openSale);
+    closeSaleButton.addEventListener('click', closeSale);
+    saleModal.addEventListener('click', event => {
+      if (event.target === saleModal) closeSale();
+    });
     productGrid.addEventListener('click', event => {
       const button = event.target.closest('[data-product-id]');
       if (!button) return;
@@ -540,12 +590,15 @@
       state.quantity = 1;
       updateSaleSummary();
     });
-    memberSearch.addEventListener('input', searchMembers);
+    memberKeypad.addEventListener('click', event => {
+      const button = event.target.closest('[data-member-key]');
+      if (button) handleMemberKey(button.dataset.memberKey);
+    });
     memberResults.addEventListener('click', event => {
       const button = event.target.closest('[data-member-ci]');
       if (!button) return;
       state.selectedMember = state.users.find(item => Number(item.ci) === Number(button.dataset.memberCi)) || null;
-      memberSearch.value = state.selectedMember?.nombre || '';
+      memberSearch.value = String(state.selectedMember?.ci || '');
       searchMembers();
       updateSaleSummary();
     });
@@ -556,14 +609,23 @@
       updateSaleSummary();
     });
     saleSubmit.addEventListener('click', submitSale);
-    logoutButton.addEventListener('click', logout);
     window.addEventListener('keydown', event => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
-      if (!workspace.hidden && document.querySelector('[data-tablet-panel="attendance"]')?.classList.contains('is-active')) {
+      if (!saleModal.hidden) {
+        if (/^\d$/.test(event.key)) handleMemberKey(event.key);
+        if (event.key === 'Backspace') handleMemberKey('backspace');
+        if (event.key === 'Escape') closeSale();
+        return;
+      }
+      if (!workspace.hidden) {
         if (/^\d$/.test(event.key)) handleEntryKey(event.key);
         if (event.key === 'Backspace') handleEntryKey('backspace');
         if (event.key === 'Enter') registerAttendance();
       }
+    });
+    window.addEventListener('beforeunload', () => {
+      clearInterval(state.classPoll);
+      clearTimeout(state.autoLogoutTimer);
     });
   }
 

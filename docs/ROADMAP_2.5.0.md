@@ -6,7 +6,7 @@ The main location currently runs one reception PC with two displays: the adminis
 
 ## Confirmed expansion
 
-- The second location is a functional-training room operated from a tablet.
+- The second location is a group-training room operated from a tablet, with support for functional training, CrossFit, GAP and future class types.
 - Members, memberships and business data are shared between locations.
 - The main location assigns stock to the second location.
 - The instructor signs in, records attendance and sends product sales to the main location for collection. Product availability is shown only inside the sale flow; stock allocation and adjustment stay in the main location.
@@ -19,7 +19,7 @@ The main location currently runs one reception PC with two displays: the adminis
 ### Implemented foundation in the current cut
 
 - Professor catalog with a four-digit PIN stored as a salted hash.
-- One active professor session per tablet/device, with explicit start and end timestamps.
+- One active professor session per tablet/device, with an explicit start timestamp and automatic closure after two hours.
 - Classes reference the selected professor while preserving the readable name on historical records.
 - Pending tablet sales preserve the location, professor and exact device session that created them.
 - Reception can create, edit, deactivate and assign professors from the Classes page.
@@ -31,7 +31,7 @@ The main location currently runs one reception PC with two displays: the adminis
 - Professor identification is operational only: it leaves a responsible person on pending sales and does not control or claim the class.
 - Multiple tablets can operate in either location; duplicate attendance is prevented per member and class, even across devices.
 - Access history and class history now have a dedicated Records page with daily summaries and an integrated present/absent roster.
-- The touch-first tablet surface now supports professor sign-in, automatic schedule detection, student CI entry, quick pending sales with local availability and end-of-turn closure. It does not expose stock-management actions.
+- The touch-first tablet surface now supports professor sign-in, automatic schedule detection, student CI entry and quick pending sales with local availability. The session closes automatically after two hours and the surface does not expose stock-management actions.
 - After the scheduled end, administration can keep the automatic completed result or correct it to not held without entering a reason.
 - Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
 

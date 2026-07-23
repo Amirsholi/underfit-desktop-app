@@ -59,6 +59,11 @@ function createAdminUsersController({ shared }) {
     if (!detalleHistorialPagos) return;
     detalleHistorialPagos.textContent = 'Cargando pagos...';
 
+    if (!window.api?.obtenerPagosMembresiaUsuario) {
+      detalleHistorialPagos.textContent = 'Sin pagos registrados.';
+      return;
+    }
+
     try {
       const pagos = await window.api.obtenerPagosMembresiaUsuario(ci);
       if (!Array.isArray(pagos) || !pagos.length) {

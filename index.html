@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.10">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.12">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -53,21 +53,25 @@
             <article><i class="fa-solid fa-dollar-sign"></i><span>Dinero ingresado hoy<strong id="widget-ventas-hoy">$ 0</strong></span></article>
             <article data-admin-section="pending" tabindex="0"><i class="fa-regular fa-clock"></i><span>Cobros pendientes<strong id="widget-cobros-pendientes">0</strong></span></article>
           </section>
-          <div class="home-table-tools">
-            <div class="home-search-block home-table-search">
-              <label for="home-member-search">Buscar socio</label>
-              <div class="home-search"><input id="home-member-search" placeholder="CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
-            </div>
-          </div>
           <div class="home-workspace-grid">
             <section class="home-operational-pane home-members-pane">
-              <div class="home-pane-heading"><div><span class="home-pane-kicker">Recepcion</span><h3>Socios por vencimiento</h3></div><button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button></div>
+              <div class="home-pane-heading home-pane-heading-with-search">
+                <div><span class="home-pane-kicker">Recepcion</span><h3>Socios por vencimiento</h3></div>
+                <button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button>
+                <div class="home-search-block home-table-search">
+                  <label for="home-member-search">Buscar socio</label>
+                  <div class="home-search"><input id="home-member-search" placeholder="CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+                </div>
+              </div>
               <div class="home-list-header home-member-columns"><span>Socio</span><span>Vencimiento</span><span>Plan / Estado</span></div>
               <div id="home-members-list" class="home-data-list"></div>
               <div id="home-members-empty" class="home-list-empty">No hay socios para mostrar.</div>
             </section>
             <section class="home-operational-pane home-products-pane">
-              <div class="home-pane-heading"><div><span class="home-pane-kicker">Caja rapida</span><h3>Venta de productos</h3></div><button type="button" data-admin-section="products">Ver todos <i class="fa-solid fa-chevron-right"></i></button></div>
+              <div class="home-pane-heading home-pane-heading-products">
+                <div><span class="home-pane-kicker">Caja rapida</span><h3>Venta de productos</h3><p>Seleccioná un producto para registrar la venta.</p></div>
+                <button type="button" data-admin-section="products">Ver todos <i class="fa-solid fa-chevron-right"></i></button>
+              </div>
               <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Stock</span><span>Acción</span></div>
               <div id="home-products-list" class="home-data-list"></div>
               <div id="home-products-empty" class="home-list-empty">No hay productos disponibles.</div>
@@ -232,7 +236,7 @@
 
         <section class="app-view" data-admin-view="classes">
           <div class="section-heading">
-            <div><span class="section-kicker">Agenda de funcional</span><h2 class="section-title">Clases</h2><p class="section-subtitle">Programá clases, revisá cupos e inscribí socios desde recepción.</p></div>
+            <div><span class="section-kicker">Agenda semanal</span><h2 class="section-title">Clases</h2><p class="section-subtitle">Programá clases, revisá horarios e inscribí socios desde recepción.</p></div>
             <div class="dashboard-inline-actions">
               <button id="classes-open-tablet" class="app-button" type="button"><i class="fa-solid fa-tablet-screen-button"></i>Vista tablet</button>
               <button class="app-button" type="button" data-open-modal="modal-profesor"><i class="fa-solid fa-user-plus"></i>Agregar profesor</button>
@@ -242,11 +246,11 @@
           <div class="classes-summary-grid">
             <article class="operational-stat"><span>Clases de hoy</span><strong id="classes-today-count">0</strong><small>programadas</small></article>
             <article class="operational-stat"><span>Alumnos inscriptos</span><strong id="classes-enrolled-count">0</strong><small>en grupos activos</small></article>
-            <article class="operational-stat"><span>Cupos disponibles</span><strong id="classes-capacity-count">0</strong><small>entre los grupos</small></article>
+            <article class="operational-stat classes-next-stat"><span>Próxima clase</span><strong id="classes-next-name">Sin clases</strong><small id="classes-next-meta">Esta semana</small></article>
           </div>
           <div class="classes-workspace">
             <section class="operations-surface classes-list-surface">
-              <div class="surface-heading"><div><h3>Próximas clases</h3><p>Ordenadas por fecha y hora.</p></div><button id="classes-refresh" class="icon-action" type="button" aria-label="Actualizar clases"><i class="fa-solid fa-rotate"></i></button></div>
+              <div class="surface-heading"><div><h3>Clases de esta semana</h3><p>De lunes a domingo, ordenadas por fecha y hora.</p></div><button id="classes-refresh" class="icon-action" type="button" aria-label="Actualizar clases"><i class="fa-solid fa-rotate"></i></button></div>
               <div id="classes-list" class="classes-list"></div>
               <div id="classes-empty" class="surface-empty"><i class="fa-regular fa-calendar-plus"></i><strong>Todavía no hay clases programadas</strong><span>Creá la primera para comenzar a inscribir socios.</span></div>
             </section>
@@ -780,16 +784,19 @@
   </div>
 
   <div id="modal-nuevo-producto" class="app-modal">
-    <div class="app-modal-card">
+    <div class="app-modal-card app-modal-card-product">
       <div class="app-modal-header">
         <h3>Nuevo producto</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-nuevo-producto">Cerrar</button>
       </div>
 
-      <div class="app-modal-body">
-        <div class="form-field"><label for="producto-nuevo-nombre">Nombre</label><input type="text" id="producto-nuevo-nombre" placeholder="Nombre del producto"></div>
-        <div class="form-field"><label for="producto-nuevo-precio">Precio</label><input type="number" id="producto-nuevo-precio" min="0" step="1" placeholder="$ 0"></div>
-        <div class="form-field"><label for="producto-nuevo-stock">Stock inicial del Local 1</label><input type="number" id="producto-nuevo-stock" min="0" step="1" placeholder="0"></div>
+      <div class="app-modal-body product-editor-body">
+        <div class="product-editor-intro"><span class="section-kicker">Catálogo general</span><strong>Información del producto</strong><p>El stock inicial se carga en el Local 1 y luego puede asignarse al Local 2.</p></div>
+        <div class="product-editor-grid">
+          <div class="form-field product-editor-name"><label for="producto-nuevo-nombre">Nombre del producto</label><input type="text" id="producto-nuevo-nombre" placeholder="Ej: Agua mineral 600 ml"></div>
+          <div class="form-field"><label for="producto-nuevo-precio">Precio de venta</label><input type="number" id="producto-nuevo-precio" min="0" step="1" placeholder="$ 0"></div>
+          <div class="form-field"><label for="producto-nuevo-stock">Stock inicial · Local 1</label><input type="number" id="producto-nuevo-stock" min="0" step="1" placeholder="0 unidades"></div>
+        </div>
       </div>
 
       <div class="app-modal-footer">
@@ -805,21 +812,15 @@
         <button type="button" class="app-modal-close" data-close-modal="modal-vender-producto">Cerrar</button>
       </div>
 
-      <div class="app-modal-body sale-dialog-grid">
-        <section class="sale-product-panel">
-          <span class="section-kicker">Producto seleccionado</span>
-          <input type="text" id="producto-venta-nombre" class="sale-product-name" placeholder="Producto" readonly>
-          <div class="sale-quantity-row">
-            <div class="form-field">
-              <label for="producto-venta-cantidad">Cantidad</label>
-              <input type="number" id="producto-venta-cantidad" min="1" step="1" value="1">
-            </div>
-            <div class="sale-total-preview"><span>Total de la venta</span><strong id="producto-venta-total-preview">$ 0</strong></div>
-          </div>
+      <div class="app-modal-body sale-dialog-body">
+        <section class="sale-overview">
+          <div class="sale-product-identity"><span class="section-kicker">Producto seleccionado</span><input type="text" id="producto-venta-nombre" class="sale-product-name" placeholder="Producto" readonly></div>
+          <div class="form-field sale-quantity-field"><label for="producto-venta-cantidad">Cantidad</label><input type="number" id="producto-venta-cantidad" min="1" step="1" value="1"></div>
+          <div class="sale-total-preview"><span>Total de la venta</span><strong id="producto-venta-total-preview">$ 0</strong></div>
         </section>
-        <section class="sale-payment-panel">
+        <section class="sale-payment-grid">
           <div class="form-field"><label for="producto-venta-monto">Monto cobrado</label><input type="number" id="producto-venta-monto" min="0" step="1" placeholder="$ 0"></div>
-          <div class="form-field"><label>Forma de pago</label>
+          <div class="form-field sale-payment-method"><label>Forma de pago</label>
             <div class="binary-choice">
               <label class="binary-choice-option"><input type="radio" name="producto-venta-forma-pago" value="efectivo" checked><span>Efectivo</span></label>
               <label class="binary-choice-option">
@@ -828,7 +829,7 @@
               </label>
             </div>
           </div>
-          <div class="form-field"><label for="producto-venta-observacion">Observacion</label><input type="text" id="producto-venta-observacion" placeholder="Opcional"></div>
+          <div class="form-field sale-observation"><label for="producto-venta-observacion">Observacion</label><input type="text" id="producto-venta-observacion" placeholder="Opcional"></div>
         </section>
       </div>
 
@@ -918,17 +919,20 @@
   </div>
 
   <div id="modal-editar-producto" class="app-modal">
-    <div class="app-modal-card">
+    <div class="app-modal-card app-modal-card-product app-modal-card-product-edit">
       <div class="app-modal-header">
         <h3>Editar producto</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-editar-producto">Cerrar</button>
       </div>
 
-      <div class="app-modal-body">
-        <div class="form-field"><label for="producto-editar-nombre">Nombre</label><input type="text" id="producto-editar-nombre" placeholder="Nombre del producto"></div>
-        <div class="form-field"><label for="producto-editar-precio">Precio</label><input type="number" id="producto-editar-precio" min="0" step="1" placeholder="$ 0"></div>
-        <div class="form-field"><label for="producto-editar-stock">Stock actual del Local 1</label><input type="number" id="producto-editar-stock" min="0" step="1" placeholder="0"></div>
-        <div class="form-field"><label for="producto-editar-sumar-stock">Agregar unidades al Local 1</label><input type="number" id="producto-editar-sumar-stock" min="0" step="1" placeholder="0"><span class="field-help">Se suma al stock actual al guardar.</span></div>
+      <div class="app-modal-body product-editor-body">
+        <div class="product-editor-intro"><span class="section-kicker">Local 1</span><strong>Datos y existencias</strong><p>Editá el precio o corregí el stock actual. Para una reposición, usá “Agregar unidades”.</p></div>
+        <div class="product-editor-grid product-editor-grid-edit">
+          <div class="form-field product-editor-name"><label for="producto-editar-nombre">Nombre del producto</label><input type="text" id="producto-editar-nombre" placeholder="Nombre del producto"></div>
+          <div class="form-field"><label for="producto-editar-precio">Precio de venta</label><input type="number" id="producto-editar-precio" min="0" step="1" placeholder="$ 0"></div>
+          <div class="form-field"><label for="producto-editar-stock">Stock actual · Local 1</label><input type="number" id="producto-editar-stock" min="0" step="1" placeholder="0 unidades"></div>
+          <div class="form-field product-stock-add"><label for="producto-editar-sumar-stock">Agregar unidades · Local 1</label><input type="number" id="producto-editar-sumar-stock" min="0" step="1" placeholder="0 unidades"><span class="field-help">Estas unidades se suman al stock actual al guardar.</span></div>
+        </div>
       </div>
 
       <div class="app-modal-footer app-modal-footer-split">
@@ -1105,13 +1109,13 @@
   <script src="membershipRules.js?v=2.5.0.3"></script>
   <script src="adminShared.js?v=2.5.0.3"></script>
   <script src="adminLayout.js?v=2.5.0.9"></script>
-  <script src="adminUsers.js?v=2.5.0.4"></script>
+  <script src="adminUsers.js?v=2.5.0.5"></script>
   <script src="adminMemberships.js?v=2.5.0.3"></script>
   <script src="adminProducts.js?v=2.5.0.4"></script>
   <script src="adminEntries.js?v=2.5.0.9"></script>
   <script src="adminRecords.js?v=2.5.0.2"></script>
-  <script src="adminOperations.js?v=2.5.0.7"></script>
-  <script src="homeDashboard.js?v=2.5.0.4"></script>
+  <script src="adminOperations.js?v=2.5.0.8"></script>
+  <script src="homeDashboard.js?v=2.5.0.6"></script>
   <script src="renderer.js?v=2.5.0.7"></script>
 </body>
 </html>

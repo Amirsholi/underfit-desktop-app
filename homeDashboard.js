@@ -63,10 +63,10 @@ function createHomeDashboardController({ shared }) {
       const row = document.createElement('div');
       row.className = 'home-product-row home-product-columns';
       row.innerHTML = `
-        <span class="home-product-name"><i class="fa-solid fa-cube"></i><span></span></span>
+        <span class="home-product-name"><span></span></span>
         <span class="home-product-price"></span>
         <strong class="home-product-stock"></strong>
-        <button class="home-quick-sale" type="button" aria-label="Vender producto"><i class="fa-solid fa-cart-shopping"></i><span>Vender</span></button>
+        <button class="home-quick-sale" type="button" aria-label="Vender producto"><span>Vender</span></button>
       `;
       row.querySelector('.home-product-name span').textContent = product?.nombre || 'Producto';
       row.querySelector('.home-product-price').textContent = money(product?.precio);
