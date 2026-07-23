@@ -29,6 +29,7 @@ function createAdminOperationsController({ shared }) {
   const professorPinHelp = document.getElementById('professor-pin-help');
   const professorActive = document.getElementById('professor-active');
   const professorSave = document.getElementById('professor-save');
+  const openTabletButton = document.getElementById('classes-open-tablet');
 
   const stockProduct = document.getElementById('stock-transfer-product');
   const stockQuantity = document.getElementById('stock-transfer-quantity');
@@ -626,6 +627,10 @@ function createAdminOperationsController({ shared }) {
     classEnrollOpen?.addEventListener('click', openEnrollment);
     classEnrollSave?.addEventListener('click', saveEnrollment);
     classesRefresh?.addEventListener('click', loadClasses);
+    openTabletButton?.addEventListener('click', async () => {
+      if (window.api?.abrirPantallaTablet) await window.api.abrirPantallaTablet();
+      else window.open('tablet.html', 'underfit-tablet-preview', 'width=1100,height=780');
+    });
     stockProduct?.addEventListener('change', updateStockAvailability);
     stockTransferSubmit?.addEventListener('click', transferStock);
     pendingBody?.addEventListener('click', event => {

@@ -598,6 +598,8 @@ async function migrarAsistenciasClases(dbPath) {
     await addColumnIfMissing(db, 'clases', 'profesor_sesion_id', 'INTEGER');
     await addColumnIfMissing(db, 'clases', 'inicio_real_ts', 'TEXT');
     await addColumnIfMissing(db, 'clases', 'fin_real_ts', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'cancelada_ts', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'motivo_cancelacion', 'TEXT');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS asistencias_clase (

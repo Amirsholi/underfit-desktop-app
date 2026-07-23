@@ -119,9 +119,30 @@ function createOperationsService({
     }
   }
 
+  async function reconcileUnstartedClasses(referenceDate = clock()) {
+    if (!operationsRepository.listUnstartedClassesThrough || !operationsRepository.cancelUnstartedClass) return [];
+    const referenceDay = formatLocalDate(referenceDate);
+    const classes = await operationsRepository.listUnstartedClassesThrough(referenceDay);
+    const cancelled = [];
+    for (const item of classes) {
+      const scheduledStart = new Date(`${item.fecha}T${String(item.hora || '00:00').slice(0, 8)}`);
+      if (Number.isNaN(scheduledStart.getTime())) continue;
+      const deadline = new Date(scheduledStart.getTime() + ((Number(item.duracionMinutos || 60) + 30) * 60000));
+      if (referenceDate <= deadline) continue;
+      const result = await operationsRepository.cancelUnstartedClass({
+        classId: item.id,
+        cancelledTs: referenceDate.toISOString(),
+        reason: 'sin_registro_profesor',
+      });
+      if (result.changed) cancelled.push(item.id);
+    }
+    return cancelled;
+  }
+
   async function listUpcomingClasses(fromDate = null) {
     const normalizedFromDate = normalizeDate(fromDate || nowLocalParts().fecha, 'Fecha');
     await ensureUpcomingClasses(normalizedFromDate);
+    await reconcileUnstartedClasses();
     return operationsRepository.listClasses({ fromDate: normalizedFromDate });
   }
 
@@ -193,6 +214,7 @@ function createOperationsService({
     const fecha = normalizeDate(payload.fecha || now.fecha, 'Fecha');
     const hora = normalizeTime(payload.hora || now.hora);
     await ensureUpcomingClasses(fecha);
+    await reconcileUnstartedClasses();
     const candidates = await operationsRepository.listClassCandidates({ localId, fecha });
     const currentMinutes = timeToMinutes(hora);
     const matching = candidates.filter(item => {
@@ -212,6 +234,35 @@ function createOperationsService({
       clase: ordered.length === 1 ? ordered[0] : null,
       requiereSeleccion: ordered.length > 1,
       candidatas: ordered,
+    };
+  }
+
+  async function startClass(payload = {}) {
+    const staff = await resolveActiveStaffSession(payload);
+    const current = await getCurrentClass({
+      localId: staff.localId,
+      fecha: payload.fecha,
+      hora: payload.hora,
+    });
+    let classId = payload.claseId ? normalizePositiveInteger(payload.claseId, 'Clase') : null;
+    if (!classId) {
+      if (current.requiereSeleccion) return { started: false, reason: 'class_selection_required', ...current };
+      classId = current.clase?.id || null;
+    }
+    const selected = current.candidatas.find(item => Number(item.id) === Number(classId));
+    if (!selected) throw new Error('No hay una clase vigente para este local y horario');
+    const result = await operationsRepository.startClass({
+      classId,
+      localId: staff.localId,
+      professorId: staff.profesorId,
+      professorSessionId: staff.profesorSesionId,
+      startedTs: clock().toISOString(),
+    });
+    return {
+      started: true,
+      reason: result.alreadyStarted ? 'already_started' : 'class_started',
+      class: { ...selected, estado: 'en_curso', inicioRealTs: result.inicioRealTs },
+      professor: { id: staff.profesorId, nombre: staff.profesorNombre },
     };
   }
 
@@ -289,7 +340,8 @@ function createOperationsService({
     });
   }
 
-  function listClassRecordsByDate(fecha = null) {
+  async function listClassRecordsByDate(fecha = null) {
+    await reconcileUnstartedClasses();
     return operationsRepository.listClassRecordsByDate(normalizeDate(fecha || nowLocalParts().fecha, 'Fecha'));
   }
 
@@ -374,6 +426,7 @@ function createOperationsService({
     listClassEnrollments,
     enrollMember,
     getCurrentClass,
+    startClass,
     registerClassAttendance,
     finishClass,
     listClassRecordsByDate,

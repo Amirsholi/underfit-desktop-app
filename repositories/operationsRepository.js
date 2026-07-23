@@ -266,6 +266,57 @@ function createOperationsRepository(db) {
     `, [localId, fecha]);
   }
 
+  function listUnstartedClassesThrough(fecha) {
+    return all(`
+      SELECT id, nombre, fecha, hora, duracion_minutos AS duracionMinutos,
+             local_id AS localId, estado, inicio_real_ts AS inicioRealTs
+      FROM clases
+      WHERE fecha <= ? AND estado = 'programada' AND inicio_real_ts IS NULL
+      ORDER BY fecha, hora, id
+    `, [fecha]);
+  }
+
+  async function startClass(data) {
+    return inTransaction(async () => {
+      const classRow = await get(`
+        SELECT id, nombre, fecha, hora, local_id AS localId, estado,
+               profesor_real_id AS profesorRealId,
+               profesor_sesion_id AS profesorSesionId,
+               inicio_real_ts AS inicioRealTs
+        FROM clases
+        WHERE id = ?
+      `, [data.classId]);
+      if (!classRow || !['programada', 'en_curso'].includes(classRow.estado)) {
+        throw new Error('La clase ya no esta disponible');
+      }
+      if (Number(classRow.localId) !== Number(data.localId)) throw new Error('La clase pertenece a otro local');
+      if (classRow.estado === 'en_curso') return { ...classRow, alreadyStarted: true };
+
+      await run(`
+        UPDATE clases
+        SET estado = 'en_curso', profesor_real_id = ?, profesor_sesion_id = ?, inicio_real_ts = ?
+        WHERE id = ? AND estado = 'programada'
+      `, [data.professorId, data.professorSessionId, data.startedTs, data.classId]);
+      return {
+        ...classRow,
+        estado: 'en_curso',
+        profesorRealId: data.professorId,
+        profesorSesionId: data.professorSessionId,
+        inicioRealTs: data.startedTs,
+        alreadyStarted: false,
+      };
+    });
+  }
+
+  async function cancelUnstartedClass({ classId, cancelledTs, reason }) {
+    const result = await run(`
+      UPDATE clases
+      SET estado = 'cancelada', cancelada_ts = ?, motivo_cancelacion = ?
+      WHERE id = ? AND estado = 'programada' AND inicio_real_ts IS NULL
+    `, [cancelledTs, reason, classId]);
+    return { classId, changed: result.changes > 0 };
+  }
+
   async function registerClassAttendance(data) {
     return inTransaction(async () => {
       const classRow = await get(`
@@ -355,6 +406,7 @@ function createOperationsRepository(db) {
              pr.nombre AS profesorReal,
              c.profesor_real_id AS profesorRealId,
              c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
+             c.cancelada_ts AS canceladaTs, c.motivo_cancelacion AS motivoCancelacion,
              c.programacion_id AS programacionId,
              CASE WHEN c.programacion_id IS NOT NULL THEN (
                SELECT COUNT(*) FROM inscripciones_programacion_clase ip
@@ -383,6 +435,7 @@ function createOperationsRepository(db) {
              pr.nombre AS profesorReal, c.profesor_real_id AS profesorRealId,
              c.profesor_sesion_id AS profesorSesionId,
              c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
+             c.cancelada_ts AS canceladaTs, c.motivo_cancelacion AS motivoCancelacion,
              c.programacion_id AS programacionId
       FROM clases c
       LEFT JOIN locales l ON l.id = c.local_id
@@ -529,6 +582,9 @@ function createOperationsRepository(db) {
     listClassEnrollments,
     enrollMember,
     listClassCandidates,
+    listUnstartedClassesThrough,
+    startClass,
+    cancelUnstartedClass,
     registerClassAttendance,
     finishClass,
     listClassRecordsByDate,

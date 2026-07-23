@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld('api', {
 
   obtenerClaseActual: (payload) => ipcRenderer.invoke('obtener-clase-actual', payload),
 
+  iniciarClase: (payload) => ipcRenderer.invoke('iniciar-clase', payload),
+
   registrarAsistenciaClase: (payload) => ipcRenderer.invoke('registrar-asistencia-clase', payload),
 
   finalizarClase: (payload) => ipcRenderer.invoke('finalizar-clase', payload),
@@ -117,6 +119,8 @@ contextBridge.exposeInMainWorld('api', {
   crearBackupManual: () => ipcRenderer.invoke('crear-backup-manual'),
 
   cambiarPantallaPuerta: () => ipcRenderer.invoke('cambiar-pantalla-puerta'),
+
+  abrirPantallaTablet: () => ipcRenderer.invoke('abrir-pantalla-tablet'),
 
   eliminarUsuario: (ci) => ipcRenderer.invoke('eliminar-usuario', ci),
 

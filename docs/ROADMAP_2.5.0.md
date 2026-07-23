@@ -31,6 +31,8 @@ The main location currently runs one reception PC with two displays: the adminis
 - Each class occurrence can progress through scheduled, in-progress and taught states, with actual start and finish timestamps.
 - Multiple tablets can operate in either location; duplicate attendance is prevented per member and class, even across devices.
 - Access history and class history now have a dedicated Records page with daily summaries and an integrated present/absent roster.
+- The touch-first tablet surface now supports professor sign-in, automatic current-class start, student CI entry, quick pending sales, local stock and end-of-turn closure.
+- If no professor starts a scheduled class before its duration plus a 30-minute grace period, the occurrence is recorded as cancelled due to professor absence.
 - Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
 
 ### 1. Cash integrity
@@ -90,6 +92,10 @@ The main location currently runs one reception PC with two displays: the adminis
 - Pilot both locations, concurrent activity and closure behavior.
 - Test network loss, backup restoration and stock reconciliation.
 - Keep location identifiers and permissions general enough for additional branches.
+
+## Product discovery pending
+
+Gamification and physical-test records remain intentionally open until the owner confirms the desired behavior. Circuit tests should support several exercises in one evaluation, with one result and unit per student/exercise. A lightweight progress indicator can then be derived from attendance consistency, completed circuits or personal improvement, but those concepts should not be mixed into a single score without a defined business rule.
 
 ## Architecture direction
 

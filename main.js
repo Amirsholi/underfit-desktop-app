@@ -6,6 +6,7 @@ const { ejecutarMigraciones } = require('./migrations');
 
 let mainWindow;
 let userWindow;
+let tabletWindow;
 let inactivityTimer;
 let userDisplayId = null;
 
@@ -155,10 +156,38 @@ function moveUserWindowToNextDisplay() {
 
 function registerDisplayControls() {
   ipcMain.handle('cambiar-pantalla-puerta', () => moveUserWindowToNextDisplay());
+  ipcMain.handle('abrir-pantalla-tablet', () => openTabletWindow());
 
   globalShortcut.register('CommandOrControl+Alt+P', () => {
     moveUserWindowToNextDisplay();
   });
+}
+
+function openTabletWindow() {
+  if (tabletWindow && !tabletWindow.isDestroyed()) {
+    if (tabletWindow.isMinimized()) tabletWindow.restore();
+    tabletWindow.focus();
+    return { opened: true, reused: true };
+  }
+
+  tabletWindow = new BrowserWindow({
+    width: 1100,
+    height: 780,
+    minWidth: 820,
+    minHeight: 640,
+    autoHideMenuBar: true,
+    backgroundColor: '#07090d',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      devTools: !app.isPackaged,
+    },
+  });
+  tabletWindow.setMenu(null);
+  tabletWindow.loadFile('tablet.html');
+  tabletWindow.on('closed', () => { tabletWindow = null; });
+  return { opened: true, reused: false };
 }
 
 function createUserWindow() {

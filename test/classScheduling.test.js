@@ -6,9 +6,11 @@ const path = require('node:path');
 const sqlite3 = require('sqlite3').verbose();
 const {
   migrarProductos,
+  migrarIngresos,
   migrarOperacionesMultiLocal,
   migrarProfesores,
   migrarProgramacionesClases,
+  migrarAsistenciasClases,
 } = require('../migrations');
 const { createOperationsRepository } = require('../repositories/operationsRepository');
 const { createStaffRepository } = require('../repositories/staffRepository');
@@ -45,10 +47,12 @@ test('a recurring class enrolls a member in every generated occurrence', async (
 
   try {
     await migrarProductos(dbPath);
+    await migrarIngresos(dbPath);
     await migrarOperacionesMultiLocal(dbPath);
     await migrarProfesores(dbPath);
     await migrarProgramacionesClases(dbPath);
     await migrarProgramacionesClases(dbPath);
+    await migrarAsistenciasClases(dbPath);
     db = new sqlite3.Database(dbPath);
 
     const operationsRepository = createOperationsRepository(db);

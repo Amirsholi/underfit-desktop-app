@@ -30,6 +30,10 @@ Se eliminó el saludo de Inicio, se alinearon socios y productos desde el mismo 
 
 Registros dejó de ser una pestaña secundaria dentro de Caja y pasó a ser una página operativa propia. Se separaron los ingresos generales de las clases por día, con profesor programado y real, estado, asistencia efectiva y detalle de presentes/ausentes dentro de la misma página.
 
+### Pasada 6
+
+Se agregó la superficie táctil de profesor: identificación simple, inicio automático de la clase vigente, teclado de ingreso persistente, venta rápida asociada a socio, consulta de stock y cierre de turno. Las clases sin registro de profesor pasan al historial como canceladas después del margen operativo.
+
 ## Verificación final
 
 - Tipografía y jerarquía: base de 16 px, títulos, cifras y acciones legibles; no quedan textos operativos de 10–12 px como estructura principal.
@@ -41,7 +45,7 @@ Registros dejó de ser una pestaña secundaria dentro de Caja y pasó a ser una 
 - Interacciones verificadas: venta rápida, cantidad de venta dentro del formulario, navegación, transferencia de stock Local 1 → Local 2, Caja y Registros.
 - Viewports: 1920×1080 y 1280×720. Sin desbordamiento horizontal; en el ancho compacto la barra lateral se transforma en riel de iconos y las tablas conservan columnas legibles.
 - Iconos y activos: se conserva el logo real, el fondo de gimnasio y Font Awesome; no se agregaron ilustraciones falsas ni SVG improvisados.
-- Pruebas: sintaxis validada y 13 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores, sesiones de tablet, clases recurrentes, asistencia atómica y prevención de duplicados entre dispositivos.
+- Pruebas: sintaxis validada y 14 pruebas automatizadas aprobadas, incluidas integraciones SQLite temporales para stock, ventas pendientes, profesores, sesiones de tablet, clases recurrentes, asistencia atómica, ausencia del profesor y prevención de duplicados entre dispositivos.
 
 ## Alcance futuro explícito
 

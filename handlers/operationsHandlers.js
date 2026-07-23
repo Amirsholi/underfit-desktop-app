@@ -7,6 +7,7 @@ function registerOperationsHandlers(ipcMain, operationsService) {
   ipcMain.handle('obtener-inscripciones-clase', (_evt, classId) => operationsService.listClassEnrollments(classId));
   ipcMain.handle('inscribir-socio-clase', (_evt, payload) => operationsService.enrollMember(payload || {}));
   ipcMain.handle('obtener-clase-actual', (_evt, payload) => operationsService.getCurrentClass(payload || {}));
+  ipcMain.handle('iniciar-clase', (_evt, payload) => operationsService.startClass(payload || {}));
   ipcMain.handle('registrar-asistencia-clase', (_evt, payload) => operationsService.registerClassAttendance(payload || {}));
   ipcMain.handle('finalizar-clase', (_evt, payload) => operationsService.finishClass(payload || {}));
   ipcMain.handle('obtener-registros-clases', (_evt, fecha) => operationsService.listClassRecordsByDate(fecha));

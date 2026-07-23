@@ -31,6 +31,7 @@ function createAdminRecordsController({ shared }) {
   const demoClasses = [
     { id: 1, nombre: 'Funcional mañana', hora: '08:00', duracionMinutos: 60, localNombre: 'Salón funcional', profesorProgramado: 'Santiago Lima', profesorReal: 'Valentina Suárez', presentes: 9, inscriptos: 12, estado: 'dictada' },
     { id: 2, nombre: 'Funcional tarde', hora: '17:00', duracionMinutos: 60, localNombre: 'Recepción principal', profesorProgramado: 'Santiago Lima', profesorReal: null, presentes: 0, inscriptos: 8, estado: 'programada' },
+    { id: 3, nombre: 'Circuito nocturno', hora: '20:00', duracionMinutos: 45, localNombre: 'Salón funcional', profesorProgramado: 'Martín Cabrera', profesorReal: null, presentes: 0, inscriptos: 6, estado: 'cancelada', motivoCancelacion: 'sin_registro_profesor' },
   ];
 
   function today() {
@@ -99,7 +100,7 @@ function createAdminRecordsController({ shared }) {
       tr.innerHTML = `
         <td><strong class="record-time">${escapeHtml(String(row.hora || '—').slice(0, 5))}</strong><small>${Number(row.duracionMinutos || 60)} min</small></td>
         <td><strong>${escapeHtml(row.nombre)}</strong><small><i class="fa-solid fa-location-dot"></i>${escapeHtml(row.localNombre || `Local ${row.localId || '—'}`)}</small></td>
-        <td><strong>${escapeHtml(row.profesorReal || row.profesorProgramado || 'Sin asignar')}</strong>${row.profesorReal && row.profesorReal !== row.profesorProgramado ? `<small>Reemplazó a ${escapeHtml(row.profesorProgramado)}</small>` : '<small>Profesor asignado</small>'}</td>
+        <td><strong>${escapeHtml(row.profesorReal || row.profesorProgramado || 'Sin asignar')}</strong>${row.estado === 'cancelada' ? '<small>No inició la clase</small>' : row.profesorReal && row.profesorReal !== row.profesorProgramado ? `<small>Reemplazó a ${escapeHtml(row.profesorProgramado)}</small>` : '<small>Profesor asignado</small>'}</td>
         <td><strong>${Number(row.presentes || 0)} <span>/ ${Number(row.inscriptos || 0)}</span></strong><small>presentes</small></td>
         <td><span class="class-state state-${escapeHtml(row.estado || 'programada')}">${classState(row.estado)}</span></td>
       `;
@@ -127,10 +128,25 @@ function createAdminRecordsController({ shared }) {
             { usuarioCi: 53678912, usuarioNombre: 'Agustín López', presente: false },
             { usuarioCi: 47896521, usuarioNombre: 'Florencia Núñez', presente: false },
           ]
-        : [
-            { usuarioCi: 37654321, usuarioNombre: 'Camila Fernández', presente: false },
-            { usuarioCi: 56781234, usuarioNombre: 'Diego Martínez', presente: false },
-          ],
+        : row.id === 2
+          ? [
+              { usuarioCi: 37654321, usuarioNombre: 'Camila Fernández', presente: false },
+              { usuarioCi: 56781234, usuarioNombre: 'Diego Martínez', presente: false },
+              { usuarioCi: 48561237, usuarioNombre: 'Sofía Cabrera', presente: false },
+              { usuarioCi: 45219876, usuarioNombre: 'Nicolás Silva', presente: false },
+              { usuarioCi: 51987654, usuarioNombre: 'Lucía Fernández', presente: false },
+              { usuarioCi: 49321567, usuarioNombre: 'Mateo Pereira', presente: false },
+              { usuarioCi: 46789123, usuarioNombre: 'Julieta Suárez', presente: false },
+              { usuarioCi: 53678912, usuarioNombre: 'Agustín López', presente: false },
+            ]
+          : [
+              { usuarioCi: 49876543, usuarioNombre: 'Martina Silva', presente: false },
+              { usuarioCi: 43219876, usuarioNombre: 'Bruno Rodríguez', presente: false },
+              { usuarioCi: 51234567, usuarioNombre: 'Lucas Pereira', presente: false },
+              { usuarioCi: 56781234, usuarioNombre: 'Diego Martínez', presente: false },
+              { usuarioCi: 37654321, usuarioNombre: 'Camila Fernández', presente: false },
+              { usuarioCi: 48561237, usuarioNombre: 'Sofía Cabrera', presente: false },
+            ],
     };
   }
 
@@ -147,10 +163,11 @@ function createAdminRecordsController({ shared }) {
       if (!detail) throw new Error('Clase no encontrada');
       const presentCount = detail.students.filter(student => student.presente).length;
       detailTitle.textContent = detail.nombre;
-      detailMeta.textContent = `${String(detail.hora || '').slice(0, 5)} · ${detail.localNombre || `Local ${detail.localId}`}`;
+      const cancellation = detail.motivoCancelacion === 'sin_registro_profesor' ? ' · Cancelada por ausencia del profesor' : '';
+      detailMeta.textContent = `${String(detail.hora || '').slice(0, 5)} · ${detail.localNombre || `Local ${detail.localId}`}${cancellation}`;
       detailSummary.innerHTML = `
         <article><span>Profesor programado</span><strong>${escapeHtml(detail.profesorProgramado || 'Sin asignar')}</strong></article>
-        <article><span>Profesor que dictó</span><strong>${escapeHtml(detail.profesorReal || (detail.estado === 'programada' ? 'Aún no iniciada' : 'Sin registrar'))}</strong></article>
+        <article><span>Profesor que dictó</span><strong>${escapeHtml(detail.profesorReal || (detail.estado === 'programada' ? 'Aún no iniciada' : detail.estado === 'cancelada' ? 'No se presentó' : 'Sin registrar'))}</strong></article>
         <article><span>Asistencia</span><strong>${presentCount} de ${detail.students.length}</strong></article>
       `;
       detailRoster.innerHTML = detail.students.map(student => `
