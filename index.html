@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.12">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.14">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -43,7 +43,7 @@
         <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
         <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
         <button class="sidebar-action" type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
-        <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuracion</span></button>
+        <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuración</span></button>
       </aside>
       <main class="workspace-main">
         <section class="app-view is-active" data-admin-view="home">
@@ -56,7 +56,7 @@
           <div class="home-workspace-grid">
             <section class="home-operational-pane home-members-pane">
               <div class="home-pane-heading home-pane-heading-with-search">
-                <div><span class="home-pane-kicker">Recepcion</span><h3>Socios por vencimiento</h3></div>
+                <div><span class="home-pane-kicker">Recepción</span><h3>Socios por vencimiento</h3></div>
                 <button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button>
                 <div class="home-search-block home-table-search">
                   <label for="home-member-search">Buscar socio</label>
@@ -69,7 +69,7 @@
             </section>
             <section class="home-operational-pane home-products-pane">
               <div class="home-pane-heading home-pane-heading-products">
-                <div><span class="home-pane-kicker">Caja rapida</span><h3>Venta de productos</h3><p>Seleccioná un producto para registrar la venta.</p></div>
+                <div><span class="home-pane-kicker">Caja rápida</span><h3>Venta de productos</h3><p>Seleccioná un producto para registrar la venta.</p></div>
                 <button type="button" data-admin-section="products">Ver todos <i class="fa-solid fa-chevron-right"></i></button>
               </div>
               <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Stock</span><span>Acción</span></div>
@@ -79,7 +79,7 @@
           </div>
           <div class="home-command-actions home-bottom-actions" aria-label="Acciones frecuentes">
             <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
-            <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripcion</span></button>
+            <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripción</span></button>
             <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
             <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
           </div>
@@ -107,7 +107,7 @@
 
         <section class="app-view" data-admin-view="users">
           <div class="section-heading">
-            <div><h2 class="section-title">Usuarios</h2><p class="section-subtitle">Socios, membresias y datos personales.</p></div>
+            <div><span class="section-kicker">Socios y membresías</span><h2 class="section-title">Usuarios</h2><p class="section-subtitle">Información personal, vigencias y gestiones frecuentes.</p></div>
           </div>
           <div class="search-row"><input id="filtro-busqueda" class="users-search-field" placeholder="CI o Nombre"></div>
           <section class="content-panel">
@@ -118,7 +118,7 @@
                       <tr>
                         <th>CI</th>
                         <th>Nombre</th>
-                        <th>Dias</th>
+                        <th>Días</th>
                         <th></th>
                       </tr>
                     </thead>
@@ -129,7 +129,7 @@
           </section>
           <div class="page-action-dock users-action-dock" aria-label="Acciones de usuarios">
             <button class="page-dock-action" type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
-            <button class="page-dock-action" type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripcion</span></button>
+            <button class="page-dock-action" type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripción</span></button>
           </div>
         </section>
 
@@ -195,7 +195,7 @@
 
         <section class="app-view product-page" data-admin-view="products">
           <div class="section-heading product-page-heading">
-            <div><h2 class="section-title">Productos</h2><p class="section-subtitle">Venta en recepcion y asignacion de stock al salon funcional.</p></div>
+            <div><span class="section-kicker">Inventario y ventas</span><h2 class="section-title">Productos</h2><p class="section-subtitle">Venta en recepción y asignación de stock entre locales.</p></div>
             <nav class="product-local-tabs" aria-label="Stock por local">
               <button class="is-active" type="button" data-product-location="local1"><i class="fa-solid fa-building"></i><span>Local 1</span></button>
               <button type="button" data-product-location="local2"><i class="fa-solid fa-dumbbell"></i><span>Local 2</span></button>
@@ -203,7 +203,7 @@
           </div>
 
           <section class="product-local-view is-active" data-product-location-panel="local1">
-            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Recepcion</span><h3>Stock del Local 1</h3><p>Selecciona una fila para vender o editar el producto.</p></div></div>
+            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Recepción</span><h3>Stock del Local 1</h3><p>Seleccioná una fila para vender o editar el producto.</p></div></div>
             <div class="table-card product-fixed-table">
               <div class="table-scroll table-scroll-products">
                 <table class="data-table" id="tabla-productos">
@@ -211,7 +211,7 @@
                   <tbody id="cuerpo-productos"></tbody>
                 </table>
               </div>
-              <div id="sin-productos" class="table-empty">Todavia no hay productos cargados.</div>
+              <div id="sin-productos" class="table-empty">Todavía no hay productos cargados.</div>
             </div>
             <div class="page-action-dock product-action-dock">
               <div id="product-local1-selection" class="dock-selection"><span>Producto seleccionado</span><strong>Ninguno</strong></div>
@@ -222,12 +222,12 @@
           </section>
 
           <section class="product-local-view" data-product-location-panel="local2">
-            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Salon funcional</span><h3>Stock del Local 2</h3><p>Selecciona un producto y asigna unidades desde recepcion.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
+            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Salón de clases</span><h3>Stock del Local 2</h3><p>Seleccioná un producto y asigná unidades desde recepción.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
             <div class="table-card product-fixed-table">
               <div class="table-scroll location-stock-scroll"><table class="data-table location-stock-table"><thead><tr><th>Producto</th><th>Precio</th><th>Stock Local 2</th><th>Disponible Local 1</th></tr></thead><tbody id="location-stock-body"></tbody></table></div>
             </div>
             <div class="page-action-dock product-action-dock stock-action-dock">
-              <div id="stock-transfer-availability" class="dock-selection"><span>Producto seleccionado</span><strong>Ninguno</strong><small>Selecciona una fila de la tabla</small></div>
+              <div id="stock-transfer-availability" class="dock-selection"><span>Producto seleccionado</span><strong>Ninguno</strong><small>Seleccioná una fila de la tabla</small></div>
               <label class="dock-quantity" for="stock-transfer-quantity"><span>Cantidad</span><input id="stock-transfer-quantity" type="number" min="1" step="1" value="1"></label>
               <button id="stock-transfer-submit" class="page-dock-action is-primary" type="button" disabled><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Asignar al Local 2</span></button>
             </div>
@@ -236,7 +236,7 @@
 
         <section class="app-view" data-admin-view="classes">
           <div class="section-heading">
-            <div><span class="section-kicker">Agenda semanal</span><h2 class="section-title">Clases</h2><p class="section-subtitle">Programá clases, revisá horarios e inscribí socios desde recepción.</p></div>
+            <div><span class="section-kicker">Agenda de clases</span><h2 class="section-title">Clases</h2><p class="section-subtitle">Programá actividades, revisá horarios e inscribí socios desde recepción.</p></div>
             <div class="dashboard-inline-actions">
               <button id="classes-open-tablet" class="app-button" type="button"><i class="fa-solid fa-tablet-screen-button"></i>Vista tablet</button>
               <button class="app-button" type="button" data-open-modal="modal-profesor"><i class="fa-solid fa-user-plus"></i>Agregar profesor</button>
@@ -246,11 +246,11 @@
           <div class="classes-summary-grid">
             <article class="operational-stat"><span>Clases de hoy</span><strong id="classes-today-count">0</strong><small>programadas</small></article>
             <article class="operational-stat"><span>Alumnos inscriptos</span><strong id="classes-enrolled-count">0</strong><small>en grupos activos</small></article>
-            <article class="operational-stat classes-next-stat"><span>Próxima clase</span><strong id="classes-next-name">Sin clases</strong><small id="classes-next-meta">Esta semana</small></article>
+            <article class="operational-stat"><span>Profesores activos</span><strong id="classes-professors-count">0</strong><small>disponibles para dictar</small></article>
           </div>
           <div class="classes-workspace">
             <section class="operations-surface classes-list-surface">
-              <div class="surface-heading"><div><h3>Clases de esta semana</h3><p>De lunes a domingo, ordenadas por fecha y hora.</p></div><button id="classes-refresh" class="icon-action" type="button" aria-label="Actualizar clases"><i class="fa-solid fa-rotate"></i></button></div>
+              <div class="surface-heading"><div><h3>Próximas clases</h3><p>Todas las clases programadas, ordenadas por fecha y hora.</p></div><button id="classes-refresh" class="icon-action" type="button" aria-label="Actualizar clases"><i class="fa-solid fa-rotate"></i></button></div>
               <div id="classes-list" class="classes-list"></div>
               <div id="classes-empty" class="surface-empty"><i class="fa-regular fa-calendar-plus"></i><strong>Todavía no hay clases programadas</strong><span>Creá la primera para comenzar a inscribir socios.</span></div>
             </section>
@@ -277,7 +277,7 @@
   <div id="modal-dashboard" class="app-modal">
     <div class="app-modal-card app-modal-card-dashboard">
       <div class="app-modal-header">
-        <h3>Dashboard</h3>
+        <div><span class="section-kicker">Operación diaria</span><h3>Dashboard</h3></div>
         <button type="button" class="app-modal-close" data-close-modal="modal-dashboard">Cerrar</button>
       </div>
 
@@ -322,7 +322,7 @@
                 <input id="dashboard-apertura-monto" type="number" min="0" step="1" placeholder="Monto">
               </div>
               <div class="form-field dashboard-inline-form-grow">
-                <label for="dashboard-apertura-observacion">Observacion</label>
+                <label for="dashboard-apertura-observacion">Observación</label>
                 <input id="dashboard-apertura-observacion" type="text" placeholder="Obs.">
               </div>
               <button id="dashboard-guardar-apertura" class="app-button app-button-primary" type="button">Abrir caja</button>
@@ -349,8 +349,8 @@
                   <input type="number" min="0" step="1" placeholder="Monto inicial">
                 </div>
                 <div class="form-field dashboard-inline-form-grow">
-                  <label for="dashboard-apertura-observacion">Observacion</label>
-                  <input type="text" placeholder="Observacion de apertura">
+                  <label for="dashboard-apertura-observacion">Observación</label>
+                  <input type="text" placeholder="Observación de apertura">
                 </div>
                 <button class="app-button app-button-primary" type="button">Guardar</button>
               </div>
@@ -359,8 +359,8 @@
             <section id="dashboard-cierre-resumen" class="dashboard-compact-card dashboard-history-card" style="display: none;">
               <div class="section-heading">
                 <div>
-                  <h3 class="section-title">Cierre del dia</h3>
-                  <p class="section-subtitle">Resumen historico de la caja cerrada.</p>
+                  <h3 class="section-title">Cierre del día</h3>
+                  <p class="section-subtitle">Resumen histórico de la caja cerrada.</p>
                 </div>
               </div>
               <div class="dashboard-history-grid">
@@ -377,7 +377,7 @@
                   <span id="dashboard-cierre-diferencia" class="dashboard-history-value">$ 0</span>
                 </div>
                 <div>
-                  <span class="dashboard-history-label">Observacion</span>
+                  <span class="dashboard-history-label">Observación</span>
                   <span id="dashboard-cierre-observacion-resumen" class="dashboard-history-value">-</span>
                 </div>
               </div>
@@ -412,7 +412,7 @@
             <div class="section-heading dashboard-movements-heading">
               <div>
                 <h3 class="section-title">Movimientos de caja</h3>
-                <p class="section-subtitle">Altas, renovaciones, ventas, entradas manuales y salidas del dia.</p>
+                <p class="section-subtitle">Altas, renovaciones, ventas, entradas manuales y salidas del día.</p>
               </div>
               <div class="dashboard-inline-actions">
                 <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button"><i class="fa-solid fa-plus"></i>Entrada</button>
@@ -500,7 +500,7 @@
       </div>
 
       <div class="app-modal-body">
-        <label for="ajuste-total-nuevo">Nuevo total del dia</label>
+        <label for="ajuste-total-nuevo">Nuevo total del día</label>
         <input id="ajuste-total-nuevo" type="number" min="0" step="1">
         <label for="ajuste-total-observacion">Motivo del ajuste</label>
         <input id="ajuste-total-observacion" type="text" placeholder="Motivo del ajuste manual">
@@ -759,7 +759,7 @@
   <div id="modal-renovar-suscripcion" class="app-modal">
     <div class="app-modal-card">
       <div class="app-modal-header">
-        <h3>Renovar suscripcion</h3>
+        <h3>Renovar suscripción</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-renovar-suscripcion">Cerrar</button>
       </div>
 
@@ -829,7 +829,7 @@
               </label>
             </div>
           </div>
-          <div class="form-field sale-observation"><label for="producto-venta-observacion">Observacion</label><input type="text" id="producto-venta-observacion" placeholder="Opcional"></div>
+          <div class="form-field sale-observation"><label for="producto-venta-observacion">Observación</label><input type="text" id="producto-venta-observacion" placeholder="Opcional"></div>
         </section>
       </div>
 
@@ -945,7 +945,7 @@
   <div id="modal-configuracion" class="app-modal">
     <div class="app-modal-card">
       <div class="app-modal-header">
-        <h3>Configuracion</h3>
+        <div><span class="section-kicker">Administración del sistema</span><h3>Configuración</h3><p class="section-subtitle">Cuotas, almacenamiento y funciones especiales.</p></div>
         <button type="button" class="app-modal-close" data-close-modal="modal-configuracion">Cerrar</button>
       </div>
 
@@ -997,7 +997,7 @@
           <h4>Membresia y pago</h4>
           <div class="user-detail-section-grid">
             <div class="form-field">
-              <label for="detalle-dias">Dias restantes</label>
+              <label for="detalle-dias">Días restantes</label>
               <input id="detalle-dias" type="number" min="0" placeholder="Ej: 30">
             </div>
             <div class="form-field">
@@ -1114,8 +1114,8 @@
   <script src="adminProducts.js?v=2.5.0.4"></script>
   <script src="adminEntries.js?v=2.5.0.9"></script>
   <script src="adminRecords.js?v=2.5.0.2"></script>
-  <script src="adminOperations.js?v=2.5.0.8"></script>
+  <script src="adminOperations.js?v=2.5.0.9"></script>
   <script src="homeDashboard.js?v=2.5.0.6"></script>
-  <script src="renderer.js?v=2.5.0.7"></script>
+  <script src="renderer.js?v=2.5.0.8"></script>
 </body>
 </html>

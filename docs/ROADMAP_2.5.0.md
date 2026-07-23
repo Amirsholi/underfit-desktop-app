@@ -63,10 +63,10 @@ The main location currently runs one reception PC with two displays: the adminis
 
 ### 5. Tablet workflow
 
-- Instructor signs in once at the beginning of the class block and signs out when leaving; the session must not interrupt student check-in.
+- Instructor signs in once at the beginning of the class block; the device session closes automatically after two hours and does not interrupt student check-in.
 - After sign-in, the tablet stays in attendance mode: students type their CI, receive immediate confirmation and the numeric pad clears itself for the next person.
 - The current class is selected automatically from the recurring schedule (for example, Monday/Wednesday/Friday at 20:00), with a small manual override for exceptional changes.
-- Product sale is a short instructor-only detour: product, member, quantity and send. After sending, the tablet returns to attendance mode automatically.
+- Product sale is a short instructor-only detour: product, member, quantity and send. The member can be found by name or identity number using the tablet's regular keyboard; class attendees remain prioritized. After sending, the tablet returns to attendance mode automatically.
 - Fast member lookup and attendance registration remain separate from administrative editing.
 - Read-only member details.
 - Product availability is visible while creating a sale; stock assignment and management remain exclusive to the main location.

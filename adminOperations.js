@@ -3,8 +3,7 @@ function createAdminOperationsController({ shared }) {
   const classesEmpty = document.getElementById('classes-empty');
   const classesTodayCount = document.getElementById('classes-today-count');
   const classesEnrolledCount = document.getElementById('classes-enrolled-count');
-  const classesNextName = document.getElementById('classes-next-name');
-  const classesNextMeta = document.getElementById('classes-next-meta');
+  const classesProfessorsCount = document.getElementById('classes-professors-count');
   const classDetailTitle = document.getElementById('class-detail-title');
   const classDetailMeta = document.getElementById('class-detail-meta');
   const classDetailEmpty = document.getElementById('class-detail-empty');
@@ -72,20 +71,6 @@ function createAdminOperationsController({ shared }) {
     const date = new Date(`${base}T12:00:00`);
     date.setDate(date.getDate() + days);
     return date.toISOString().slice(0, 10);
-  }
-
-  function currentWeekRange(reference = new Date()) {
-    const day = reference.getDay();
-    const mondayOffset = day === 0 ? -6 : 1 - day;
-    const localDate = new Date(reference);
-    localDate.setHours(12, 0, 0, 0);
-    localDate.setDate(localDate.getDate() + mondayOffset);
-    const start = [
-      localDate.getFullYear(),
-      String(localDate.getMonth() + 1).padStart(2, '0'),
-      String(localDate.getDate()).padStart(2, '0'),
-    ].join('-');
-    return { start, end: addDays(start, 6) };
   }
 
   function money(value) {
@@ -207,6 +192,7 @@ function createAdminOperationsController({ shared }) {
     professorsEmpty.style.display = professors.length ? 'none' : 'grid';
     const activeCount = professors.filter(item => item.activo === true || Number(item.activo) === 1).length;
     professorsCount.textContent = `${activeCount} ${activeCount === 1 ? 'activo' : 'activos'}`;
+    if (classesProfessorsCount) classesProfessorsCount.textContent = String(activeCount);
     professors.forEach(item => {
       const active = item.activo === true || Number(item.activo) === 1;
       const row = document.createElement('article');
@@ -326,28 +312,20 @@ function createAdminOperationsController({ shared }) {
 
   function renderClasses() {
     if (!classesList || !classesEmpty) return;
-    const week = currentWeekRange();
-    const weeklyClasses = classes
-      .filter(item => item.fecha >= week.start && item.fecha <= week.end)
+    const upcomingClasses = [...classes]
       .sort((a, b) => `${a.fecha}T${a.hora || '00:00'}`.localeCompare(`${b.fecha}T${b.hora || '00:00'}`));
     classesList.innerHTML = '';
-    classesEmpty.style.display = weeklyClasses.length ? 'none' : 'grid';
-    classesTodayCount.textContent = String(weeklyClasses.filter(item => item.fecha === today()).length);
+    classesEmpty.style.display = upcomingClasses.length ? 'none' : 'grid';
+    classesTodayCount.textContent = String(upcomingClasses.filter(item => item.fecha === today()).length);
     const groups = new Map();
-    weeklyClasses.forEach(item => {
+    upcomingClasses.forEach(item => {
       const key = item.programacionId ? `schedule-${item.programacionId}` : `class-${item.id}`;
       if (!groups.has(key)) groups.set(key, item);
     });
     const groupRows = [...groups.values()];
     classesEnrolledCount.textContent = String(groupRows.reduce((sum, item) => sum + Number(item.inscriptos || 0), 0));
-    const now = new Date();
-    const nextClass = weeklyClasses.find(item => new Date(`${item.fecha}T${String(item.hora || '00:00').slice(0, 5)}`) >= now) || null;
-    classesNextName.textContent = nextClass?.nombre || 'Sin clases';
-    classesNextMeta.textContent = nextClass
-      ? `${shortDate(nextClass.fecha).day} ${shortDate(nextClass.fecha).month} · ${String(nextClass.hora || '').slice(0, 5)}`
-      : 'Resto de esta semana';
 
-    weeklyClasses.forEach(item => {
+    upcomingClasses.forEach(item => {
       const date = shortDate(item.fecha);
       const available = Math.max(0, Number(item.capacidad || 0) - Number(item.inscriptos || 0));
       const row = document.createElement('button');

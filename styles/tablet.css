@@ -722,25 +722,7 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .tablet-sale-dialog .tablet-sale-member {
   display: grid;
-  grid-template-rows: auto auto 116px minmax(80px, 1fr);
-}
-
-.tablet-member-keypad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-  margin-top: 7px;
-}
-
-.tablet-member-keypad button {
-  min-height: 25px;
-  border: 1px solid var(--tablet-border-soft);
-  border-radius: 7px;
-  color: #eef1f5;
-  background: rgba(255, 255, 255, 0.035);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
+  grid-template-rows: auto auto minmax(120px, 1fr);
 }
 
 .tablet-sale-dialog .tablet-member-results { margin-top: 8px; }
@@ -774,4 +756,57 @@ button { -webkit-tap-highlight-color: transparent; }
   .tablet-sale-dialog .tablet-sale-member { padding: 13px; }
   .tablet-sale-dialog .tablet-product-card { min-height: 58px; }
   .tablet-sale-dialog > .tablet-sale-summary { padding: 8px 14px; }
+}
+
+/* Revision 2.5.0.5 — reception-consistent contrast and native member search */
+html,
+body {
+  font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+}
+
+.tablet-page::before {
+  background:
+    linear-gradient(95deg, rgba(5, 7, 10, 0.8) 0%, rgba(5, 7, 10, 0.67) 52%, rgba(17, 9, 7, 0.72) 100%),
+    url('../gym.jpg') center / cover no-repeat;
+  filter: saturate(0.78) contrast(1.06);
+}
+
+.tablet-session-bar {
+  background: rgba(9, 12, 17, 0.84);
+  backdrop-filter: blur(16px);
+}
+
+.tablet-entry-simple {
+  background: rgba(7, 10, 15, 0.7);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 26px 72px rgba(0, 0, 0, 0.34);
+}
+
+.tablet-sale-modal {
+  background: rgba(2, 4, 7, 0.7);
+  backdrop-filter: blur(9px);
+}
+
+.tablet-member-search {
+  margin-top: 12px;
+  grid-template-columns: 46px minmax(0, 1fr);
+  border-color: rgba(156, 165, 181, 0.28);
+  background: rgba(5, 7, 10, 0.8);
+}
+
+.tablet-member-search input {
+  height: 52px;
+  padding-right: 14px;
+  font-size: 16px;
+}
+
+.tablet-member-search input::placeholder { color: #858e9b; }
+.tablet-member-search:focus-within {
+  border-color: rgba(255, 104, 31, 0.72);
+  box-shadow: 0 0 0 3px rgba(255, 104, 31, 0.1);
+}
+
+.tablet-sale-dialog .tablet-member-results {
+  min-height: 0;
+  margin-top: 10px;
 }

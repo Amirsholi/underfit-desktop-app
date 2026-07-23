@@ -25,7 +25,6 @@
   const closeSaleButton = document.getElementById('tablet-close-sale');
   const productGrid = document.getElementById('tablet-product-grid');
   const memberSearch = document.getElementById('tablet-member-search');
-  const memberKeypad = document.querySelector('.tablet-member-keypad');
   const memberResults = document.getElementById('tablet-member-results');
   const saleLocal = document.getElementById('tablet-sale-local');
   const saleProductName = document.getElementById('tablet-sale-product-name');
@@ -460,15 +459,6 @@
     if (!matches.length) memberResults.innerHTML = `<p class="tablet-form-message">${query.length < 2 ? 'Buscá un socio activo por nombre o CI.' : 'No se encontraron socios activos.'}</p>`;
   }
 
-  function handleMemberKey(key) {
-    if (key === 'clear') memberSearch.value = '';
-    else if (key === 'backspace') memberSearch.value = memberSearch.value.slice(0, -1);
-    else if (/^\d$/.test(key) && memberSearch.value.length < 8) memberSearch.value += key;
-    state.selectedMember = null;
-    searchMembers();
-    updateSaleSummary();
-  }
-
   function updateSaleSummary() {
     saleProductName.textContent = state.selectedProduct?.nombre || 'Sin seleccionar';
     saleMemberName.textContent = state.selectedMember?.nombre || 'Sin seleccionar';
@@ -590,15 +580,16 @@
       state.quantity = 1;
       updateSaleSummary();
     });
-    memberKeypad.addEventListener('click', event => {
-      const button = event.target.closest('[data-member-key]');
-      if (button) handleMemberKey(button.dataset.memberKey);
+    memberSearch.addEventListener('input', () => {
+      state.selectedMember = null;
+      searchMembers();
+      updateSaleSummary();
     });
     memberResults.addEventListener('click', event => {
       const button = event.target.closest('[data-member-ci]');
       if (!button) return;
       state.selectedMember = state.users.find(item => Number(item.ci) === Number(button.dataset.memberCi)) || null;
-      memberSearch.value = String(state.selectedMember?.ci || '');
+      memberSearch.value = state.selectedMember?.nombre || '';
       searchMembers();
       updateSaleSummary();
     });
@@ -610,13 +601,12 @@
     });
     saleSubmit.addEventListener('click', submitSale);
     window.addEventListener('keydown', event => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
-      if (!saleModal.hidden) {
-        if (/^\d$/.test(event.key)) handleMemberKey(event.key);
-        if (event.key === 'Backspace') handleMemberKey('backspace');
-        if (event.key === 'Escape') closeSale();
+      if (event.key === 'Escape' && !saleModal.hidden) {
+        closeSale();
         return;
       }
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      if (!saleModal.hidden) return;
       if (!workspace.hidden) {
         if (/^\d$/.test(event.key)) handleEntryKey(event.key);
         if (event.key === 'Backspace') handleEntryKey('backspace');

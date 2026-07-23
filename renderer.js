@@ -18,10 +18,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalCard.classList.add('app-modal-card-wide');
 
     modalBody.innerHTML = `
-      <div class="config-page-intro">
-        <span class="config-page-kicker">Administracion del sistema</span>
-        <p>Valores comerciales, almacenamiento y funciones especiales de Under-Fit.</p>
-      </div>
       <section class="config-section">
         <div class="config-section-heading">
           <div class="config-section-icon"><i class="fa-solid fa-tags"></i></div>

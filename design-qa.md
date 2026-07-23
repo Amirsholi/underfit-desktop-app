@@ -38,7 +38,9 @@ Se agregó la superficie táctil de profesor: identificación simple para respon
 
 Se devolvieron los accesos frecuentes debajo de las tablas, se fijó el alto de las superficies con scroll interno y se unificó el orden de socios por urgencia: días positivos de menor a mayor y todos los resultados de 0 días al final. Productos se separó en Local 1 y Local 2 con selección de fila y acciones inferiores; la tablet eliminó la administración de stock y prioriza ingreso por CI y venta a asistentes o socios activos. Caja usa una franja compacta de jornada en lugar del bloque introductorio anterior.
 
-En el ajuste visual siguiente, Inicio integró el buscador dentro del módulo de socios y alineó ambas tablas; se retiraron los iconos de productos, se ampliaron y reorganizaron los editores de socios, productos y ventas, y la agenda quedó limitada a la semana actual con scroll interno. La tablet quedó reducida a encabezado operativo, ingreso por CI y un carrito modal, sin navegación ni cierre manual.
+En el ajuste visual siguiente, Inicio integró el buscador dentro del módulo de socios y alineó ambas tablas; se retiraron los iconos de productos y se ampliaron y reorganizaron los editores de socios, productos y ventas. La agenda volvió a mostrar todas las próximas clases en una superficie de altura fija con scroll, y sus indicadores adoptaron la misma estructura numérica de Registros. La tablet quedó reducida a encabezado operativo, ingreso por CI y un carrito modal, sin navegación ni cierre manual; dentro de la venta, el profesor busca al socio por nombre o CI con el teclado normal del dispositivo.
+
+La última revisión consolidó una jerarquía compartida para títulos de página, encabezados de módulo, tablas, botones y métricas. La fotografía institucional vuelve a ser visible en administración, mientras las superficies de información mantienen contraste; la tablet usa la misma atmósfera con una capa más oscura para la operación táctil.
 
 ## Verificación final
 
