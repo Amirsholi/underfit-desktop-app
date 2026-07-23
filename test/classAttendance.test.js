@@ -39,7 +39,7 @@ function close(db) {
   return new Promise((resolve, reject) => db.close(error => error ? reject(error) : resolve()));
 }
 
-test('attendance records the gym entry, actual substitute and prevents duplicates across tablets', async () => {
+test('attendance records the gym entry without making the tablet operator control the class', async () => {
   const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'under-fit-attendance-'));
   const dbPath = path.join(tempDirectory, 'attendance.db');
   let db;
@@ -64,6 +64,7 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
     }
 
     const staffService = createStaffService({ staffRepository: createStaffRepository(db) });
+    let now = new Date(2026, 6, 22, 7, 55, 0);
     const service = createOperationsService({
       operationsRepository: createOperationsRepository(db),
       staffService,
@@ -71,7 +72,7 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
       productRepository: {},
       cashService: {},
       membershipRules,
-      clock: () => new Date(2026, 6, 22, 8, 5, 0),
+      clock: () => now,
     });
     const scheduled = await staffService.createProfessor({ nombre: 'Profesor titular', pin: '1234' });
     const substitute = await staffService.createProfessor({ nombre: 'Profesor suplente', pin: '5678' });
@@ -102,15 +103,7 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
     const [classOccurrence] = await service.listUpcomingClasses('2026-07-22');
     await service.enrollMember({ classId: classOccurrence.id, userCi: 49876543 });
     await service.enrollMember({ classId: classOccurrence.id, userCi: 43219876 });
-
-    const started = await service.startClass({
-      profesorSesionId: substituteSession.id,
-      localId: 1,
-      dispositivoId: 'tablet-recepcion-a',
-    });
-    assert.equal(started.started, true);
-    assert.equal(started.class.estado, 'en_curso');
-    assert.equal(started.professor.nombre, 'Profesor suplente');
+    now = new Date(2026, 6, 22, 8, 5, 0);
 
     const result = await service.registerClassAttendance({
       ci: 49876543,
@@ -119,7 +112,6 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
       dispositivoId: 'tablet-recepcion-a',
     });
     assert.equal(result.registered, true);
-    assert.equal(result.professor.nombre, 'Profesor suplente');
 
     const entry = await get(db, 'SELECT * FROM ingresos WHERE id = ?', [result.attendance.ingresoId]);
     assert.equal(entry.fuente, 'tablet_clase');
@@ -140,9 +132,9 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
 
     const [record] = await service.listClassRecordsByDate('2026-07-22');
     assert.equal(record.profesorProgramado, 'Profesor titular');
-    assert.equal(record.profesorReal, 'Profesor suplente');
     assert.equal(record.presentes, 1);
     assert.equal(record.inscriptos, 2);
+    assert.equal(record.estado, 'en_curso');
 
     const detail = await service.getClassRecordDetail(classOccurrence.id);
     assert.deepEqual(detail.students.map(student => [student.usuarioNombre, student.presente]), [
@@ -150,12 +142,11 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
       ['Bruno Rodriguez', false],
     ]);
 
-    await service.finishClass({
-      claseId: classOccurrence.id,
-      profesorSesionId: substituteSession.id,
-      localId: 1,
-      dispositivoId: 'tablet-recepcion-a',
-    });
+    now = new Date(2026, 6, 22, 9, 1, 0);
+    assert.equal((await service.getClassRecordDetail(classOccurrence.id)).estado, 'dictada');
+    await service.setClassHeldStatus({ claseId: classOccurrence.id, realizada: false });
+    assert.equal((await service.getClassRecordDetail(classOccurrence.id)).estado, 'cancelada');
+    await service.setClassHeldStatus({ claseId: classOccurrence.id, realizada: true });
     assert.equal((await service.getClassRecordDetail(classOccurrence.id)).estado, 'dictada');
   } finally {
     if (db) await close(db);
@@ -163,16 +154,17 @@ test('attendance records the gym entry, actual substitute and prevents duplicate
   }
 });
 
-test('a class is cancelled after its grace period when no professor starts it', async () => {
-  const cancelled = [];
+test('classes enter progress and finish automatically from their schedule', async () => {
+  const transitions = [];
   const service = createOperationsService({
     operationsRepository: {
-      listUnstartedClassesThrough: async () => [
+      listClassLifecycleCandidates: async () => [
         { id: 1, fecha: '2026-07-22', hora: '08:00', duracionMinutos: 60, estado: 'programada' },
         { id: 2, fecha: '2026-07-22', hora: '09:15', duracionMinutos: 60, estado: 'programada' },
+        { id: 3, fecha: '2026-07-22', hora: '10:30', duracionMinutos: 60, estado: 'programada' },
       ],
-      cancelUnstartedClass: async payload => {
-        cancelled.push(payload);
+      setClassLifecycleState: async payload => {
+        transitions.push(payload);
         return { classId: payload.classId, changed: true };
       },
       listClassRecordsByDate: async () => [],
@@ -185,6 +177,8 @@ test('a class is cancelled after its grace period when no professor starts it', 
 
   await service.listClassRecordsByDate('2026-07-22');
 
-  assert.deepEqual(cancelled.map(item => item.classId), [1]);
-  assert.equal(cancelled[0].reason, 'sin_registro_profesor');
+  assert.deepEqual(transitions.map(item => [item.classId, item.estado]), [
+    [1, 'dictada'],
+    [2, 'en_curso'],
+  ]);
 });

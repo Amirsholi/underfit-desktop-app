@@ -52,15 +52,13 @@ contextBridge.exposeInMainWorld('api', {
 
   obtenerClaseActual: (payload) => ipcRenderer.invoke('obtener-clase-actual', payload),
 
-  iniciarClase: (payload) => ipcRenderer.invoke('iniciar-clase', payload),
-
   registrarAsistenciaClase: (payload) => ipcRenderer.invoke('registrar-asistencia-clase', payload),
-
-  finalizarClase: (payload) => ipcRenderer.invoke('finalizar-clase', payload),
 
   obtenerRegistrosClases: (fecha) => ipcRenderer.invoke('obtener-registros-clases', fecha),
 
   obtenerDetalleRegistroClase: (claseId) => ipcRenderer.invoke('obtener-detalle-registro-clase', claseId),
+
+  marcarEstadoClase: (payload) => ipcRenderer.invoke('marcar-estado-clase', payload),
 
   obtenerVentasPendientes: () => ipcRenderer.invoke('obtener-ventas-pendientes'),
 

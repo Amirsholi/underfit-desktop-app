@@ -2716,6 +2716,22 @@ body.admin-page::after {
   text-overflow: ellipsis;
 }
 
+.record-status-action {
+  width: max-content;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 107, 26, 0.42);
+  color: var(--uf-orange);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.record-status-action:hover { color: #ff9a5c; }
+.record-status-action:disabled { opacity: 0.45; cursor: wait; }
+
 .records-detail-roster {
   max-height: calc(100vh - 460px);
   overflow-y: auto;

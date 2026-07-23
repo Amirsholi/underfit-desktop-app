@@ -184,7 +184,7 @@ function createOperationsRepository(db) {
       FROM clases c
       LEFT JOIN programaciones_clase pc ON pc.id = c.programacion_id
       LEFT JOIN locales l ON l.id = c.local_id
-      WHERE c.fecha >= ? AND c.estado = 'programada'
+      WHERE c.fecha >= ? AND c.estado IN ('programada', 'en_curso')
       ORDER BY c.fecha ASC, c.hora ASC, c.id ASC
       LIMIT ?
     `, [fromDate, limit]);
@@ -266,55 +266,31 @@ function createOperationsRepository(db) {
     `, [localId, fecha]);
   }
 
-  function listUnstartedClassesThrough(fecha) {
+  function listClassLifecycleCandidates(fecha) {
     return all(`
       SELECT id, nombre, fecha, hora, duracion_minutos AS duracionMinutos,
              local_id AS localId, estado, inicio_real_ts AS inicioRealTs
       FROM clases
-      WHERE fecha <= ? AND estado = 'programada' AND inicio_real_ts IS NULL
+      WHERE fecha <= ? AND estado IN ('programada', 'en_curso')
       ORDER BY fecha, hora, id
     `, [fecha]);
   }
 
-  async function startClass(data) {
-    return inTransaction(async () => {
-      const classRow = await get(`
-        SELECT id, nombre, fecha, hora, local_id AS localId, estado,
-               profesor_real_id AS profesorRealId,
-               profesor_sesion_id AS profesorSesionId,
-               inicio_real_ts AS inicioRealTs
-        FROM clases
-        WHERE id = ?
-      `, [data.classId]);
-      if (!classRow || !['programada', 'en_curso'].includes(classRow.estado)) {
-        throw new Error('La clase ya no esta disponible');
-      }
-      if (Number(classRow.localId) !== Number(data.localId)) throw new Error('La clase pertenece a otro local');
-      if (classRow.estado === 'en_curso') return { ...classRow, alreadyStarted: true };
-
-      await run(`
-        UPDATE clases
-        SET estado = 'en_curso', profesor_real_id = ?, profesor_sesion_id = ?, inicio_real_ts = ?
-        WHERE id = ? AND estado = 'programada'
-      `, [data.professorId, data.professorSessionId, data.startedTs, data.classId]);
-      return {
-        ...classRow,
-        estado: 'en_curso',
-        profesorRealId: data.professorId,
-        profesorSesionId: data.professorSessionId,
-        inicioRealTs: data.startedTs,
-        alreadyStarted: false,
-      };
-    });
-  }
-
-  async function cancelUnstartedClass({ classId, cancelledTs, reason }) {
-    const result = await run(`
-      UPDATE clases
-      SET estado = 'cancelada', cancelada_ts = ?, motivo_cancelacion = ?
-      WHERE id = ? AND estado = 'programada' AND inicio_real_ts IS NULL
-    `, [cancelledTs, reason, classId]);
-    return { classId, changed: result.changes > 0 };
+  async function setClassLifecycleState({ classId, estado, inicioTs, finTs }) {
+    const result = estado === 'en_curso'
+      ? await run(`
+          UPDATE clases
+          SET estado = 'en_curso', inicio_real_ts = COALESCE(inicio_real_ts, ?)
+          WHERE id = ? AND estado = 'programada'
+        `, [inicioTs, classId])
+      : await run(`
+          UPDATE clases
+          SET estado = 'dictada',
+              inicio_real_ts = COALESCE(inicio_real_ts, ?),
+              fin_real_ts = COALESCE(fin_real_ts, ?)
+          WHERE id = ? AND estado IN ('programada', 'en_curso')
+        `, [inicioTs, finTs, classId]);
+    return { classId, estado, changed: result.changes > 0 };
   }
 
   async function registerClassAttendance(data) {
@@ -361,15 +337,6 @@ function createOperationsRepository(db) {
         throw error;
       }
 
-      await run(`
-        UPDATE clases
-        SET estado = 'en_curso',
-            profesor_real_id = COALESCE(profesor_real_id, ?),
-            profesor_sesion_id = COALESCE(profesor_sesion_id, ?),
-            inicio_real_ts = COALESCE(inicio_real_ts, ?)
-        WHERE id = ?
-      `, [data.profesorId, data.profesorSesionId, data.ts, data.claseId]);
-
       return {
         id: attendance.lastID,
         ingresoId: entry.lastID,
@@ -382,18 +349,20 @@ function createOperationsRepository(db) {
     });
   }
 
-  async function finishClass({ classId, professorId, professorSessionId, finishedTs }) {
-    const result = await run(`
-      UPDATE clases
-      SET estado = 'dictada',
-          profesor_real_id = COALESCE(profesor_real_id, ?),
-          profesor_sesion_id = COALESCE(profesor_sesion_id, ?),
-          inicio_real_ts = COALESCE(inicio_real_ts, ?),
-          fin_real_ts = ?
-      WHERE id = ? AND estado IN ('programada', 'en_curso')
-    `, [professorId, professorSessionId, finishedTs, finishedTs, classId]);
-    if (!result.changes) throw new Error('La clase ya no se puede finalizar');
-    return { classId, estado: 'dictada', finRealTs: finishedTs };
+  async function setClassHeldStatus({ classId, estado, changedTs }) {
+    const result = estado === 'cancelada'
+      ? await run(`
+          UPDATE clases
+          SET estado = 'cancelada', cancelada_ts = ?, motivo_cancelacion = NULL
+          WHERE id = ? AND estado = 'dictada'
+        `, [changedTs, classId])
+      : await run(`
+          UPDATE clases
+          SET estado = 'dictada', cancelada_ts = NULL, motivo_cancelacion = NULL
+          WHERE id = ? AND estado = 'cancelada'
+        `, [classId]);
+    if (!result.changes) throw new Error('El estado de la clase no cambio');
+    return { classId, estado, realizada: estado === 'dictada' };
   }
 
   function listClassRecordsByDate(fecha) {
@@ -403,10 +372,7 @@ function createOperationsRepository(db) {
              c.local_id AS localId, l.nombre AS localNombre,
              c.profesor AS profesorProgramado,
              c.profesor_id AS profesorProgramadoId,
-             pr.nombre AS profesorReal,
-             c.profesor_real_id AS profesorRealId,
              c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
-             c.cancelada_ts AS canceladaTs, c.motivo_cancelacion AS motivoCancelacion,
              c.programacion_id AS programacionId,
              CASE WHEN c.programacion_id IS NOT NULL THEN (
                SELECT COUNT(*) FROM inscripciones_programacion_clase ip
@@ -419,7 +385,6 @@ function createOperationsRepository(db) {
               WHERE ac.clase_id = c.id AND COALESCE(ac.anulado, 0) = 0) AS presentes
       FROM clases c
       LEFT JOIN locales l ON l.id = c.local_id
-      LEFT JOIN profesores pr ON pr.id = c.profesor_real_id
       WHERE c.fecha = ?
       ORDER BY c.hora, c.id
     `, [fecha]);
@@ -432,14 +397,10 @@ function createOperationsRepository(db) {
              c.local_id AS localId, l.nombre AS localNombre,
              c.profesor AS profesorProgramado,
              c.profesor_id AS profesorProgramadoId,
-             pr.nombre AS profesorReal, c.profesor_real_id AS profesorRealId,
-             c.profesor_sesion_id AS profesorSesionId,
              c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
-             c.cancelada_ts AS canceladaTs, c.motivo_cancelacion AS motivoCancelacion,
              c.programacion_id AS programacionId
       FROM clases c
       LEFT JOIN locales l ON l.id = c.local_id
-      LEFT JOIN profesores pr ON pr.id = c.profesor_real_id
       WHERE c.id = ?
     `, [classId]);
     if (!classRow) return null;
@@ -454,11 +415,9 @@ function createOperationsRepository(db) {
     const enrolled = await all(enrolledSql, [classRow.programacionId || classId]);
     const attendances = await all(`
       SELECT ac.id, ac.usuario_ci AS usuarioCi, u.nombre AS usuarioNombre,
-             ac.hora, ac.dispositivo_id AS dispositivoId,
-             p.nombre AS profesorRegistro
+             ac.hora, ac.dispositivo_id AS dispositivoId
       FROM asistencias_clase ac
       LEFT JOIN usuarios u ON u.ci = ac.usuario_ci
-      LEFT JOIN profesores p ON p.id = ac.profesor_id
       WHERE ac.clase_id = ? AND COALESCE(ac.anulado, 0) = 0
       ORDER BY ac.hora, LOWER(u.nombre), ac.id
     `, [classId]);
@@ -471,7 +430,6 @@ function createOperationsRepository(db) {
         presente: Boolean(attendance),
         horaIngreso: attendance?.hora || null,
         dispositivoId: attendance?.dispositivoId || null,
-        profesorRegistro: attendance?.profesorRegistro || null,
       };
     });
     for (const attendance of attendanceByUser.values()) {
@@ -482,7 +440,6 @@ function createOperationsRepository(db) {
         noInscripto: true,
         horaIngreso: attendance.hora,
         dispositivoId: attendance.dispositivoId,
-        profesorRegistro: attendance.profesorRegistro,
       });
     }
     students.sort((a, b) => Number(b.presente) - Number(a.presente)
@@ -582,11 +539,10 @@ function createOperationsRepository(db) {
     listClassEnrollments,
     enrollMember,
     listClassCandidates,
-    listUnstartedClassesThrough,
-    startClass,
-    cancelUnstartedClass,
+    listClassLifecycleCandidates,
+    setClassLifecycleState,
     registerClassAttendance,
-    finishClass,
+    setClassHeldStatus,
     listClassRecordsByDate,
     getClassRecordDetail,
     listPendingSales,

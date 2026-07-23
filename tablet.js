@@ -44,6 +44,7 @@
     selectedProfessorId: null,
     session: null,
     activeClass: null,
+    classCandidates: [],
     attendanceCount: 0,
     entryDigits: '',
     users: [],
@@ -227,7 +228,7 @@
     await connectToCurrentClass();
     clearInterval(state.classPoll);
     state.classPoll = setInterval(() => {
-      if (state.session && !state.activeClass) connectToCurrentClass();
+      if (state.session) connectToCurrentClass();
     }, 30000);
   }
 
@@ -236,15 +237,26 @@
       const current = api?.obtenerClaseActual
         ? await api.obtenerClaseActual({ localId: state.localId })
         : { clase: demoCurrentClass(), candidatas: [demoCurrentClass()], requiereSeleccion: false };
+      state.classCandidates = current.candidatas || [];
       if (current.requiereSeleccion) {
-        renderClassPicker(current.candidatas || []);
+        const selected = state.classCandidates.find(item => Number(item.id) === Number(state.activeClass?.id));
+        if (selected) {
+          selectClass(selected);
+          return;
+        }
+        renderClassPicker(state.classCandidates);
         return;
       }
       if (current.clase) {
-        await beginClass(current.clase.id, current.clase);
+        selectClass(current.clase);
         return;
       }
+      if (state.activeClass) {
+        state.attendanceCount = 0;
+        attendanceCount.textContent = '0';
+      }
       state.activeClass = null;
+      classPicker.hidden = true;
       renderCurrentClass();
     } catch (error) {
       state.activeClass = null;
@@ -255,25 +267,17 @@
 
   function renderClassPicker(classes) {
     classOptions.innerHTML = classes.map(item => `
-      <button type="button" data-start-class="${Number(item.id)}"><strong>${escapeHtml(item.nombre)}</strong><small>${escapeHtml(String(item.hora || '').slice(0, 5))} · ${Number(item.duracionMinutos || 60)} min</small></button>
+      <button type="button" data-select-class="${Number(item.id)}"><strong>${escapeHtml(item.nombre)}</strong><small>${escapeHtml(String(item.hora || '').slice(0, 5))} · ${Number(item.duracionMinutos || 60)} min</small></button>
     `).join('');
     classPicker.hidden = false;
   }
 
-  async function beginClass(classId, fallbackClass = null) {
-    const result = api?.iniciarClase
-      ? await api.iniciarClase({
-          claseId: classId,
-          profesorSesionId: state.session.id,
-          localId: state.localId,
-          dispositivoId: state.deviceId,
-        })
-      : { started: true, class: { ...(fallbackClass || demoCurrentClass()), estado: 'en_curso' } };
-    if (result.requiereSeleccion) {
-      renderClassPicker(result.candidatas || []);
-      return;
+  function selectClass(selected) {
+    if (Number(state.activeClass?.id) !== Number(selected?.id)) {
+      state.attendanceCount = 0;
+      attendanceCount.textContent = '0';
     }
-    state.activeClass = result.class;
+    state.activeClass = selected;
     classPicker.hidden = true;
     renderCurrentClass();
   }
@@ -289,10 +293,11 @@
       entryCopy.textContent = 'La pantalla quedará habilitada al entrar en la franja programada.';
       return;
     }
-    classState.textContent = 'Clase en curso';
-    classState.classList.remove('is-idle');
+    const inProgress = state.activeClass.estado === 'en_curso';
+    classState.textContent = inProgress ? 'Clase en curso' : 'Próxima clase';
+    classState.classList.toggle('is-idle', !inProgress);
     className.textContent = state.activeClass.nombre;
-    classMeta.textContent = `${String(state.activeClass.hora || '').slice(0, 5)} · ${currentLocal().nombre}`;
+    classMeta.textContent = `${String(state.activeClass.hora || '').slice(0, 5)} · ${Number(state.activeClass.duracionMinutos || 60)} min · ${currentLocal().nombre}`;
     entrySubmit.disabled = false;
     resetEntryFeedback();
   }
@@ -450,14 +455,6 @@
   async function logout() {
     logoutButton.disabled = true;
     try {
-      if (state.activeClass && api?.finalizarClase) {
-        await api.finalizarClase({
-          claseId: state.activeClass.id,
-          profesorSesionId: state.session.id,
-          localId: state.localId,
-          dispositivoId: state.deviceId,
-        });
-      }
       if (api?.finalizarSesionProfesor) await api.finalizarSesionProfesor(state.session.id);
     } catch (error) {
       showToast(error?.message || 'No se pudo cerrar el turno', 'error');
@@ -498,8 +495,10 @@
     });
     entrySubmit.addEventListener('click', registerAttendance);
     classOptions.addEventListener('click', event => {
-      const button = event.target.closest('[data-start-class]');
-      if (button) beginClass(Number(button.dataset.startClass));
+      const button = event.target.closest('[data-select-class]');
+      if (!button) return;
+      const selected = state.classCandidates.find(item => Number(item.id) === Number(button.dataset.selectClass));
+      if (selected) selectClass(selected);
     });
     document.querySelectorAll('[data-tablet-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.tabletView)));
     productGrid.addEventListener('click', event => {

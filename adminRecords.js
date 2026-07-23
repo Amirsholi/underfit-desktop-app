@@ -20,6 +20,7 @@ function createAdminRecordsController({ shared }) {
   let entries = new Map();
   let classes = [];
   let selectedClassId = null;
+  let selectedClassDetail = null;
   let activeTab = 'entries';
 
   const demoEntries = [
@@ -29,9 +30,9 @@ function createAdminRecordsController({ shared }) {
     { id: 4, hora: '17:10', ci: 37654321, nombre: 'Camila Fernández', localNombre: 'Recepción principal', fuente: 'recepcion' },
   ];
   const demoClasses = [
-    { id: 1, nombre: 'Funcional mañana', hora: '08:00', duracionMinutos: 60, localNombre: 'Salón funcional', profesorProgramado: 'Santiago Lima', profesorReal: 'Valentina Suárez', presentes: 9, inscriptos: 12, estado: 'dictada' },
-    { id: 2, nombre: 'Funcional tarde', hora: '17:00', duracionMinutos: 60, localNombre: 'Recepción principal', profesorProgramado: 'Santiago Lima', profesorReal: null, presentes: 0, inscriptos: 8, estado: 'programada' },
-    { id: 3, nombre: 'Circuito nocturno', hora: '20:00', duracionMinutos: 45, localNombre: 'Salón funcional', profesorProgramado: 'Martín Cabrera', profesorReal: null, presentes: 0, inscriptos: 6, estado: 'cancelada', motivoCancelacion: 'sin_registro_profesor' },
+    { id: 1, nombre: 'Funcional mañana', hora: '08:00', duracionMinutos: 60, localNombre: 'Salón funcional', profesorProgramado: 'Santiago Lima', presentes: 9, inscriptos: 12, estado: 'dictada' },
+    { id: 2, nombre: 'Funcional tarde', hora: '17:00', duracionMinutos: 60, localNombre: 'Recepción principal', profesorProgramado: 'Santiago Lima', presentes: 0, inscriptos: 8, estado: 'programada' },
+    { id: 3, nombre: 'Circuito nocturno', hora: '20:00', duracionMinutos: 45, localNombre: 'Salón funcional', profesorProgramado: 'Martín Cabrera', presentes: 0, inscriptos: 6, estado: 'cancelada' },
   ];
 
   function today() {
@@ -61,8 +62,8 @@ function createAdminRecordsController({ shared }) {
     const labels = {
       programada: 'Programada',
       en_curso: 'En curso',
-      dictada: 'Dictada',
-      cancelada: 'Cancelada',
+      dictada: 'Realizada',
+      cancelada: 'No se dio',
     };
     return labels[state] || state || 'Programada';
   }
@@ -100,7 +101,7 @@ function createAdminRecordsController({ shared }) {
       tr.innerHTML = `
         <td><strong class="record-time">${escapeHtml(String(row.hora || '—').slice(0, 5))}</strong><small>${Number(row.duracionMinutos || 60)} min</small></td>
         <td><strong>${escapeHtml(row.nombre)}</strong><small><i class="fa-solid fa-location-dot"></i>${escapeHtml(row.localNombre || `Local ${row.localId || '—'}`)}</small></td>
-        <td><strong>${escapeHtml(row.profesorReal || row.profesorProgramado || 'Sin asignar')}</strong>${row.estado === 'cancelada' ? '<small>No inició la clase</small>' : row.profesorReal && row.profesorReal !== row.profesorProgramado ? `<small>Reemplazó a ${escapeHtml(row.profesorProgramado)}</small>` : '<small>Profesor asignado</small>'}</td>
+        <td><strong>${escapeHtml(row.profesorProgramado || 'Sin asignar')}</strong><small>Profesor asignado</small></td>
         <td><strong>${Number(row.presentes || 0)} <span>/ ${Number(row.inscriptos || 0)}</span></strong><small>presentes</small></td>
         <td><span class="class-state state-${escapeHtml(row.estado || 'programada')}">${classState(row.estado)}</span></td>
       `;
@@ -161,13 +162,15 @@ function createAdminRecordsController({ shared }) {
         ? await window.api.obtenerDetalleRegistroClase(selectedClassId)
         : demoDetail(selectedClassId);
       if (!detail) throw new Error('Clase no encontrada');
+      selectedClassDetail = detail;
       const presentCount = detail.students.filter(student => student.presente).length;
       detailTitle.textContent = detail.nombre;
-      const cancellation = detail.motivoCancelacion === 'sin_registro_profesor' ? ' · Cancelada por ausencia del profesor' : '';
-      detailMeta.textContent = `${String(detail.hora || '').slice(0, 5)} · ${detail.localNombre || `Local ${detail.localId}`}${cancellation}`;
+      detailMeta.textContent = `${String(detail.hora || '').slice(0, 5)} · ${detail.localNombre || `Local ${detail.localId}`}`;
+      const canCorrectResult = ['dictada', 'cancelada'].includes(detail.estado);
+      const nextResult = detail.estado === 'cancelada';
       detailSummary.innerHTML = `
-        <article><span>Profesor programado</span><strong>${escapeHtml(detail.profesorProgramado || 'Sin asignar')}</strong></article>
-        <article><span>Profesor que dictó</span><strong>${escapeHtml(detail.profesorReal || (detail.estado === 'programada' ? 'Aún no iniciada' : detail.estado === 'cancelada' ? 'No se presentó' : 'Sin registrar'))}</strong></article>
+        <article><span>Profesor asignado</span><strong>${escapeHtml(detail.profesorProgramado || 'Sin asignar')}</strong></article>
+        <article><span>Estado</span><strong>${escapeHtml(classState(detail.estado))}</strong>${canCorrectResult ? `<button class="record-status-action" type="button" data-class-held="${nextResult ? 'true' : 'false'}">${nextResult ? 'Marcar como realizada' : 'Marcar: no se dio'}</button>` : ''}</article>
         <article><span>Asistencia</span><strong>${presentCount} de ${detail.students.length}</strong></article>
       `;
       detailRoster.innerHTML = detail.students.map(student => `
@@ -179,6 +182,7 @@ function createAdminRecordsController({ shared }) {
       `).join('') || '<div class="surface-empty compact"><span>No hay alumnos asociados a esta clase.</span></div>';
     } catch (error) {
       console.error('Error cargando detalle de clase:', error);
+      selectedClassDetail = null;
       detailSummary.innerHTML = '';
       detailRoster.innerHTML = '<div class="surface-empty compact"><span>No se pudo cargar el detalle.</span></div>';
     }
@@ -201,6 +205,7 @@ function createAdminRecordsController({ shared }) {
         await showClassDetail(selectedClassId);
       } else {
         selectedClassId = null;
+        selectedClassDetail = null;
         detailTitle.textContent = 'Seleccioná una clase';
         detailMeta.textContent = 'El detalle se abre en esta misma página.';
         detailSummary.innerHTML = '';
@@ -221,6 +226,25 @@ function createAdminRecordsController({ shared }) {
     activeTab = tab;
     tabButtons.forEach(button => button.classList.toggle('is-active', button.dataset.recordsTab === tab));
     panels.forEach(panel => panel.classList.toggle('is-active', panel.dataset.recordsPanel === tab));
+  }
+
+  async function updateClassResult(realizada) {
+    if (!selectedClassId || !selectedClassDetail) return;
+    const button = detailSummary.querySelector('[data-class-held]');
+    if (button) button.disabled = true;
+    try {
+      if (window.api?.marcarEstadoClase) {
+        await window.api.marcarEstadoClase({ claseId: selectedClassId, realizada });
+      } else {
+        const demoClass = demoClasses.find(item => Number(item.id) === Number(selectedClassId));
+        if (demoClass) demoClass.estado = realizada ? 'dictada' : 'cancelada';
+      }
+      shared.mostrarNotificacion(realizada ? 'Clase marcada como realizada' : 'Clase marcada como no realizada', 'success');
+      await loadRecords();
+    } catch (error) {
+      shared.mostrarNotificacion(error?.message || 'No se pudo actualizar la clase', 'error');
+      if (button) button.disabled = false;
+    }
   }
 
   function openAnnulModal(id) {
@@ -253,6 +277,10 @@ function createAdminRecordsController({ shared }) {
         event.preventDefault();
         showClassDetail(row.dataset.classRecord);
       }
+    });
+    detailSummary.addEventListener('click', event => {
+      const button = event.target.closest('[data-class-held]');
+      if (button) updateClassResult(button.dataset.classHeld === 'true');
     });
     document.addEventListener('admin-records:show', loadRecords);
     document.addEventListener('entries:updated', loadRecords);

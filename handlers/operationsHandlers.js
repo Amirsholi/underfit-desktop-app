@@ -7,11 +7,10 @@ function registerOperationsHandlers(ipcMain, operationsService) {
   ipcMain.handle('obtener-inscripciones-clase', (_evt, classId) => operationsService.listClassEnrollments(classId));
   ipcMain.handle('inscribir-socio-clase', (_evt, payload) => operationsService.enrollMember(payload || {}));
   ipcMain.handle('obtener-clase-actual', (_evt, payload) => operationsService.getCurrentClass(payload || {}));
-  ipcMain.handle('iniciar-clase', (_evt, payload) => operationsService.startClass(payload || {}));
   ipcMain.handle('registrar-asistencia-clase', (_evt, payload) => operationsService.registerClassAttendance(payload || {}));
-  ipcMain.handle('finalizar-clase', (_evt, payload) => operationsService.finishClass(payload || {}));
   ipcMain.handle('obtener-registros-clases', (_evt, fecha) => operationsService.listClassRecordsByDate(fecha));
   ipcMain.handle('obtener-detalle-registro-clase', (_evt, classId) => operationsService.getClassRecordDetail(classId));
+  ipcMain.handle('marcar-estado-clase', (_evt, payload) => operationsService.setClassHeldStatus(payload || {}));
   ipcMain.handle('obtener-ventas-pendientes', () => operationsService.listPendingSales());
   ipcMain.handle('obtener-resumen-ventas-pendientes', (_evt, fecha) => operationsService.getPendingSummaryByDate(fecha));
   ipcMain.handle('crear-venta-pendiente', (_evt, payload) => operationsService.createPendingSale(payload || {}));

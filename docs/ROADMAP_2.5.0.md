@@ -27,12 +27,12 @@ The main location currently runs one reception PC with two displays: the adminis
 - Upcoming occurrences are generated automatically and replenished as the calendar advances.
 - Enrollment belongs to the recurring group, so one reception action applies to every upcoming occurrence.
 - Class attendance now creates the member's general gym entry in the same database transaction.
-- The real instructor is taken from the active device session, preserving substitutions without overwriting the scheduled instructor.
-- Each class occurrence can progress through scheduled, in-progress and taught states, with actual start and finish timestamps.
+- Each class occurrence progresses automatically through scheduled, in-progress and completed states from its configured time and duration.
+- Professor identification is operational only: it leaves a responsible person on pending sales and does not control or claim the class.
 - Multiple tablets can operate in either location; duplicate attendance is prevented per member and class, even across devices.
 - Access history and class history now have a dedicated Records page with daily summaries and an integrated present/absent roster.
-- The touch-first tablet surface now supports professor sign-in, automatic current-class start, student CI entry, quick pending sales, local stock and end-of-turn closure.
-- If no professor starts a scheduled class before its duration plus a 30-minute grace period, the occurrence is recorded as cancelled due to professor absence.
+- The touch-first tablet surface now supports professor sign-in, automatic schedule detection, student CI entry, quick pending sales, local stock and end-of-turn closure.
+- After the scheduled end, administration can keep the automatic completed result or correct it to not held without entering a reason.
 - Under Running keeps its countdown identity, but access confirmation is immediate and uses neutral gym-entry copy instead of a running-specific transition.
 
 ### 1. Cash integrity

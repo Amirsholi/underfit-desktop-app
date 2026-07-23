@@ -119,30 +119,36 @@ function createOperationsService({
     }
   }
 
-  async function reconcileUnstartedClasses(referenceDate = clock()) {
-    if (!operationsRepository.listUnstartedClassesThrough || !operationsRepository.cancelUnstartedClass) return [];
+  async function syncClassLifecycle(referenceDate = clock()) {
+    if (!operationsRepository.listClassLifecycleCandidates || !operationsRepository.setClassLifecycleState) return [];
     const referenceDay = formatLocalDate(referenceDate);
-    const classes = await operationsRepository.listUnstartedClassesThrough(referenceDay);
-    const cancelled = [];
+    const classes = await operationsRepository.listClassLifecycleCandidates(referenceDay);
+    const updated = [];
     for (const item of classes) {
       const scheduledStart = new Date(`${item.fecha}T${String(item.hora || '00:00').slice(0, 8)}`);
       if (Number.isNaN(scheduledStart.getTime())) continue;
-      const deadline = new Date(scheduledStart.getTime() + ((Number(item.duracionMinutos || 60) + 30) * 60000));
-      if (referenceDate <= deadline) continue;
-      const result = await operationsRepository.cancelUnstartedClass({
+      const scheduledEnd = new Date(scheduledStart.getTime() + (Number(item.duracionMinutos || 60) * 60000));
+      const nextState = referenceDate >= scheduledEnd
+        ? 'dictada'
+        : referenceDate >= scheduledStart
+          ? 'en_curso'
+          : 'programada';
+      if (item.estado === nextState) continue;
+      const result = await operationsRepository.setClassLifecycleState({
         classId: item.id,
-        cancelledTs: referenceDate.toISOString(),
-        reason: 'sin_registro_profesor',
+        estado: nextState,
+        inicioTs: scheduledStart.toISOString(),
+        finTs: scheduledEnd.toISOString(),
       });
-      if (result.changed) cancelled.push(item.id);
+      if (result.changed) updated.push({ classId: item.id, estado: nextState });
     }
-    return cancelled;
+    return updated;
   }
 
   async function listUpcomingClasses(fromDate = null) {
     const normalizedFromDate = normalizeDate(fromDate || nowLocalParts().fecha, 'Fecha');
     await ensureUpcomingClasses(normalizedFromDate);
-    await reconcileUnstartedClasses();
+    await syncClassLifecycle();
     return operationsRepository.listClasses({ fromDate: normalizedFromDate });
   }
 
@@ -214,7 +220,7 @@ function createOperationsService({
     const fecha = normalizeDate(payload.fecha || now.fecha, 'Fecha');
     const hora = normalizeTime(payload.hora || now.hora);
     await ensureUpcomingClasses(fecha);
-    await reconcileUnstartedClasses();
+    await syncClassLifecycle();
     const candidates = await operationsRepository.listClassCandidates({ localId, fecha });
     const currentMinutes = timeToMinutes(hora);
     const matching = candidates.filter(item => {
@@ -234,35 +240,6 @@ function createOperationsService({
       clase: ordered.length === 1 ? ordered[0] : null,
       requiereSeleccion: ordered.length > 1,
       candidatas: ordered,
-    };
-  }
-
-  async function startClass(payload = {}) {
-    const staff = await resolveActiveStaffSession(payload);
-    const current = await getCurrentClass({
-      localId: staff.localId,
-      fecha: payload.fecha,
-      hora: payload.hora,
-    });
-    let classId = payload.claseId ? normalizePositiveInteger(payload.claseId, 'Clase') : null;
-    if (!classId) {
-      if (current.requiereSeleccion) return { started: false, reason: 'class_selection_required', ...current };
-      classId = current.clase?.id || null;
-    }
-    const selected = current.candidatas.find(item => Number(item.id) === Number(classId));
-    if (!selected) throw new Error('No hay una clase vigente para este local y horario');
-    const result = await operationsRepository.startClass({
-      classId,
-      localId: staff.localId,
-      professorId: staff.profesorId,
-      professorSessionId: staff.profesorSesionId,
-      startedTs: clock().toISOString(),
-    });
-    return {
-      started: true,
-      reason: result.alreadyStarted ? 'already_started' : 'class_started',
-      class: { ...selected, estado: 'en_curso', inicioRealTs: result.inicioRealTs },
-      professor: { id: staff.profesorId, nombre: staff.profesorNombre },
     };
   }
 
@@ -321,34 +298,35 @@ function createOperationsService({
       reason: 'attendance_registered',
       user: { ci: user.ci, nombre: user.nombre },
       class: selected,
-      professor: { id: staff.profesorId, nombre: staff.profesorNombre },
       attendance,
     };
   }
 
-  async function finishClass(payload = {}) {
-    const staff = await resolveActiveStaffSession(payload);
-    const classId = normalizePositiveInteger(payload.claseId, 'Clase');
-    const detail = await operationsRepository.getClassRecordDetail(classId);
-    if (!detail) throw new Error('Clase no encontrada');
-    if (Number(detail.localId) !== Number(staff.localId)) throw new Error('La clase pertenece a otro local');
-    return operationsRepository.finishClass({
-      classId,
-      professorId: staff.profesorId,
-      professorSessionId: staff.profesorSesionId,
-      finishedTs: clock().toISOString(),
-    });
-  }
-
   async function listClassRecordsByDate(fecha = null) {
-    await reconcileUnstartedClasses();
+    await syncClassLifecycle();
     return operationsRepository.listClassRecordsByDate(normalizeDate(fecha || nowLocalParts().fecha, 'Fecha'));
   }
 
   async function getClassRecordDetail(classId) {
+    await syncClassLifecycle();
     const detail = await operationsRepository.getClassRecordDetail(normalizePositiveInteger(classId, 'Clase'));
     if (!detail) throw new Error('Clase no encontrada');
     return detail;
+  }
+
+  async function setClassHeldStatus(payload = {}) {
+    const classId = normalizePositiveInteger(payload.claseId, 'Clase');
+    const realizada = Boolean(payload.realizada);
+    const detail = await operationsRepository.getClassRecordDetail(classId);
+    if (!detail) throw new Error('Clase no encontrada');
+    if (!['dictada', 'cancelada'].includes(detail.estado)) {
+      throw new Error('El resultado se puede corregir cuando termina la clase');
+    }
+    return operationsRepository.setClassHeldStatus({
+      classId,
+      estado: realizada ? 'dictada' : 'cancelada',
+      changedTs: clock().toISOString(),
+    });
   }
 
   function listPendingSales() {
@@ -426,11 +404,10 @@ function createOperationsService({
     listClassEnrollments,
     enrollMember,
     getCurrentClass,
-    startClass,
     registerClassAttendance,
-    finishClass,
     listClassRecordsByDate,
     getClassRecordDetail,
+    setClassHeldStatus,
     listPendingSales,
     getPendingSummaryByDate,
     createPendingSale,
