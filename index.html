@@ -5,7 +5,7 @@
   <title>Under-Fit</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
-  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.16">
+  <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.17">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -37,12 +37,12 @@
     <div class="workspace">
       <aside class="workspace-sidebar" aria-label="Navegacion administrativa">
         <button class="sidebar-action is-active" type="button" data-admin-section="home"><i class="fa-solid fa-house"></i><span>Inicio</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="users"><i class="fa-solid fa-users"></i><span>Usuarios</span></button>
         <button class="sidebar-action" type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="pending"><i class="fa-regular fa-rectangle-list"></i><span>Cobros pendientes</span><span class="nav-count" id="pending-sales-count">0</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="users"><i class="fa-solid fa-users"></i><span>Usuarios</span></button>
         <button class="sidebar-action" type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="pending"><i class="fa-regular fa-rectangle-list"></i><span>Cobros pendientes</span><span class="nav-count" id="pending-sales-count" hidden></span></button>
+        <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
         <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuración</span></button>
       </aside>
       <main class="workspace-main">
@@ -1117,7 +1117,7 @@
   <script src="adminProducts.js?v=2.5.0.4"></script>
   <script src="adminEntries.js?v=2.5.0.9"></script>
   <script src="adminRecords.js?v=2.5.0.2"></script>
-  <script src="adminOperations.js?v=2.5.0.10"></script>
+  <script src="adminOperations.js?v=2.5.0.11"></script>
   <script src="homeDashboard.js?v=2.5.0.6"></script>
   <script src="renderer.js?v=2.5.0.8"></script>
 </body>

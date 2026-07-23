@@ -165,6 +165,10 @@ body.admin-page::after {
   font-size: 13px;
 }
 
+.nav-count[hidden] {
+  display: none !important;
+}
+
 .workspace-main {
   display: block;
   width: 100%;

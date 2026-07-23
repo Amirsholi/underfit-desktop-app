@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Under-Fit · Tablet</title>
-  <link rel="stylesheet" href="styles/tablet.css?v=2.5.0.7">
+  <link rel="stylesheet" href="styles/tablet.css?v=2.5.0.8">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="tablet-page">
@@ -50,15 +50,7 @@
 
       <section class="tablet-attendance-screen">
         <div class="tablet-entry-simple">
-          <div class="tablet-entry-heading">
-            <span class="tablet-kicker">Control de acceso</span>
-            <h1>Ingreso</h1>
-            <p>Digitá tu cédula con el teclado numérico.</p>
-          </div>
-          <div class="tablet-entry-display-shell">
-            <span>Documento</span>
-            <strong id="tablet-entry-display" class="tablet-entry-display" aria-label="Documento ingresado">—</strong>
-          </div>
+          <input id="tablet-entry-display" class="tablet-entry-display" type="text" inputmode="none" placeholder="Documento" aria-label="Documento" readonly>
           <div class="tablet-entry-keypad" aria-label="Teclado de documento">
             <button type="button" data-entry-key="1">1</button><button type="button" data-entry-key="2">2</button><button type="button" data-entry-key="3">3</button>
             <button type="button" data-entry-key="4">4</button><button type="button" data-entry-key="5">5</button><button type="button" data-entry-key="6">6</button>
@@ -66,9 +58,9 @@
             <button class="tablet-key-secondary" type="button" data-entry-key="clear">Limpiar</button><button type="button" data-entry-key="0">0</button><button class="tablet-key-secondary" type="button" data-entry-key="backspace"><i class="fa-solid fa-delete-left"></i></button>
           </div>
           <button id="tablet-entry-submit" class="tablet-primary-action tablet-entry-submit" type="button"><i class="fa-solid fa-arrow-right-to-bracket"></i>Ingresar</button>
-          <div id="tablet-entry-feedback" class="tablet-entry-feedback" aria-live="polite">
-            <strong id="tablet-entry-title">Listo para ingresar</strong>
-            <span id="tablet-entry-copy">Digitá el documento y confirmá.</span>
+          <div id="tablet-entry-feedback" class="tablet-entry-feedback" aria-live="polite" hidden>
+            <strong id="tablet-entry-title"></strong>
+            <span id="tablet-entry-copy"></span>
           </div>
         </div>
       </section>
@@ -81,11 +73,11 @@
           </header>
           <div class="tablet-sale-dialog-body">
             <section class="tablet-sale-products">
-              <div class="tablet-view-heading"><div><span class="tablet-kicker">Producto</span><h3>¿Qué llevó?</h3></div><span id="tablet-sale-local" class="tablet-soft-pill">Stock del local</span></div>
+              <div class="tablet-view-heading"><div><span class="tablet-kicker">Inventario del local</span><h3>Productos</h3></div><span id="tablet-sale-local" class="tablet-soft-pill">Stock del local</span></div>
               <div id="tablet-product-grid" class="tablet-product-grid"></div>
             </section>
             <section class="tablet-sale-member">
-              <div class="tablet-view-heading"><div><span class="tablet-kicker">Socio</span><h3>¿Quién lo llevó?</h3></div><small>Primero aparecen quienes ingresaron.</small></div>
+              <div class="tablet-view-heading"><div><span class="tablet-kicker">Asignar venta</span><h3>Socio</h3></div><small>Primero aparecen quienes ingresaron.</small></div>
               <label class="tablet-member-search"><i class="fa-solid fa-magnifying-glass"></i><input id="tablet-member-search" type="search" inputmode="search" aria-label="Buscar socio por nombre o CI" placeholder="Buscar por nombre o CI" autocomplete="off" autocapitalize="words"></label>
               <div id="tablet-member-results" class="tablet-member-results"></div>
             </section>
@@ -104,6 +96,6 @@
   </main>
 
   <div id="tablet-toast" class="tablet-toast" role="status"></div>
-  <script src="tablet.js?v=2.5.0.7"></script>
+  <script src="tablet.js?v=2.5.0.8"></script>
 </body>
 </html>

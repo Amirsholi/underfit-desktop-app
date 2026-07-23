@@ -960,3 +960,235 @@ body {
     min-height: 58px;
   }
 }
+
+/* Revision 2.5.0.8 — quiet entry and finished quick-sale workspace */
+.tablet-entry-simple {
+  grid-template-rows: 64px minmax(250px, 1fr) 52px auto;
+  gap: 12px;
+  padding: 20px;
+}
+
+.tablet-entry-display {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 0 20px;
+  border: 1px solid rgba(156, 165, 181, 0.3);
+  border-radius: 11px;
+  outline: 0;
+  color: #fff;
+  background: rgba(5, 7, 10, 0.82);
+  font: 800 27px/1 "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.tablet-entry-display::placeholder {
+  color: #858e9b;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.tablet-entry-feedback[hidden] {
+  display: none !important;
+}
+
+.tablet-sale-modal {
+  padding: 24px;
+  background: rgba(2, 4, 7, 0.74);
+  backdrop-filter: blur(12px);
+}
+
+.tablet-sale-dialog {
+  width: min(1120px, 100%);
+  height: min(730px, calc(100vh - 48px));
+  border-color: rgba(156, 165, 181, 0.34);
+  border-radius: 19px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(255, 104, 31, 0.09), transparent 28%),
+    rgba(11, 14, 19, 0.985);
+  box-shadow: 0 38px 120px rgba(0, 0, 0, 0.72);
+}
+
+.tablet-sale-dialog-header {
+  min-height: 92px;
+  padding: 19px 24px;
+  background: linear-gradient(100deg, rgba(255, 104, 31, 0.09), rgba(255, 104, 31, 0.01) 48%, transparent);
+}
+
+.tablet-sale-dialog-header h2 {
+  margin-top: 4px;
+  font-size: 29px;
+}
+
+.tablet-sale-dialog-header p {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.tablet-sale-dialog-header button {
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+  font-size: 17px;
+}
+
+.tablet-sale-dialog-body {
+  grid-template-columns: minmax(0, 1.08fr) minmax(370px, 0.92fr);
+}
+
+.tablet-sale-dialog .tablet-sale-products,
+.tablet-sale-dialog .tablet-sale-member {
+  padding: 22px 24px;
+}
+
+.tablet-sale-dialog .tablet-sale-products {
+  border-right-color: rgba(156, 165, 181, 0.22);
+}
+
+.tablet-sale-dialog .tablet-view-heading {
+  min-height: 55px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid rgba(156, 165, 181, 0.18);
+}
+
+.tablet-sale-dialog .tablet-view-heading h3 {
+  margin-top: 5px;
+  font-size: 23px;
+}
+
+.tablet-sale-dialog .tablet-view-heading small {
+  max-width: 185px;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.tablet-sale-dialog .tablet-soft-pill {
+  padding: 8px 11px;
+  border: 1px solid rgba(156, 165, 181, 0.22);
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.tablet-sale-dialog .tablet-product-grid {
+  gap: 11px;
+  max-height: calc(100% - 68px);
+  margin-top: 16px;
+  padding-right: 3px;
+}
+
+.tablet-sale-dialog .tablet-product-card {
+  min-height: 84px;
+  padding: 15px 16px;
+  border-color: rgba(156, 165, 181, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(28, 33, 42, 0.8), rgba(17, 21, 28, 0.82));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.018);
+}
+
+.tablet-sale-dialog .tablet-product-card strong {
+  font-size: 14px;
+}
+
+.tablet-sale-dialog .tablet-product-card small {
+  font-size: 12px;
+}
+
+.tablet-sale-dialog .tablet-product-card b {
+  min-width: 34px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 104, 31, 0.1);
+  text-align: center;
+}
+
+.tablet-sale-dialog .tablet-product-card.is-selected {
+  border-color: rgba(255, 104, 31, 0.72);
+  background: linear-gradient(180deg, rgba(255, 104, 31, 0.17), rgba(255, 104, 31, 0.07));
+  box-shadow: 0 0 0 2px rgba(255, 104, 31, 0.07);
+}
+
+.tablet-member-search {
+  position: relative;
+  display: block;
+  height: 54px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 11px;
+}
+
+.tablet-member-search i {
+  position: absolute !important;
+  top: 50%;
+  left: 17px;
+  z-index: 1;
+  width: auto;
+  color: var(--tablet-orange);
+  transform: translateY(-50%);
+}
+
+.tablet-member-search input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px 0 48px !important;
+  border: 0;
+  outline: 0;
+  font-size: 15px;
+}
+
+.tablet-sale-dialog .tablet-member-results {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  margin-top: 12px;
+  padding-right: 3px;
+}
+
+.tablet-sale-dialog .tablet-member-result {
+  min-height: 61px;
+  padding: 10px 12px;
+  border: 1px solid rgba(156, 165, 181, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.tablet-sale-dialog .tablet-member-result.is-selected {
+  border-color: rgba(255, 104, 31, 0.64);
+  color: #fff;
+  background: rgba(255, 104, 31, 0.09);
+}
+
+.tablet-sale-dialog > .tablet-sale-summary {
+  min-height: 84px;
+  gap: 16px;
+  padding: 14px 24px;
+  background: rgba(7, 9, 13, 0.94);
+}
+
+.tablet-sale-dialog > .tablet-sale-summary > div {
+  gap: 5px;
+}
+
+.tablet-sale-dialog > .tablet-sale-summary strong {
+  font-size: 13px;
+}
+
+.tablet-sale-dialog > .tablet-sale-summary .tablet-sale-total strong {
+  font-size: 22px;
+}
+
+@media (max-height: 700px) {
+  .tablet-entry-simple {
+    grid-template-rows: 52px minmax(190px, 1fr) 46px auto;
+  }
+
+  .tablet-entry-display {
+    min-height: 52px;
+  }
+
+  .tablet-sale-dialog {
+    height: calc(100vh - 28px);
+  }
+}

@@ -43,12 +43,12 @@ function createClosureExportService({ cashService, getDbPath }) {
   function formatMovementType(value) {
     const labels = {
       alta: 'Alta',
-      renovacion: 'Renovacion',
+      renovacion: 'Renovación',
       venta_producto: 'Venta de producto',
       ingreso_manual: 'Ingreso manual',
       egreso: 'Salida',
       ajuste_manual: 'Ajuste',
-      anulacion: 'Anulacion por correccion',
+      anulacion: 'Anulación por corrección',
     };
     return labels[value] || value || '-';
   }
@@ -91,7 +91,6 @@ function createClosureExportService({ cashService, getDbPath }) {
   }
 
   function buildPendingRows(sales = []) {
-    if (!sales.length) return `<tr><td colspan="5">Sin ventas pendientes de cobro para esta fecha</td></tr>`;
     return sales.map(sale => `<tr>
       <td>${escapeHtml(sale.hora || '-')}</td>
       <td>${escapeHtml(sale.usuarioNombre || sale.usuario_nombre || '-')}</td>
@@ -101,30 +100,62 @@ function createClosureExportService({ cashService, getDbPath }) {
     </tr>`).join('');
   }
 
+  function buildConceptRows(report) {
+    const totals = report.totalesPorTipoIngreso || {};
+    const concepts = [
+      ['Altas', totals.altas],
+      ['Renovaciones', totals.renovaciones],
+      ['Ventas de productos', totals.ventasProductos],
+      ['Ingresos manuales', totals.ingresosManuales],
+      ['Salidas', Math.abs(Number(totals.egresos || 0))],
+      ['Ajustes', totals.ajustes],
+    ].filter(([, value]) => Math.abs(Number(value || 0)) > 0.0001);
+
+    return concepts.map(([label, value]) => `<tr>
+      <td>${label}</td>
+      <td>${formatMoney(value)}</td>
+    </tr>`).join('');
+  }
+
   function buildSessionHtml(sesion, index) {
     const isClosed = sesion.estado === 'cerrada';
     const cierreLabel = isClosed
       ? `${escapeHtml(sesion.cajero_cierre || 'Sin registrar')} a las ${escapeHtml(sesion.hora_cierre || '-')}`
       : 'Caja abierta pendiente de cierre';
-    const cierreObs = sesion.observacion_cierre ? escapeHtml(sesion.observacion_cierre) : 'Sin observaciones';
-    const aperturaObs = sesion.observacion_apertura ? escapeHtml(sesion.observacion_apertura) : 'Sin observaciones';
+    const notes = [
+      sesion.observacion_apertura
+        ? `<div><span class="meta-label">Observación de apertura</span><p>${escapeHtml(sesion.observacion_apertura)}</p></div>`
+        : '',
+      sesion.observacion_cierre
+        ? `<div><span class="meta-label">Observación de cierre</span><p>${escapeHtml(sesion.observacion_cierre)}</p></div>`
+        : '',
+    ].filter(Boolean).join('');
+    const notesHtml = notes ? `<div class="notes">${notes}</div>` : '';
+    const products = sesion.ventasPorProducto || [];
+    const productsHtml = products.length
+      ? `<div class="subsection">
+          <h3>Ventas por producto</h3>
+          <table>
+            <thead>
+              <tr><th>Producto</th><th>Unidades</th><th>Efectivo</th><th>Transferencia</th><th>Total</th></tr>
+            </thead>
+            <tbody>${buildProductRows(products)}</tbody>
+          </table>
+        </div>`
+      : '';
 
     return `<section class="section session">
       <h2>Caja ${index + 1}</h2>
       <div class="session-grid">
-        <div><span class="meta-label">Abrio</span><strong>${escapeHtml(sesion.cajero_apertura || 'Sin registrar')}</strong></div>
-        <div><span class="meta-label">Hora apertura</span><strong>${escapeHtml(sesion.hora_apertura || '-')}</strong></div>
+        <div><span class="meta-label">Apertura</span><strong>${escapeHtml(sesion.cajero_apertura || 'Sin registrar')} · ${escapeHtml(sesion.hora_apertura || '-')}</strong></div>
+        <div><span class="meta-label">Cierre</span><strong>${cierreLabel}</strong></div>
         <div><span class="meta-label">Monto inicial</span><strong>${formatMoney(sesion.monto_inicial_efectivo)}</strong></div>
-        <div><span class="meta-label">Cerro</span><strong>${cierreLabel}</strong></div>
         <div><span class="meta-label">Efectivo esperado</span><strong>${formatMoney(sesion.efectivoEsperado)}</strong></div>
         <div><span class="meta-label">Efectivo contado</span><strong>${isClosed ? formatMoney(sesion.efectivo_contado) : '-'}</strong></div>
         <div><span class="meta-label">Diferencia</span><strong>${isClosed ? formatDifferenceLabel(sesion.diferencia_efectivo) : '-'}</strong></div>
-        <div><span class="meta-label">Total caja</span><strong>${formatMoney(sesion.totalGeneral)}</strong></div>
       </div>
-      <div class="notes">
-        <div><span class="meta-label">Observacion apertura</span><p>${aperturaObs}</p></div>
-        <div><span class="meta-label">Observacion cierre</span><p>${cierreObs}</p></div>
-      </div>
+      ${notesHtml}
+      <h3>Movimientos de caja</h3>
       <table>
         <thead>
           <tr><th>Hora</th><th>Tipo</th><th>Detalle</th><th>Pago</th><th>Monto</th></tr>
@@ -133,31 +164,46 @@ function createClosureExportService({ cashService, getDbPath }) {
           ${buildMovementsRows(sesion.movimientos)}
         </tbody>
       </table>
-      <div class="session-totals">
-        <span>Efectivo: ${formatMoney(sesion.totalesPorFormaPago.efectivo)}</span>
-        <span>Transferencia: ${formatMoney(sesion.totalesPorFormaPago.transferencia)}</span>
-        <span>Salidas: ${formatMoney(Math.abs(sesion.totalesPorTipoIngreso.egresos))}</span>
-      </div>
-      <h3>Ventas por producto</h3>
-      <table>
-        <thead>
-          <tr><th>Producto</th><th>Unidades</th><th>Efectivo</th><th>Transferencia</th><th>Total</th></tr>
-        </thead>
-        <tbody>${buildProductRows(sesion.ventasPorProducto)}</tbody>
-      </table>
+      ${productsHtml}
     </section>`;
   }
 
   function buildReportHtml(report) {
     const closedSessions = (report.sesiones || []).filter(sesion => sesion.estado === 'cerrada');
     const openSessions = (report.sesiones || []).filter(sesion => sesion.estado === 'abierta');
-    const totalDiferencia = closedSessions.reduce((acc, sesion) => acc + Number(sesion.diferencia_efectivo || 0), 0);
-    const ultimoCierre = [...closedSessions].reverse()[0] || null;
+    const paymentTotals = report.totalesPorFormaPago || {};
+    const typeTotals = report.totalesPorTipoIngreso || {};
+    const conceptRows = buildConceptRows(report);
+    const pendingSales = report.ventasPendientes || [];
     const sessionSections = closedSessions.length
       ? closedSessions.map(buildSessionHtml).join('')
-      : `<section class="section"><h2>Cajas cerradas</h2><p class="empty">Todavia no hay cajas cerradas para esta fecha.</p></section>`;
+      : `<section class="section"><h2>Cajas cerradas</h2><p class="empty">Todavía no hay cajas cerradas para esta fecha.</p></section>`;
+    const conceptSection = conceptRows
+      ? `<section class="section compact-section">
+          <h2>Ingresos y salidas por concepto</h2>
+          <table class="concept-table">
+            <thead><tr><th>Concepto</th><th>Total</th></tr></thead>
+            <tbody>${conceptRows}</tbody>
+          </table>
+        </section>`
+      : '';
     const openNotice = openSessions.length
       ? `<section class="section warning"><h2>Caja abierta pendiente</h2><p>Hay una caja abierta por ${escapeHtml(openSessions[0].cajero_apertura || 'Sin registrar')} desde las ${escapeHtml(openSessions[0].hora_apertura || '-')}.</p></section>`
+      : '';
+    const pendingSection = pendingSales.length
+      ? `<section class="section warning pending-section">
+          <div class="section-heading">
+            <div>
+              <h2>Ventas entregadas sin cobrar</h2>
+              <p class="empty">Control aparte: estos importes no integran el efectivo ni las transferencias cobradas.</p>
+            </div>
+            <strong>${formatMoney(report.pendientes?.total || 0)}</strong>
+          </div>
+          <table>
+            <thead><tr><th>Hora</th><th>Socio</th><th>Producto</th><th>Registró</th><th>Importe pendiente</th></tr></thead>
+            <tbody>${buildPendingRows(pendingSales)}</tbody>
+          </table>
+        </section>`
       : '';
 
     return `<!DOCTYPE html>
@@ -179,105 +225,124 @@ function createClosureExportService({ cashService, getDbPath }) {
       --warn-soft: rgba(245, 158, 11, 0.14);
     }
     * { box-sizing: border-box; }
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
     body {
       margin: 0;
-      padding: 32px;
+      padding: 0;
       font-family: "Segoe UI", Tahoma, sans-serif;
       color: var(--ink);
       background: #ffffff;
     }
     .sheet {
       display: grid;
-      gap: 22px;
+      gap: 14px;
     }
     .hero {
       display: grid;
-      gap: 8px;
-      padding: 24px 26px;
-      border-radius: 18px;
+      gap: 5px;
+      padding: 18px 20px;
+      border-radius: 14px;
       background:
         radial-gradient(circle at top right, rgba(255, 106, 26, 0.18), transparent 28%),
         linear-gradient(180deg, #11151c, #0b0e13);
       color: #f9fafb;
+      break-inside: avoid;
     }
     .hero h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 25px;
       font-weight: 700;
     }
     .hero p {
       margin: 0;
       color: rgba(249, 250, 251, 0.78);
-      font-size: 14px;
+      font-size: 12px;
     }
     .grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
+      gap: 9px;
+      break-inside: avoid;
     }
     .card {
-      padding: 18px 20px;
+      padding: 13px 14px;
       border: 1px solid var(--line);
-      border-radius: 16px;
+      border-radius: 12px;
       background: var(--soft);
     }
     .card-label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     .card-value {
       display: block;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 700;
       color: var(--ink);
     }
     .section {
       display: grid;
-      gap: 12px;
-      padding: 20px 22px;
+      gap: 10px;
+      padding: 15px 17px;
       border: 1px solid var(--line);
-      border-radius: 18px;
+      border-radius: 14px;
       background: #fff;
     }
     .section h2 {
       margin: 0;
-      font-size: 17px;
+      font-size: 16px;
+    }
+    .section h3 {
+      margin: 3px 0 0;
+      font-size: 13px;
     }
     .session-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      padding: 12px 0;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px 14px;
+      padding: 5px 0 8px;
+      break-inside: avoid;
+    }
+    .session-grid strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
     }
     .meta-label {
       display: block;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.035em;
     }
     .notes {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 10px 0;
+      gap: 8px;
+      padding: 9px 11px;
+      border-radius: 9px;
+      background: var(--soft);
+      break-inside: avoid;
     }
     .notes p {
-      margin: 4px 0 0;
+      margin: 3px 0 0;
       color: var(--ink);
+      font-size: 11px;
     }
-    .session-totals {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
+    .subsection {
+      display: grid;
+      gap: 7px;
+      padding-top: 5px;
+      break-inside: avoid;
     }
     .warning {
       background: var(--warn-soft);
@@ -285,31 +350,60 @@ function createClosureExportService({ cashService, getDbPath }) {
     .empty {
       margin: 0;
       color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .section-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .section-heading > strong {
+      flex: 0 0 auto;
+      color: #9a3412;
+      font-size: 18px;
+    }
+    .compact-section {
+      break-inside: avoid;
+    }
+    .concept-table {
+      font-size: 12px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      font-size: 11px;
     }
     th, td {
-      padding: 10px 0;
+      padding: 7px 8px 7px 0;
       border-bottom: 1px solid var(--line);
       text-align: left;
+      vertical-align: top;
     }
     th {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+    th:last-child,
+    td:last-child {
+      padding-right: 0;
+      text-align: right;
+    }
     tr:last-child td { border-bottom: none; }
-    .obs {
-      padding: 14px 16px;
-      border-radius: 14px;
-      background: var(--accent-soft);
-      color: #7c2d12;
-      font-size: 14px;
-      line-height: 1.5;
+    thead {
+      display: table-header-group;
+    }
+    tr {
+      break-inside: avoid;
+    }
+    .card,
+    .compact-section,
+    .pending-section,
+    .warning {
+      break-inside: avoid;
     }
   </style>
 </head>
@@ -318,59 +412,32 @@ function createClosureExportService({ cashService, getDbPath }) {
     <section class="hero">
       <h1>Cierre de caja</h1>
       <p>Fecha: ${escapeHtml(report.fecha)}</p>
-      <p>${closedSessions.length} caja(s) cerrada(s)${openSessions.length ? ' - hay una caja abierta pendiente' : ''}</p>
+      <p>${closedSessions.length} ${closedSessions.length === 1 ? 'caja cerrada' : 'cajas cerradas'}${openSessions.length ? ' - hay una caja abierta pendiente' : ''}</p>
     </section>
 
     <section class="grid">
       <div class="card">
-        <span class="card-label">Total efectivo</span>
-        <span class="card-value">${formatMoney(report.totalesPorFormaPago.efectivo)}</span>
-      </div>
-      <div class="card">
-        <span class="card-label">Total general</span>
-        <span class="card-value">${formatMoney(report.totalGeneral)}</span>
+        <span class="card-label">Efectivo</span>
+        <span class="card-value">${formatMoney(paymentTotals.efectivo)}</span>
       </div>
       <div class="card">
         <span class="card-label">Transferencias</span>
-        <span class="card-value">${formatMoney(report.totalesPorFormaPago.transferencia)}</span>
+        <span class="card-value">${formatMoney(paymentTotals.transferencia)}</span>
       </div>
       <div class="card">
-        <span class="card-label">Entregado sin cobrar</span>
-        <span class="card-value">${formatMoney(report.pendientes?.total || 0)}</span>
+        <span class="card-label">Salidas</span>
+        <span class="card-value">${formatMoney(Math.abs(Number(typeTotals.egresos || 0)))}</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Total caja</span>
+        <span class="card-value">${formatMoney(report.totalGeneral)}</span>
       </div>
     </section>
 
+    ${conceptSection}
     ${sessionSections}
     ${openNotice}
-
-    <section class="section warning">
-      <h2>Ventas entregadas sin cobrar</h2>
-      <p class="empty">Se muestran para control, pero no forman parte del efectivo ni de las transferencias cobradas.</p>
-      <table>
-        <thead><tr><th>Hora</th><th>Socio</th><th>Producto</th><th>Registró</th><th>Importe pendiente</th></tr></thead>
-        <tbody>${buildPendingRows(report.ventasPendientes)}</tbody>
-      </table>
-    </section>
-
-    <section class="section">
-      <h2>Resumen del dia</h2>
-      <table>
-        <thead>
-          <tr><th>Concepto</th><th>Total</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Altas</td><td>${formatMoney(report.totalesPorTipoIngreso.altas)}</td></tr>
-          <tr><td>Renovaciones</td><td>${formatMoney(report.totalesPorTipoIngreso.renovaciones)}</td></tr>
-          <tr><td>Ventas de productos</td><td>${formatMoney(report.totalesPorTipoIngreso.ventasProductos)}</td></tr>
-          <tr><td>Ingresos manuales</td><td>${formatMoney(report.totalesPorTipoIngreso.ingresosManuales)}</td></tr>
-          <tr><td>Salidas</td><td>${formatMoney(report.totalesPorTipoIngreso.egresos)}</td></tr>
-          <tr><td>Ajustes</td><td>${formatMoney(report.totalesPorTipoIngreso.ajustes)}</td></tr>
-          <tr><td>Entregado sin cobrar (no incluido en caja)</td><td>${formatMoney(report.pendientes?.total || 0)}</td></tr>
-          <tr><td>Diferencia total de efectivo</td><td>${formatDifferenceLabel(totalDiferencia)}</td></tr>
-          <tr><td>Ultimo monto contado</td><td>${ultimoCierre ? formatMoney(ultimoCierre.efectivo_contado) : '-'}</td></tr>
-        </tbody>
-      </table>
-    </section>
+    ${pendingSection}
   </main>
 </body>
 </html>`;
@@ -380,19 +447,22 @@ function createClosureExportService({ cashService, getDbPath }) {
     const report = await cashService.getDailyReport(fecha);
     const pdfPath = getPdfPath(fecha);
     const html = buildReportHtml(report);
-    const win = new BrowserWindow({
-      show: false,
-      webPreferences: {
-        sandbox: false,
-      },
-    });
+    const temporaryHtmlPath = `${pdfPath}.rendering.html`;
+    fs.writeFileSync(temporaryHtmlPath, html, 'utf8');
+    let win = null;
 
     try {
-      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      win = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          sandbox: false,
+        },
+      });
+      await win.loadFile(temporaryHtmlPath);
       const pdfBuffer = await win.webContents.printToPDF({
         printBackground: true,
         pageSize: 'A4',
-        marginsType: 1,
+        preferCSSPageSize: true,
       });
       fs.writeFileSync(pdfPath, pdfBuffer);
       return {
@@ -401,7 +471,8 @@ function createClosureExportService({ cashService, getDbPath }) {
         directory: getClosuresDirectory(),
       };
     } finally {
-      win.destroy();
+      if (win && !win.isDestroyed()) win.destroy();
+      if (fs.existsSync(temporaryHtmlPath)) fs.rmSync(temporaryHtmlPath);
     }
   }
 
@@ -411,6 +482,7 @@ function createClosureExportService({ cashService, getDbPath }) {
 
   return {
     getClosuresDirectory,
+    buildReportHtml,
     exportDailyClosurePdf,
     exportAndRevealDailyClosurePdf,
   };

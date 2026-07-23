@@ -323,10 +323,9 @@
       className.textContent = state.upcomingClass?.nombre || 'No hay clases programadas';
       classMeta.textContent = formatUpcomingClass(state.upcomingClass);
       entrySubmit.disabled = true;
-      entryFeedback.classList.remove('is-success', 'is-error');
-      entryFeedback.classList.add('is-waiting');
-      entryTitle.textContent = 'Ingreso aún no habilitado';
-      entryCopy.textContent = state.upcomingClass ? 'Se habilitará automáticamente al comenzar.' : 'Consultá la programación en recepción.';
+      state.entryDigits = '';
+      entryDisplay.value = '';
+      resetEntryFeedback();
       return;
     }
     const inProgress = state.activeClass.estado === 'en_curso';
@@ -343,16 +342,17 @@
     if (key === 'clear') state.entryDigits = '';
     else if (key === 'backspace') state.entryDigits = state.entryDigits.slice(0, -1);
     else if (/^\d$/.test(key) && state.entryDigits.length < 8) state.entryDigits += key;
-    entryDisplay.textContent = state.entryDigits || '—';
+    entryDisplay.value = state.entryDigits;
     if (!entryFeedback.classList.contains('is-success') && !entryFeedback.classList.contains('is-error')) return;
     resetEntryFeedback();
   }
 
   function resetEntryFeedback() {
     clearTimeout(state.feedbackTimer);
-    entryFeedback.classList.remove('is-success', 'is-error', 'is-waiting');
-    entryTitle.textContent = state.activeClass ? 'Listo para ingresar' : 'Ingreso aún no habilitado';
-    entryCopy.textContent = state.activeClass ? 'Digitá el documento y confirmá.' : 'Se habilitará automáticamente al comenzar.';
+    entryFeedback.classList.remove('is-success', 'is-error');
+    entryFeedback.hidden = true;
+    entryTitle.textContent = '';
+    entryCopy.textContent = '';
   }
 
   async function registerAttendance() {
@@ -375,19 +375,21 @@
       attendanceCount.textContent = String(state.attendanceCount);
       entryFeedback.classList.remove('is-error');
       entryFeedback.classList.add('is-success');
+      entryFeedback.hidden = false;
       entryTitle.textContent = 'Ingreso registrado';
       entryCopy.textContent = result.user?.nombre || 'Socio';
       state.entryDigits = '';
-      entryDisplay.textContent = '—';
+      entryDisplay.value = '';
       state.feedbackTimer = setTimeout(resetEntryFeedback, 1800);
       loadClassMembers();
     } catch (error) {
       entryFeedback.classList.remove('is-success');
       entryFeedback.classList.add('is-error');
+      entryFeedback.hidden = false;
       entryTitle.textContent = 'No se pudo registrar';
       entryCopy.textContent = String(error?.message || 'Revisá el documento').replace(/^Error invoking remote method '[^']+': Error: /, '');
       state.entryDigits = '';
-      entryDisplay.textContent = '—';
+      entryDisplay.value = '';
       state.feedbackTimer = setTimeout(resetEntryFeedback, 2300);
     } finally {
       entrySubmit.disabled = !state.activeClass;

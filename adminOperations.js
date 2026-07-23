@@ -618,6 +618,7 @@ function createAdminOperationsController({ shared }) {
     const total = pendingSales.reduce((sum, item) => sum + Number(item.total || 0), 0);
     pendingTotal.textContent = money(total);
     pendingNavCount.textContent = String(pendingSales.length);
+    pendingNavCount.hidden = pendingSales.length === 0;
     pendingHomeCount.textContent = String(pendingSales.length);
     pendingCashTotal.textContent = money(total);
     pendingCashCount.textContent = `${pendingSales.length} ${pendingSales.length === 1 ? 'venta' : 'ventas'}`;
