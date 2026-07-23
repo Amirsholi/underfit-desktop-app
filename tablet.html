@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Under-Fit · Tablet</title>
-  <link rel="stylesheet" href="styles/tablet.css?v=2.5.0.6">
+  <link rel="stylesheet" href="styles/tablet.css?v=2.5.0.7">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="tablet-page">
@@ -50,12 +50,15 @@
 
       <section class="tablet-attendance-screen">
         <div class="tablet-entry-simple">
-          <div id="tablet-entry-feedback" class="tablet-entry-feedback" aria-live="polite">
-            <span class="tablet-kicker">Ingreso a clase</span>
-            <h1 id="tablet-entry-title">Ingresá tu documento</h1>
-            <p id="tablet-entry-copy">Marcá tu CI y presioná Ingresar.</p>
+          <div class="tablet-entry-heading">
+            <span class="tablet-kicker">Control de acceso</span>
+            <h1>Ingreso</h1>
+            <p>Digitá tu cédula con el teclado numérico.</p>
           </div>
-          <div id="tablet-entry-display" class="tablet-entry-display" aria-label="Documento ingresado">—</div>
+          <div class="tablet-entry-display-shell">
+            <span>Documento</span>
+            <strong id="tablet-entry-display" class="tablet-entry-display" aria-label="Documento ingresado">—</strong>
+          </div>
           <div class="tablet-entry-keypad" aria-label="Teclado de documento">
             <button type="button" data-entry-key="1">1</button><button type="button" data-entry-key="2">2</button><button type="button" data-entry-key="3">3</button>
             <button type="button" data-entry-key="4">4</button><button type="button" data-entry-key="5">5</button><button type="button" data-entry-key="6">6</button>
@@ -63,6 +66,10 @@
             <button class="tablet-key-secondary" type="button" data-entry-key="clear">Limpiar</button><button type="button" data-entry-key="0">0</button><button class="tablet-key-secondary" type="button" data-entry-key="backspace"><i class="fa-solid fa-delete-left"></i></button>
           </div>
           <button id="tablet-entry-submit" class="tablet-primary-action tablet-entry-submit" type="button"><i class="fa-solid fa-arrow-right-to-bracket"></i>Ingresar</button>
+          <div id="tablet-entry-feedback" class="tablet-entry-feedback" aria-live="polite">
+            <strong id="tablet-entry-title">Listo para ingresar</strong>
+            <span id="tablet-entry-copy">Digitá el documento y confirmá.</span>
+          </div>
         </div>
       </section>
 
@@ -97,6 +104,6 @@
   </main>
 
   <div id="tablet-toast" class="tablet-toast" role="status"></div>
-  <script src="tablet.js?v=2.5.0.6"></script>
+  <script src="tablet.js?v=2.5.0.7"></script>
 </body>
 </html>

@@ -3809,3 +3809,26 @@ body.admin-page::after {
     display: none;
   }
 }
+
+/* Revision 2.5.0.16 — continuous product surfaces and softer atmosphere */
+body.admin-page::before {
+  background:
+    linear-gradient(90deg, rgba(4, 6, 9, 0.91), rgba(5, 7, 10, 0.79) 52%, rgba(5, 7, 10, 0.86)),
+    url('../gym.jpg') center / cover no-repeat;
+}
+
+.product-local-view,
+.product-local-view.is-active {
+  gap: 0;
+}
+
+.product-local-view .product-fixed-table {
+  border-bottom: 0;
+  border-radius: 0 !important;
+}
+
+.product-local-view .product-action-dock {
+  margin-top: 0;
+  border-top: 1px solid var(--uf-border);
+  border-radius: 0 0 var(--uf-radius) var(--uf-radius);
+}

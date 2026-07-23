@@ -312,7 +312,8 @@
     const label = Number.isNaN(date.getTime())
       ? `${item.fecha || ''} · ${String(item.hora || '').slice(0, 5)}`
       : new Intl.DateTimeFormat('es-UY', { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
-    return `${label} · ${currentLocal().nombre}`;
+    const professor = state.session?.profesorNombre ? ` · Prof. ${state.session.profesorNombre}` : '';
+    return `${label} · ${currentLocal().nombre}${professor}`;
   }
 
   function renderCurrentClass() {
@@ -322,15 +323,18 @@
       className.textContent = state.upcomingClass?.nombre || 'No hay clases programadas';
       classMeta.textContent = formatUpcomingClass(state.upcomingClass);
       entrySubmit.disabled = true;
-      entryTitle.textContent = 'Ingreso todavía no habilitado';
-      entryCopy.textContent = state.upcomingClass ? `La próxima clase es ${state.upcomingClass.nombre}.` : 'Consultá la programación en recepción.';
+      entryFeedback.classList.remove('is-success', 'is-error');
+      entryFeedback.classList.add('is-waiting');
+      entryTitle.textContent = 'Ingreso aún no habilitado';
+      entryCopy.textContent = state.upcomingClass ? 'Se habilitará automáticamente al comenzar.' : 'Consultá la programación en recepción.';
       return;
     }
     const inProgress = state.activeClass.estado === 'en_curso';
     classState.textContent = inProgress ? 'Clase en curso' : 'Próxima clase';
     classState.classList.toggle('is-idle', !inProgress);
     className.textContent = state.activeClass.nombre;
-    classMeta.textContent = `${String(state.activeClass.hora || '').slice(0, 5)} · ${Number(state.activeClass.duracionMinutos || 60)} min · ${currentLocal().nombre}`;
+    const professor = state.session?.profesorNombre ? ` · Prof. ${state.session.profesorNombre}` : '';
+    classMeta.textContent = `${String(state.activeClass.hora || '').slice(0, 5)} · ${Number(state.activeClass.duracionMinutos || 60)} min · ${currentLocal().nombre}${professor}`;
     entrySubmit.disabled = false;
     resetEntryFeedback();
   }
@@ -346,9 +350,9 @@
 
   function resetEntryFeedback() {
     clearTimeout(state.feedbackTimer);
-    entryFeedback.classList.remove('is-success', 'is-error');
-    entryTitle.textContent = state.activeClass ? 'Ingresá tu documento' : 'Aún no hay una clase activa';
-    entryCopy.textContent = state.activeClass ? 'Marcá tu CI y presioná Ingresar.' : 'La pantalla quedará habilitada al entrar en la franja programada.';
+    entryFeedback.classList.remove('is-success', 'is-error', 'is-waiting');
+    entryTitle.textContent = state.activeClass ? 'Listo para ingresar' : 'Ingreso aún no habilitado';
+    entryCopy.textContent = state.activeClass ? 'Digitá el documento y confirmá.' : 'Se habilitará automáticamente al comenzar.';
   }
 
   async function registerAttendance() {
@@ -372,7 +376,7 @@
       entryFeedback.classList.remove('is-error');
       entryFeedback.classList.add('is-success');
       entryTitle.textContent = 'Ingreso registrado';
-      entryCopy.textContent = `${result.user?.nombre || 'Socio'} · ${state.activeClass.nombre}`;
+      entryCopy.textContent = result.user?.nombre || 'Socio';
       state.entryDigits = '';
       entryDisplay.textContent = '—';
       state.feedbackTimer = setTimeout(resetEntryFeedback, 1800);
