@@ -810,3 +810,15 @@ body {
   min-height: 0;
   margin-top: 10px;
 }
+
+/* Revision 2.5.0.6 — darker shared atmosphere */
+.tablet-page::before {
+  background:
+    linear-gradient(95deg, rgba(5, 7, 10, 0.94) 0%, rgba(5, 7, 10, 0.89) 52%, rgba(17, 9, 7, 0.92) 100%),
+    url('../gym.jpg') center / cover no-repeat;
+  filter: saturate(0.68) contrast(1.08);
+}
+
+.tablet-entry-simple {
+  background: rgba(7, 10, 15, 0.82);
+}

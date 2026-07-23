@@ -404,7 +404,10 @@
 
   async function loadStock() {
     try {
-      state.stock = api?.obtenerStockLocales ? await api.obtenerStockLocales() : demoStock();
+      const stock = api?.obtenerStockLocales ? await api.obtenerStockLocales() : demoStock();
+      state.stock = state.localId === 2
+        ? stock.filter(item => Number(item.asignadoLocal2 ?? 1) === 1)
+        : stock;
     } catch (_) {
       state.stock = [];
     }

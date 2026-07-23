@@ -3524,3 +3524,288 @@ h3.section-title {
   .section-heading { min-height: 92px; }
   .users-action-dock { width: 100%; }
 }
+
+/* Revision 2.5.0.15 — stable inventory, balanced modules and disciplined forms */
+body.admin-page::before {
+  background:
+    linear-gradient(90deg, rgba(4, 6, 9, 0.93), rgba(5, 7, 10, 0.83) 52%, rgba(5, 7, 10, 0.89)),
+    url('../gym.jpg') center / cover no-repeat;
+  filter: saturate(0.7) contrast(1.08);
+}
+
+body.admin-page::after {
+  background:
+    radial-gradient(circle at 78% 8%, rgba(255, 104, 31, 0.065), transparent 31%),
+    linear-gradient(180deg, rgba(4, 6, 9, 0.18), rgba(4, 6, 9, 0.34));
+}
+
+.home-pane-heading {
+  height: 164px;
+  min-height: 164px;
+}
+
+.home-product-guidance {
+  display: grid !important;
+  grid-column: 1 / -1;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px !important;
+  min-height: 62px;
+  margin-top: 5px;
+  padding: 9px 12px;
+  border: 1px solid var(--uf-border-soft);
+  border-radius: 9px;
+  background: rgba(8, 11, 16, 0.54);
+}
+
+.home-product-guidance > i {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--uf-orange);
+  background: rgba(255, 104, 31, 0.1);
+}
+
+.home-product-guidance > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-product-guidance strong {
+  color: #eef1f5;
+  font-size: 13px;
+}
+
+.home-product-guidance small {
+  overflow: hidden;
+  color: var(--uf-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.refined-modal input[type="radio"],
+.binary-choice-option input[type="radio"] {
+  display: grid;
+  flex: 0 0 17px;
+  width: 17px !important;
+  min-width: 17px !important;
+  height: 17px !important;
+  min-height: 17px !important;
+  margin: 0;
+  padding: 0 !important;
+  place-content: center;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid #6f7784;
+  border-radius: 50%;
+  background: #0b0e13;
+  box-shadow: none;
+}
+
+.refined-modal input[type="radio"]::before,
+.binary-choice-option input[type="radio"]::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--uf-orange);
+  content: "";
+  transform: scale(0);
+  transition: transform 120ms ease;
+}
+
+.refined-modal input[type="radio"]:checked,
+.binary-choice-option input[type="radio"]:checked {
+  border-color: var(--uf-orange);
+}
+
+.refined-modal input[type="radio"]:checked::before,
+.binary-choice-option input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+.refined-modal input[type="radio"]:focus-visible,
+.binary-choice-option input[type="radio"]:focus-visible {
+  outline: 3px solid rgba(255, 104, 31, 0.18);
+  outline-offset: 2px;
+}
+
+.refined-modal .app-modal-card-user-detail,
+.refined-modal .app-modal-card-form-wide.app-modal-card-user-detail {
+  width: min(1080px, calc(100vw - 68px));
+}
+
+.refined-modal .app-modal-card-user-detail .user-detail-body {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  padding: 22px 24px 28px;
+}
+
+.user-detail-section {
+  position: relative;
+  gap: 15px;
+  padding: 19px;
+  border-color: rgba(194, 202, 216, 0.18);
+  background: linear-gradient(145deg, rgba(13, 17, 23, 0.88), rgba(8, 11, 16, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.user-detail-section::before {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  width: 3px;
+  height: 24px;
+  border-radius: 0 3px 3px 0;
+  background: var(--uf-orange);
+  content: "";
+}
+
+.user-detail-section h4 {
+  min-height: 30px;
+  padding: 2px 0 11px;
+  border-bottom: 1px solid var(--uf-border-soft);
+  font-size: 16px;
+}
+
+.user-detail-personal,
+.user-detail-health {
+  grid-column: span 7;
+}
+
+.user-detail-membership,
+.user-detail-emergency {
+  grid-column: span 5;
+}
+
+#modal-alta-usuario .user-detail-membership .user-detail-section-grid {
+  grid-template-columns: 1fr;
+}
+
+.membership-context {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 104, 31, 0.2);
+  border-radius: 9px;
+  background: rgba(255, 104, 31, 0.055);
+}
+
+.membership-context > i {
+  color: var(--uf-orange);
+  font-size: 18px;
+  text-align: center;
+}
+
+.membership-context > span {
+  display: grid;
+  gap: 2px;
+}
+
+.membership-context strong {
+  color: #f1f3f6;
+  font-size: 13px;
+}
+
+.membership-context small {
+  color: var(--uf-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.user-detail-section-history {
+  grid-column: 1 / -1;
+}
+
+.product-page.app-view.is-active {
+  min-height: calc(100vh - 174px);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.product-local-view.is-active {
+  min-height: 0;
+  grid-template-rows: auto minmax(300px, 1fr) auto;
+  overflow: hidden;
+}
+
+.product-fixed-table {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.product-fixed-table .table-scroll,
+.product-fixed-table .table-scroll-products,
+.product-fixed-table .location-stock-scroll {
+  height: auto;
+  min-height: 300px;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
+}
+
+.stock-action-dock {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 0.9fr) 110px auto;
+  align-items: end;
+}
+
+.dock-product {
+  display: grid;
+  gap: 4px;
+}
+
+.dock-product > span {
+  color: var(--uf-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dock-product select,
+.stock-action-dock .dock-quantity input {
+  min-height: 44px;
+}
+
+.stock-action-dock .dock-selection {
+  min-width: 0;
+  margin: 0;
+  padding-bottom: 5px;
+}
+
+.table-inline-empty {
+  height: 110px !important;
+  color: var(--uf-muted) !important;
+  text-align: center;
+}
+
+@media (max-width: 1120px) {
+  .refined-modal .app-modal-card-user-detail .user-detail-body {
+    grid-template-columns: 1fr;
+  }
+
+  .user-detail-personal,
+  .user-detail-membership,
+  .user-detail-emergency,
+  .user-detail-health {
+    grid-column: 1;
+  }
+
+  .stock-action-dock {
+    grid-template-columns: minmax(220px, 1fr) 110px auto;
+  }
+
+  .stock-action-dock .dock-selection {
+    display: none;
+  }
+}

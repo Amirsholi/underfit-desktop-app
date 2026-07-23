@@ -63,6 +63,13 @@ function createOperationsRepository(db) {
              COALESCE(s1.cantidad, p.stock, 0) AS local1,
              COALESCE(s2.cantidad, 0) AS local2,
              COALESCE(s1.cantidad, p.stock, 0) + COALESCE(s2.cantidad, 0) AS total,
+             EXISTS (
+               SELECT 1
+               FROM transferencias_stock t
+               WHERE t.producto_id = p.id
+                 AND t.origen_local_id = 1
+                 AND t.destino_local_id = 2
+             ) AS asignadoLocal2,
              MAX(COALESCE(s1.actualizado_ts, ''), COALESCE(s2.actualizado_ts, '')) AS actualizadoTs
       FROM productos p
       LEFT JOIN stock_local s1 ON s1.producto_id = p.id AND s1.local_id = 1

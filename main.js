@@ -7,7 +7,6 @@ const { ejecutarMigraciones } = require('./migrations');
 let mainWindow;
 let userWindow;
 let tabletWindow;
-let inactivityTimer;
 let userDisplayId = null;
 
 function logDev(...args) {
@@ -32,10 +31,33 @@ app.on('second-instance', () => {
 
   if (userWindow) {
     if (userWindow.isMinimized()) userWindow.restore();
-    userWindow.focus();
     userWindow.webContents.send('enfocar-input');
   }
 });
+
+function forwardNumpadToEntry(event, input) {
+  if (!userWindow || userWindow.isDestroyed() || input.type !== 'keyDown') return;
+
+  const numpadKeys = {
+    Numpad0: '0',
+    Numpad1: '1',
+    Numpad2: '2',
+    Numpad3: '3',
+    Numpad4: '4',
+    Numpad5: '5',
+    Numpad6: '6',
+    Numpad7: '7',
+    Numpad8: '8',
+    Numpad9: '9',
+    NumpadEnter: 'enter',
+    NumpadDecimal: 'backspace',
+  };
+  const key = numpadKeys[input.code];
+  if (!key) return;
+
+  event.preventDefault();
+  userWindow.webContents.send('tecla-pad-ingreso', key);
+}
 
 function createMainWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -59,22 +81,7 @@ function createMainWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.maximize();
   });
-
-  function resetInactivity() {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-      if (userWindow) {
-        userWindow.focus();
-        userWindow.webContents.send('enfocar-input');
-      }
-    }, 5000);
-  }
-
-  mainWindow.webContents.on('before-input-event', () => resetInactivity());
-  mainWindow.webContents.on('cursor-changed', () => resetInactivity());
-  mainWindow.on('focus', () => resetInactivity());
-
-  resetInactivity();
+  mainWindow.webContents.on('before-input-event', forwardNumpadToEntry);
 }
 
 function getCenteredWindowBounds(display, preferredWidth, preferredHeight) {

@@ -125,5 +125,10 @@ contextBridge.exposeInMainWorld('api', {
   onEnfocarInput: (callback) => {
     ipcRenderer.removeAllListeners('enfocar-input');
     ipcRenderer.on('enfocar-input', callback);
+  },
+
+  onTeclaPadIngreso: (callback) => {
+    ipcRenderer.removeAllListeners('tecla-pad-ingreso');
+    ipcRenderer.on('tecla-pad-ingreso', (_event, key) => callback(key));
   }
 });

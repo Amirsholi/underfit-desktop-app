@@ -29,6 +29,7 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
     await migrarProductos(dbPath);
     db = new sqlite3.Database(dbPath);
     await run(db, 'INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)', ['Agua 600 ml', 60, 18]);
+    await run(db, 'INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)', ['Barrita', 80, 10]);
     await close(db);
     db = null;
 
@@ -46,8 +47,11 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
       ts: '2026-07-20T15:00:00.000Z',
     });
 
-    let [stock] = await repository.listStockByLocation();
+    let stockRows = await repository.listStockByLocation();
+    let [stock] = stockRows;
     assert.deepEqual({ local1: stock.local1, local2: stock.local2, total: stock.total }, { local1: 12, local2: 6, total: 18 });
+    assert.equal(stock.asignadoLocal2, 1);
+    assert.equal(stockRows.find(item => item.productoId === 2).asignadoLocal2, 0);
 
     await repository.createPendingSale({
       productoId: 1,
@@ -90,6 +94,11 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
     assert.deepEqual(await repository.getPendingSummaryByDate('2026-07-20'), { cantidad: 2, total: 300 });
     const pendingSales = await repository.listPendingSales();
     assert.deepEqual(pendingSales.map(sale => sale.localId).sort(), [1, 2]);
+
+    await run(db, 'UPDATE stock_local SET cantidad = 0 WHERE local_id = 2 AND producto_id = 1');
+    [stock] = await repository.listStockByLocation();
+    assert.equal(stock.local2, 0);
+    assert.equal(stock.asignadoLocal2, 1);
   } finally {
     if (db) await close(db);
     fs.rmSync(tempDirectory, { recursive: true, force: true });

@@ -34,6 +34,7 @@ function createAdminOperationsController({ shared }) {
   const openTabletButton = document.getElementById('classes-open-tablet');
 
   const stockQuantity = document.getElementById('stock-transfer-quantity');
+  const stockProduct = document.getElementById('stock-transfer-product');
   const stockAvailability = document.getElementById('stock-transfer-availability');
   const stockTransferSubmit = document.getElementById('stock-transfer-submit');
   const stockBody = document.getElementById('location-stock-body');
@@ -524,7 +525,8 @@ function createAdminOperationsController({ shared }) {
     if (!stockBody) return;
     if (!stock.some(item => Number(item.productoId) === Number(selectedStockProductId))) selectedStockProductId = null;
     stockBody.innerHTML = '';
-    stock.forEach(item => {
+    const assignedStock = stock.filter(item => Number(item.asignadoLocal2 ?? (Number(item.local2) > 0)) === 1);
+    assignedStock.forEach(item => {
       const tr = document.createElement('tr');
       tr.dataset.stockProduct = String(item.productoId);
       tr.tabIndex = 0;
@@ -532,6 +534,7 @@ function createAdminOperationsController({ shared }) {
       tr.innerHTML = `<td><strong>${item.nombre}</strong></td><td>${money(item.precio)}</td><td><span class="stock-local-two">${item.local2}</span></td><td>${item.local1}</td>`;
       const selectRow = () => {
         selectedStockProductId = Number(item.productoId);
+        if (stockProduct) stockProduct.value = String(item.productoId);
         renderStock();
       };
       tr.addEventListener('click', selectRow);
@@ -542,6 +545,24 @@ function createAdminOperationsController({ shared }) {
       });
       stockBody.appendChild(tr);
     });
+    if (!assignedStock.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="4" class="table-inline-empty">Todavía no hay productos asignados a este local.</td>';
+      stockBody.appendChild(tr);
+    }
+    if (stockProduct) {
+      const currentValue = String(selectedStockProductId || '');
+      stockProduct.innerHTML = '<option value="">Seleccionar producto</option>';
+      stock
+        .filter(item => Number(item.local1) > 0)
+        .forEach(item => {
+          const option = document.createElement('option');
+          option.value = String(item.productoId);
+          option.textContent = `${item.nombre} · ${item.local1} disponibles`;
+          stockProduct.appendChild(option);
+        });
+      stockProduct.value = [...stockProduct.options].some(option => option.value === currentValue) ? currentValue : '';
+    }
     stockUpdated.textContent = `Actualizado ${new Date().toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })}`;
     updateStockAvailability();
   }
@@ -550,7 +571,7 @@ function createAdminOperationsController({ shared }) {
     const item = stock.find(row => Number(row.productoId) === Number(selectedStockProductId));
     stockAvailability.querySelector('strong').textContent = item?.nombre || 'Ninguno';
     const detail = stockAvailability.querySelector('small');
-    if (detail) detail.textContent = item ? `${item.local1} unidades disponibles en Local 1` : 'Selecciona una fila de la tabla';
+    if (detail) detail.textContent = item ? `${item.local1} unidades disponibles en Local 1` : 'Elegí un producto del Local 1';
     if (item) stockQuantity.max = String(item.local1);
     stockTransferSubmit.disabled = !item || Number(item.local1) <= 0;
   }
@@ -684,6 +705,10 @@ function createAdminOperationsController({ shared }) {
       else window.open('tablet.html', 'underfit-tablet-preview', 'width=1100,height=780');
     });
     stockTransferSubmit?.addEventListener('click', transferStock);
+    stockProduct?.addEventListener('change', () => {
+      selectedStockProductId = Number(stockProduct.value || 0) || null;
+      renderStock();
+    });
     document.addEventListener('stock:show', loadStock);
     document.addEventListener('stock:updated', loadStock);
     pendingBody?.addEventListener('click', event => {

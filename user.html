@@ -69,6 +69,19 @@
 
       if (window.api) {
         window.api.onEnfocarInput(() => inputCI.focus());
+        window.api.onTeclaPadIngreso((key) => {
+          if (key === 'enter') {
+            verificarAcceso(inputCI.value.trim());
+            return;
+          }
+          if (key === 'backspace') {
+            inputCI.value = inputCI.value.slice(0, -1);
+            return;
+          }
+          if (/^\d$/.test(key) && inputCI.value.length < 8) {
+            inputCI.value += key;
+          }
+        });
       }
 
       function limpiarFeedback() {
