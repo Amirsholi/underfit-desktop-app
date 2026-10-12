@@ -111,6 +111,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
     cantidad = 1,
     referencia = null,
     fecha = null,
+    responsable = null,
   }) {
     const normalizedPayment = normalizePaymentDetails(payment);
     const movementDate = normalizeDate(fecha);
@@ -141,6 +142,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
       cantidad,
       referencia_tabla: referencia?.tabla ?? null,
       referencia_id: referencia?.id ?? null,
+      responsable: responsable ? String(responsable).trim() : null,
     });
 
     return {
@@ -227,7 +229,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
     return cashRepository.findClosureByDate(normalizeDate(fecha));
   }
 
-  async function registerCashOutput({ fecha = null, monto, formaPago = 'efectivo', observacion = null }) {
+  async function registerCashOutput({ fecha = null, monto, formaPago = 'efectivo', observacion = null, responsable = null }) {
     const normalizedAmount = Number(monto);
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       throw new Error('Monto invalido');
@@ -253,6 +255,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
       cantidad: 1,
       referencia_tabla: 'caja_movimientos',
       referencia_id: null,
+      responsable: responsable ? normalizeName(responsable, 'Responsable') : null,
     });
 
     return {
@@ -300,6 +303,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
       referencia_id: original.id,
       correccion_de_id: original.id,
       motivo_correccion: reason,
+      responsable: original.responsable || null,
     });
 
     const signedAmount = original.tipo_ingreso === 'egreso' ? -amount : amount;
@@ -320,6 +324,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
       referencia_id: original.id,
       correccion_de_id: original.id,
       motivo_correccion: reason,
+      responsable: original.responsable || null,
     });
 
     return { corrected: true, originalId: original.id, replacementId: replacement.id };
@@ -331,6 +336,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
     monto,
     formaPago = 'efectivo',
     observacion = null,
+    responsable = null,
   }) {
     return registerMovement({
       tipoIngreso: 'ingreso_manual',
@@ -341,6 +347,7 @@ function createCashService({ cashRepository, operationsRepository = null }) {
         observacion,
       },
       fecha,
+      responsable: responsable ? normalizeName(responsable, 'Responsable') : null,
     });
   }
 

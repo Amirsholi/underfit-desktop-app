@@ -20,7 +20,7 @@ function close(db) {
   return new Promise((resolve, reject) => db.close(error => error ? reject(error) : resolve()));
 }
 
-test('stock transfer keeps the total and pending sales consume Local 2 stock', async () => {
+test('legacy stock remains informational and pending sales do not consume units', async () => {
   const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'under-fit-operations-'));
   const dbPath = path.join(tempDirectory, 'operations.db');
   let db;
@@ -70,7 +70,7 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
     });
 
     [stock] = await repository.listStockByLocation();
-    assert.equal(stock.local2, 4);
+    assert.equal(stock.local2, 6);
 
     await repository.createPendingSale({
       localId: 1,
@@ -90,7 +90,7 @@ test('stock transfer keeps the total and pending sales consume Local 2 stock', a
     });
 
     [stock] = await repository.listStockByLocation();
-    assert.deepEqual({ local1: stock.local1, local2: stock.local2, total: stock.total }, { local1: 9, local2: 4, total: 13 });
+    assert.deepEqual({ local1: stock.local1, local2: stock.local2, total: stock.total }, { local1: 12, local2: 6, total: 18 });
     assert.deepEqual(await repository.getPendingSummaryByDate('2026-07-20'), { cantidad: 2, total: 300 });
     const pendingSales = await repository.listPendingSales();
     assert.deepEqual(pendingSales.map(sale => sale.localId).sort(), [1, 2]);

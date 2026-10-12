@@ -9,9 +9,21 @@ const { registerProductHandlers } = require('./handlers/productHandlers');
 const { registerSystemHandlers } = require('./handlers/systemHandlers');
 const { registerStaffHandlers } = require('./handlers/staffHandlers');
 const { registerUserHandlers } = require('./handlers/userHandlers');
+const { registerTrainingHandlers } = require('./handlers/trainingHandlers');
 const { createClosureExportService } = require('./services/closureExportService');
 
-const { userService, membershipService, entryService, productService, cashService, operationsService, staffService } = createServices();
+const {
+  userService,
+  membershipService,
+  entryService,
+  productService,
+  cashService,
+  operationsService,
+  staffService,
+  settingsService,
+  trainingService,
+  dataSource,
+} = createServices();
 const closureExportService = createClosureExportService({
   cashService,
   getDbPath: getDbPathFromConfigOrDefault,
@@ -22,5 +34,6 @@ registerEntryHandlers(ipcMain, entryService);
 registerProductHandlers(ipcMain, productService);
 registerOperationsHandlers(ipcMain, operationsService);
 registerStaffHandlers(ipcMain, staffService);
+registerTrainingHandlers(ipcMain, trainingService);
 registerCashHandlers(ipcMain, cashService, closureExportService);
-registerSystemHandlers(ipcMain);
+registerSystemHandlers(ipcMain, settingsService, dataSource);

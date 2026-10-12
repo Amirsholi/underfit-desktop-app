@@ -1,0 +1,22 @@
+name: underfit-rehearsal
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: "no"
+    environment:
+      POSTGRES_DB: underfit
+      POSTGRES_USER: underfit
+      POSTGRES_PASSWORD: ${UNDERFIT_REHEARSAL_PASSWORD:?Run scripts/start-integration-rehearsal.ps1}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - rehearsal-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U underfit -d underfit"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  rehearsal-postgres:

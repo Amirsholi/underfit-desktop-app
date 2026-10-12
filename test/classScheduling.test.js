@@ -60,15 +60,16 @@ test('a recurring class enrolls a member in every generated occurrence', async (
     const userRepository = {
       findByCi: async ci => ({ ci, nombre: ci === 49876543 ? 'Martina Silva' : 'Bruno Rodríguez' }),
     };
+    const start = nextMonday();
     const service = createOperationsService({
       operationsRepository,
       staffService,
       userRepository,
       productRepository: {},
       cashService: {},
+      clock: () => new Date(`${start}T07:00:00`),
     });
     const professor = await staffService.createProfessor({ nombre: 'Santiago Lima', pin: '1234' });
-    const start = nextMonday();
     const end = addDays(start, 13);
 
     const schedule = await service.createClass({
@@ -111,6 +112,75 @@ test('a recurring class enrolls a member in every generated occurrence', async (
 
     const refreshed = await service.listUpcomingClasses(start);
     assert.ok(refreshed.every(item => Number(item.inscriptos) === 1));
+  } finally {
+    if (db) await close(db);
+    fs.rmSync(tempDirectory, { recursive: true, force: true });
+  }
+});
+
+test('editing a weekly class replaces only future occurrences and keeps its enrolled group', async () => {
+  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'under-fit-class-edit-'));
+  const dbPath = path.join(tempDirectory, 'classes.db');
+  let db;
+
+  try {
+    await migrarProductos(dbPath);
+    await migrarIngresos(dbPath);
+    await migrarOperacionesMultiLocal(dbPath);
+    await migrarProfesores(dbPath);
+    await migrarProgramacionesClases(dbPath);
+    await migrarAsistenciasClases(dbPath);
+    db = new sqlite3.Database(dbPath);
+
+    const operationsRepository = createOperationsRepository(db);
+    const staffService = createStaffService({ staffRepository: createStaffRepository(db) });
+    const userRepository = { findByCi: async ci => ({ ci, nombre: ci === 49876543 ? 'Martina Silva' : 'Bruno Rodríguez' }) };
+    const start = nextMonday();
+    const service = createOperationsService({
+      operationsRepository,
+      staffService,
+      userRepository,
+      productRepository: {},
+      cashService: {},
+      clock: () => new Date(`${start}T07:00:00`),
+    });
+    const firstProfessor = await staffService.createProfessor({ nombre: 'Santiago Lima', pin: '1234' });
+    const secondProfessor = await staffService.createProfessor({ nombre: 'Camila López', pin: '5678' });
+    const end = addDays(start, 20);
+    const schedule = await service.createClass({
+      nombre: 'Funcional mañana', profesorId: firstProfessor.id, localId: 2,
+      diasSemana: [1, 3, 5], fechaInicio: start, fechaFin: end,
+      hora: '08:00', duracionMinutos: 60, capacidad: 2,
+    });
+    const before = await service.listUpcomingClasses(start);
+    await service.enrollMember({ classId: before[0].id, userCi: 49876543 });
+    await service.enrollMember({ classId: before[0].id, userCi: 43219876 });
+    const changeDate = addDays(start, 7);
+
+    await assert.rejects(service.updateClassSchedule({
+      programacionId: schedule.id, desdeFecha: changeDate,
+      nombre: 'Funcional renovado', profesorId: secondProfessor.id, localId: 2,
+      diasSemana: [2, 4], hora: '09:00', duracionMinutos: 75, capacidad: 1, fechaFin: end,
+    }), /ya tiene 2 alumnos/);
+
+    await service.updateClassSchedule({
+      programacionId: schedule.id, desdeFecha: changeDate,
+      nombre: 'Funcional renovado', profesorId: secondProfessor.id, localId: 2,
+      diasSemana: [2, 4], hora: '09:00', duracionMinutos: 75, capacidad: 2, fechaFin: end,
+    });
+
+    const after = await service.listUpcomingClasses(start);
+    const unchanged = after.filter(item => item.fecha < changeDate);
+    const changed = after.filter(item => item.fecha >= changeDate);
+    assert.ok(unchanged.length > 0);
+    assert.ok(unchanged.every(item => item.nombre === 'Funcional mañana' && item.hora === '08:00'));
+    assert.ok(changed.length > 0);
+    assert.ok(changed.every(item => item.nombre === 'Funcional renovado'));
+    assert.ok(changed.every(item => item.hora === '09:00:00'));
+    assert.ok(changed.every(item => [2, 4].includes(new Date(`${item.fecha}T12:00:00`).getDay())));
+    assert.ok(changed.every(item => item.profesor === 'Camila López'));
+    assert.ok(changed.every(item => Number(item.inscriptos) === 2));
+    assert.deepEqual((await service.listClassEnrollments(changed[0].id)).map(item => item.usuarioCi), [43219876, 49876543]);
   } finally {
     if (db) await close(db);
     fs.rmSync(tempDirectory, { recursive: true, force: true });

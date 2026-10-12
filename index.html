@@ -2,10 +2,17 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Under-Fit</title>
+  <title>Under-Fit · Administración</title>
   <link rel="stylesheet" href="styles/admin-layout.css?v=2.5.0.3">
   <link rel="stylesheet" href="styles/admin-dark.css?v=2.5.0.6">
   <link rel="stylesheet" href="styles/admin-premium.css?v=2.5.0.17">
+  <link rel="stylesheet" href="styles/admin-consistency.css?v=2.5.0.47">
+  <link rel="stylesheet" href="styles/cash-ledger.css?v=2">
+  <link rel="stylesheet" href="styles/pending-charges.css?v=4">
+  <link rel="stylesheet" href="styles/records.css?v=3">
+  <link rel="stylesheet" href="styles/desktop-finishing.css?v=5">
+  <link rel="stylesheet" href="styles/class-agenda.css?v=1">
+  <link rel="stylesheet" href="styles/readable-lists.css?v=1">
   <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=7">
 </head>
 <body class="admin-page">
@@ -26,9 +33,9 @@
       </button>
 
       <div class="topbar-actions">
-        <div class="sync-status is-local" aria-label="Estado de datos">
-          <i class="fa-solid fa-hard-drive"></i>
-          <span><strong>Datos locales</strong><small>Actualizado <span id="topbar-time"></span></small></span>
+        <div id="system-status" class="sync-status is-connecting" aria-label="Estado del sistema" aria-live="polite">
+          <i class="fa-solid fa-circle-nodes"></i>
+          <span><strong id="system-status-title">Conectando</strong><small id="system-status-copy">Verificando servicios</small></span>
         </div>
         <span id="topbar-date" class="topbar-date-hidden"></span>
       </div>
@@ -36,44 +43,45 @@
 
     <div class="workspace">
       <aside class="workspace-sidebar" aria-label="Navegacion administrativa">
-        <button class="sidebar-action is-active" type="button" data-admin-section="home"><i class="fa-solid fa-house"></i><span>Inicio</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="users"><i class="fa-solid fa-users"></i><span>Usuarios</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="products"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
-        <button class="sidebar-action" type="button" data-admin-section="pending"><i class="fa-regular fa-rectangle-list"></i><span>Cobros pendientes</span><span class="nav-count" id="pending-sales-count" hidden></span></button>
-        <button class="sidebar-action" type="button" data-admin-section="records"><i class="fa-solid fa-clipboard-list"></i><span>Registros</span></button>
-        <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings"><i class="fa-solid fa-gear"></i><span>Configuración</span></button>
+        <button class="sidebar-action is-active" type="button" data-admin-section="home" aria-label="Inicio"><i class="fa-solid fa-house"></i><span>Inicio</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="cash" aria-label="Caja"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="users" aria-label="Usuarios"><i class="fa-solid fa-users"></i><span>Usuarios</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="classes" aria-label="Clases"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="training" aria-label="Rutinas"><i class="fa-solid fa-file-lines"></i><span>Rutinas</span></button>
+        <button class="sidebar-action" type="button" data-admin-section="products" aria-label="Productos"><i class="fa-solid fa-bag-shopping"></i><span>Productos</span></button>
+
+        <button class="sidebar-action sidebar-settings" type="button" data-admin-section="settings" aria-label="Configuración"><i class="fa-solid fa-gear"></i><span>Configuración</span></button>
       </aside>
       <main class="workspace-main">
         <section class="app-view is-active" data-admin-view="home">
           <section class="home-live-strip" aria-label="Resumen diario">
             <article><i class="fa-solid fa-users"></i><span>Usuarios activos<strong id="contador-usuarios">0</strong></span></article>
             <article><i class="fa-solid fa-person-walking-arrow-right"></i><span>Personas que ingresaron hoy<strong id="widget-ingresos-hoy">0</strong></span></article>
-            <article><i class="fa-solid fa-dollar-sign"></i><span>Dinero ingresado hoy<strong id="widget-ventas-hoy">$ 0</strong></span></article>
-            <article data-admin-section="pending" tabindex="0"><i class="fa-regular fa-clock"></i><span>Cobros pendientes<strong id="widget-cobros-pendientes">0</strong></span></article>
+            <article class="home-income-widget"><i class="fa-solid fa-wallet"></i><span>Ingresos de hoy<strong id="widget-ventas-hoy">$ 0</strong></span></article>
+            <article data-admin-section="cash" data-open-pending tabindex="0" role="button" aria-label="Ver cobros pendientes en Caja"><i class="fa-regular fa-clock"></i><span>Cobros pendientes<strong id="widget-cobros-pendientes">0</strong></span></article>
           </section>
           <div class="home-workspace-grid">
             <section class="home-operational-pane home-members-pane">
               <div class="home-pane-heading home-pane-heading-with-search">
-                <div><span class="home-pane-kicker">Recepción</span><h3>Socios por vencimiento</h3></div>
+                <div><h3>Usuarios</h3></div>
                 <button type="button" data-admin-section="users">Ver todos <i class="fa-solid fa-chevron-right"></i></button>
                 <div class="home-search-block home-table-search">
-                  <label for="home-member-search">Buscar socio</label>
-                  <div class="home-search"><input id="home-member-search" placeholder="CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+                  <div class="home-search"><input id="home-member-search" placeholder="CI o nombre" aria-label="Buscar socio por CI o nombre"><button type="button" aria-label="Buscar socio"><i class="fa-solid fa-magnifying-glass"></i></button></div>
                 </div>
               </div>
-              <div class="home-list-header home-member-columns"><span>Socio</span><span>Vencimiento</span><span>Plan / Estado</span></div>
+              <div class="home-list-header home-member-columns"><span>Socio</span><span>Vencimiento</span><span>Días</span></div>
               <div id="home-members-list" class="home-data-list"></div>
               <div id="home-members-empty" class="home-list-empty">No hay socios para mostrar.</div>
             </section>
             <section class="home-operational-pane home-products-pane">
-              <div class="home-pane-heading home-pane-heading-products">
-                <div><span class="home-pane-kicker">Caja rápida</span><h3>Venta de productos</h3></div>
+              <div class="home-pane-heading home-pane-heading-products home-pane-heading-with-search">
+                <div><h3>Productos</h3></div>
                 <button type="button" data-admin-section="products">Ver todos <i class="fa-solid fa-chevron-right"></i></button>
-                <div class="home-product-guidance"><i class="fa-solid fa-cart-shopping"></i><span><strong>Venta directa en recepción</strong><small>Elegí un producto de la tabla para cobrarlo.</small></span></div>
+                <div class="home-search-block home-table-search">
+                  <div class="home-search"><input id="home-product-search" placeholder="Nombre del producto" aria-label="Buscar producto por nombre"><button type="button" aria-label="Buscar producto"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+                </div>
               </div>
-              <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Stock</span><span>Acción</span></div>
+              <div class="home-list-header home-product-columns"><span>Producto</span><span>Precio</span><span>Acción</span></div>
               <div id="home-products-list" class="home-data-list"></div>
               <div id="home-products-empty" class="home-list-empty">No hay productos disponibles.</div>
             </section>
@@ -81,400 +89,407 @@
           <div class="home-command-actions home-bottom-actions" aria-label="Acciones frecuentes">
             <button type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
             <button type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripción</span></button>
-            <button type="button" data-admin-section="classes"><i class="fa-regular fa-calendar-days"></i><span>Clases</span></button>
+            <button type="button" data-admin-section="records"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>Concurrencia</span></button>
             <button type="button" data-admin-section="cash"><i class="fa-solid fa-cash-register"></i><span>Caja</span></button>
           </div>
         </section>
 
-        <section class="app-view" data-admin-view="pending">
-          <div class="section-heading">
-            <div><span class="section-kicker">Recepción · Local principal</span><h2 class="section-title">Cobros pendientes</h2><p class="section-subtitle">Ventas entregadas por instructores desde una tablet que todavía no ingresaron a caja.</p></div>
-            <div class="pending-summary-inline"><span>Pendiente total</span><strong id="pending-sales-total">$ 0</strong></div>
+        <section class="app-view users-page admin-index-page" data-admin-view="users">
+          <div class="users-page-heading admin-section-heading">
+            <div class="users-title-block admin-section-title-block">
+              <h2 class="section-title">Usuarios</h2>
+              <div class="users-live-counts" aria-live="polite">
+                <span><strong id="users-total-count">0</strong> socios</span>
+                <span id="users-filtered-count" role="status" aria-live="polite"></span>
+                <span class="is-active"><i></i><strong id="users-active-count">0</strong> activos</span>
+              </div>
+            </div>
+            <div class="users-heading-actions">
+              <button class="app-button users-renew-button" type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-rotate-right"></i>Renovar membresía</button>
+              <button class="app-button app-button-primary users-new-button" type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-plus"></i>Nuevo socio</button>
+            </div>
           </div>
-          <div class="table-card pending-sales-card">
-            <div class="table-scroll">
-              <table class="data-table">
-                <thead><tr><th>Fecha y hora</th><th>Socio</th><th>Producto</th><th>Registró</th><th>Total</th><th>Estado</th><th></th></tr></thead>
-                <tbody id="pending-sales-body"></tbody>
+
+          <div class="users-toolbar">
+            <label class="users-search-control" for="filtro-busqueda">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="filtro-busqueda" class="users-search-field" placeholder="Buscar socio" autocomplete="off">
+              <kbd>Ctrl K</kbd>
+            </label>
+            <div class="users-filter-group" role="group" aria-label="Filtrar socios por membresía">
+              <button class="is-active" type="button" data-users-filter="all">Todos</button>
+              <button type="button" data-users-filter="active">Vigentes</button>
+              <button type="button" data-users-filter="expiring">Por vencer</button>
+              <button type="button" data-users-filter="expired">Vencidos</button>
+            </div>
+          </div>
+
+          <section class="users-table-card">
+            <div class="table-scroll table-scroll-users">
+              <table class="data-table users-table" id="tabla-usuarios">
+                <thead><tr><th>Socio</th><th>Membresía</th><th>Último acceso</th></tr></thead>
+                <tbody id="cuerpo-usuarios"></tbody>
               </table>
             </div>
-            <div class="pending-empty-state">
-              <i class="fa-regular fa-circle-check"></i>
-              <strong>No hay cobros pendientes</strong>
-              <span>Las ventas enviadas desde cualquier tablet de clase aparecerán aquí.</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="app-view" data-admin-view="users">
-          <div class="section-heading">
-            <div><span class="section-kicker">Socios y membresías</span><h2 class="section-title">Usuarios</h2><p class="section-subtitle">Información personal, vigencias y gestiones frecuentes.</p></div>
-          </div>
-          <div class="search-row"><input id="filtro-busqueda" class="users-search-field" placeholder="CI o Nombre"></div>
-          <section class="content-panel">
-              <div class="table-card">
-                <div class="table-scroll table-scroll-users">
-                  <table class="data-table" id="tabla-usuarios">
-                    <thead>
-                      <tr>
-                        <th>CI</th>
-                        <th>Nombre</th>
-                        <th>Días</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="cuerpo-usuarios"></tbody>
-                  </table>
-                </div>
-              </div>
+            <div id="users-empty" class="users-empty" hidden><strong>No encontramos socios</strong><span>Probá con otro nombre, cédula o filtro.</span></div>
           </section>
-          <div class="page-action-dock users-action-dock" aria-label="Acciones de usuarios">
-            <button class="page-dock-action" type="button" data-open-modal="modal-alta-usuario"><i class="fa-solid fa-user-plus"></i><span>Agregar socio</span></button>
-            <button class="page-dock-action" type="button" data-open-modal="modal-renovar-suscripcion"><i class="fa-solid fa-arrows-rotate"></i><span>Renovar suscripción</span></button>
-          </div>
         </section>
 
-        <section class="app-view records-page" data-admin-view="records">
-          <div class="section-heading records-heading">
-            <div>
-              <span class="section-kicker">Historial operativo</span>
-              <h2 class="section-title">Registros</h2>
-              <p class="section-subtitle">Ingresos generales y asistencia a clases, separados para leer cada jornada con claridad.</p>
-            </div>
-            <div class="records-date-control">
-              <label for="records-date">Jornada</label>
-              <input id="records-date" type="date">
-              <button id="records-refresh" class="icon-action" type="button" aria-label="Actualizar registros" title="Actualizar"><i class="fa-solid fa-rotate"></i></button>
-            </div>
+        <section id="modal-concurrencia" class="app-modal records-index-page" style="display:none" role="dialog" aria-modal="true" aria-labelledby="concurrencia-title">
+          <div class="app-modal-card">
+          <header class="app-modal-header">
+            <h3 id="concurrencia-title">Concurrencia</h3>
+            <button class="app-modal-close" type="button" data-close-modal="modal-concurrencia" aria-label="Cerrar">×</button>
+          </header>
+          <div class="app-modal-body">
+          <div class="records-toolbar">
+            <select id="records-mode" class="admin-business-date" aria-label="Tipo de consulta"><option value="date">Por fecha</option><option value="member">Historial por socio</option></select>
+            <input id="records-member" class="admin-business-date" list="records-member-options" placeholder="Elegí un socio por nombre o CI" aria-label="Socio del historial" hidden>
+            <datalist id="records-member-options"></datalist>
+            <label class="records-search-control"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="records-search" type="search" placeholder="Buscar socio o CI" aria-label="Buscar socio o CI" autocomplete="off"><kbd>Ctrl K</kbd></label>
+            <input id="records-date" class="admin-business-date" type="date" aria-label="Fecha de los registros">
           </div>
 
-          <div class="records-summary-grid">
-            <article><span>Ingresos al gimnasio</span><strong id="records-entry-count">0</strong><small>accesos registrados</small></article>
-            <article><span>Clases programadas</span><strong id="records-class-count">0</strong><small>en todos los locales</small></article>
-            <article><span>Asistencias a clases</span><strong id="records-attendance-count">0</strong><small>presencias confirmadas</small></article>
-          </div>
-
-          <div class="records-tabs" role="tablist" aria-label="Tipo de registro">
-            <button class="is-active" type="button" data-records-tab="entries" role="tab"><i class="fa-solid fa-door-open"></i>Ingresos al gimnasio</button>
-            <button type="button" data-records-tab="classes" role="tab"><i class="fa-solid fa-people-group"></i>Clases por día</button>
-          </div>
-
-          <section class="operations-surface records-panel is-active" data-records-panel="entries">
-            <div class="surface-heading">
-              <div><h3>Personas que ingresaron</h3><p>Incluye recepción, pantalla de ingreso y asistencias registradas desde tablets.</p></div>
-              <span id="records-entry-status" class="surface-meta"></span>
-            </div>
+          <section id="records-entries-panel" class="records-panel is-active" data-records-panel="entries" aria-label="Ingresos al gimnasio">
             <div class="table-scroll records-table-scroll">
-              <table class="data-table records-table">
-                <thead><tr><th>Hora</th><th>Socio</th><th>Local</th><th>Origen</th><th></th></tr></thead>
+              <table class="records-table">
+                <colgroup><col style="width:110px"><col><col style="width:24%"><col style="width:150px"></colgroup>
+                <thead><tr><th>Hora</th><th>Socio</th><th>Local</th><th><span class="sr-only">Acciones</span></th></tr></thead>
                 <tbody id="records-entry-body"></tbody>
               </table>
             </div>
             <div id="records-entry-empty" class="surface-empty"><i class="fa-solid fa-door-open"></i><strong>No hay ingresos en esta jornada</strong><span>Los accesos aparecerán aquí al ser registrados.</span></div>
           </section>
 
-          <div class="records-class-workspace" data-records-panel="classes">
-            <section class="operations-surface records-panel records-class-list-panel">
-              <div class="surface-heading"><div><h3>Clases de la jornada</h3><p>Horario, profesor asignado, asistencia y resultado de cada clase.</p></div></div>
-              <div class="table-scroll records-table-scroll">
-                <table class="data-table records-class-table">
-                  <thead><tr><th>Horario</th><th>Clase / Local</th><th>Profesor</th><th>Asistencia</th><th>Estado</th></tr></thead>
-                  <tbody id="records-class-body"></tbody>
-                </table>
-              </div>
-              <div id="records-class-empty" class="surface-empty"><i class="fa-regular fa-calendar-xmark"></i><strong>No hay clases programadas</strong><span>Cambiá la fecha o creá una programación desde Clases.</span></div>
-            </section>
-
-            <aside class="operations-surface records-class-detail">
-              <div class="surface-heading"><div><span class="section-kicker">Detalle de asistencia</span><h3 id="records-detail-title">Seleccioná una clase</h3><p id="records-detail-meta">El detalle se abre en esta misma página.</p></div></div>
-              <div id="records-detail-summary" class="records-detail-summary"></div>
-              <div id="records-detail-roster" class="records-detail-roster"></div>
-              <div id="records-detail-empty" class="surface-empty compact"><i class="fa-solid fa-user-check"></i><span>Elegí una clase para revisar presentes y ausentes.</span></div>
-            </aside>
+          <button id="records-refresh" type="button" hidden>Actualizar</button>
+          <span id="records-entry-count" hidden>0</span>
+          <span id="records-overview-copy" hidden></span>
+          </div>
+          <footer class="app-modal-footer">
+            <span id="records-entry-status" class="surface-meta" aria-live="polite"></span>
+            <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-concurrencia">Cerrar</button>
+          </footer>
           </div>
         </section>
 
-        <section class="app-view product-page" data-admin-view="products">
-          <div class="section-heading product-page-heading">
-            <div><span class="section-kicker">Inventario y ventas</span><h2 class="section-title">Productos</h2><p class="section-subtitle">Venta en recepción y asignación de stock entre locales.</p></div>
-            <nav class="product-local-tabs" aria-label="Stock por local">
-              <button class="is-active" type="button" data-product-location="local1"><i class="fa-solid fa-building"></i><span>Local 1</span></button>
-              <button type="button" data-product-location="local2"><i class="fa-solid fa-dumbbell"></i><span>Local 2</span></button>
-            </nav>
+        <section class="app-view product-page admin-index-page" data-admin-view="products">
+          <div class="product-page-heading admin-section-heading">
+            <div class="product-title-block admin-section-title-block">
+              <h2 class="section-title">Productos</h2>
+              <div class="product-live-counts" aria-live="polite">
+                <span><strong id="products-total-count">0</strong> productos</span>
+                <span class="is-available"><i></i><strong id="products-available-count">0</strong> disponibles</span>
+              </div>
+            </div>
+            <button class="app-button app-button-primary product-new-button" type="button" data-open-modal="modal-nuevo-producto"><i class="fa-solid fa-plus"></i>Nuevo producto</button>
+          </div>
+
+          <div class="product-toolbar">
+            <label class="product-search-control" for="product-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="product-search" placeholder="Buscar producto" autocomplete="off">
+            </label>
+            <div class="product-filter-group" role="group" aria-label="Mostrar productos por local">
+              <button class="is-active" type="button" data-product-location="local1">Local 1</button>
+              <button type="button" data-product-location="local2">Local 2</button>
+            </div>
           </div>
 
           <section class="product-local-view is-active" data-product-location-panel="local1">
-            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Recepción</span><h3>Stock del Local 1</h3><p>Seleccioná una fila para vender o editar el producto.</p></div></div>
             <div class="table-card product-fixed-table">
               <div class="table-scroll table-scroll-products">
-                <table class="data-table" id="tabla-productos">
-                  <thead><tr><th>Producto</th><th>Precio</th><th>Stock</th></tr></thead>
-                  <tbody id="cuerpo-productos"></tbody>
-                </table>
+                <div id="tabla-productos" aria-label="Productos del local">
+                  <div id="cuerpo-productos" class="product-catalog-grid" role="group" aria-label="Seleccionar producto"></div>
+                </div>
               </div>
               <div id="sin-productos" class="table-empty">Todavía no hay productos cargados.</div>
             </div>
             <div class="page-action-dock product-action-dock">
-              <div id="product-local1-selection" class="dock-selection"><span>Producto seleccionado</span><strong>Ninguno</strong></div>
+              <div id="product-local1-selection" class="dock-selection"><span>Seleccionado</span><strong>Ninguno</strong></div>
               <button id="product-sell-selected" class="page-dock-action" type="button" disabled><i class="fa-solid fa-cart-shopping"></i><span>Vender</span></button>
               <button id="product-edit-selected" class="page-dock-action" type="button" disabled><i class="fa-solid fa-pen"></i><span>Editar</span></button>
-              <button class="page-dock-action is-primary" type="button" data-open-modal="modal-nuevo-producto"><i class="fa-solid fa-plus"></i><span>Nuevo producto</span></button>
             </div>
           </section>
 
-          <section class="product-local-view" data-product-location-panel="local2">
-            <div class="surface-heading product-catalog-heading"><div><span class="section-kicker">Salón de clases</span><h3>Stock del Local 2</h3><p>Seleccioná un producto y asigná unidades desde recepción.</p></div><span class="surface-meta" id="location-stock-updated">Sin actualizar</span></div>
-            <div class="table-card product-fixed-table">
-              <div class="table-scroll location-stock-scroll"><table class="data-table location-stock-table"><thead><tr><th>Producto</th><th>Precio</th><th>Stock Local 2</th><th>Disponible Local 1</th></tr></thead><tbody id="location-stock-body"></tbody></table></div>
-            </div>
-            <div class="page-action-dock product-action-dock stock-action-dock">
-              <label class="dock-product" for="stock-transfer-product"><span>Producto de Local 1</span><select id="stock-transfer-product" class="app-select"><option value="">Seleccionar producto</option></select></label>
-              <div id="stock-transfer-availability" class="dock-selection"><span>Disponible</span><strong>Ninguno</strong><small>Elegí el producto que querés asignar</small></div>
-              <label class="dock-quantity" for="stock-transfer-quantity"><span>Cantidad</span><input id="stock-transfer-quantity" type="number" min="1" step="1" value="1"></label>
-              <button id="stock-transfer-submit" class="page-dock-action is-primary" type="button" disabled><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Asignar al Local 2</span></button>
-            </div>
-          </section>
         </section>
 
-        <section class="app-view" data-admin-view="classes">
-          <div class="section-heading">
-            <div><span class="section-kicker">Agenda de clases</span><h2 class="section-title">Clases</h2><p class="section-subtitle">Programá actividades, revisá horarios e inscribí socios desde recepción.</p></div>
-            <div class="dashboard-inline-actions">
-              <button id="classes-open-tablet" class="app-button" type="button"><i class="fa-solid fa-tablet-screen-button"></i>Vista tablet</button>
-              <button class="app-button" type="button" data-open-modal="modal-profesor"><i class="fa-solid fa-user-plus"></i>Agregar profesor</button>
-              <button class="app-button app-button-primary" type="button" data-open-modal="modal-nueva-clase"><i class="fa-solid fa-plus"></i>Nueva clase</button>
+        <section class="app-view classes-approved-page admin-index-page" data-admin-view="classes">
+          <section class="classes-screen is-active" data-classes-screen="agenda">
+            <div class="classes-approved-heading admin-section-heading">
+              <div class="classes-title-copy admin-section-title-block">
+                <h2 class="section-title">Clases</h2>
+                <div class="classes-live-counts" aria-live="polite">
+                  <span><strong id="classes-week-count">0</strong> clases esta semana</span>
+                  <span><strong id="classes-enrolled-count">0</strong> inscriptos en el día</span>
+                </div>
+              </div>
+              <div class="classes-heading-actions">
+                <button id="classes-open-professors" class="app-button" type="button">Profesores</button>
+                <button class="app-button app-button-primary" type="button" data-open-modal="modal-nueva-clase"><i class="fa-solid fa-plus" aria-hidden="true"></i>Nueva clase</button>
+              </div>
             </div>
-          </div>
-          <div class="classes-summary-grid">
-            <article class="operational-stat"><span>Clases de hoy</span><strong id="classes-today-count">0</strong><small>programadas</small></article>
-            <article class="operational-stat"><span>Alumnos inscriptos</span><strong id="classes-enrolled-count">0</strong><small>en grupos activos</small></article>
-            <article class="operational-stat"><span>Profesores activos</span><strong id="classes-professors-count">0</strong><small>disponibles para dictar</small></article>
-          </div>
-          <div class="classes-workspace">
-            <section class="operations-surface classes-list-surface">
-              <div class="surface-heading"><div><h3>Próximas clases</h3><p>Todas las clases programadas, ordenadas por fecha y hora.</p></div><button id="classes-refresh" class="icon-action" type="button" aria-label="Actualizar clases"><i class="fa-solid fa-rotate"></i></button></div>
-              <div id="classes-list" class="classes-list"></div>
-              <div id="classes-empty" class="surface-empty"><i class="fa-regular fa-calendar-plus"></i><strong>Todavía no hay clases programadas</strong><span>Creá la primera para comenzar a inscribir socios.</span></div>
+
+            <div class="classes-week-card">
+              <div class="classes-week-heading">
+                <div><strong id="classes-week-label">Semana</strong></div>
+                <div class="classes-week-actions"><button id="classes-week-today" type="button">Hoy</button><button id="classes-week-prev" type="button" aria-label="Semana anterior"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button><button id="classes-week-next" type="button" aria-label="Semana siguiente"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></div>
+              </div>
+              <div id="classes-day-picker" class="classes-day-picker" role="tablist" aria-label="Días de la semana"></div>
+            </div>
+
+            <section class="classes-agenda-card">
+              <div class="classes-agenda-heading"><h3 id="classes-selected-date">Clases del día</h3><span id="classes-day-summary" aria-live="polite"></span></div>
+              <div class="classes-table-head" aria-hidden="true"><span>Horario</span><span>Clase y profesor</span><span>Cupo</span><span>Estado</span><span>Prueba</span></div>
+              <div id="classes-list" class="classes-list" role="tabpanel" aria-labelledby="classes-selected-date"></div>
+              <div id="classes-empty" class="surface-empty"><i class="fa-regular fa-calendar-plus"></i><strong>No hay clases este día</strong><span>Elegí otro día o creá una clase semanal.</span></div>
             </section>
-            <aside class="operations-surface class-detail-surface">
-              <div class="surface-heading"><div><span class="section-kicker">Detalle</span><h3 id="class-detail-title">Seleccioná una clase</h3><p id="class-detail-meta">Verás horario, profesor, cupos y alumnos.</p></div></div>
-              <div id="class-enrollment-list" class="class-enrollment-list"></div>
-              <div id="class-detail-empty" class="surface-empty compact"><i class="fa-solid fa-users"></i><span>No hay una clase seleccionada.</span></div>
-              <button id="class-enroll-open" class="app-button app-button-primary class-enroll-action" type="button" disabled><i class="fa-solid fa-user-plus"></i>Inscribir socio</button>
-            </aside>
-          </div>
-          <section class="operations-surface professors-surface">
-            <div class="surface-heading">
-              <div><span class="section-kicker">Equipo</span><h3>Profesores</h3><p>El PIN identifica quién opera la tablet; no reemplaza una cuenta de usuario.</p></div>
-              <span id="professors-count" class="surface-meta">0 activos</span>
-            </div>
-            <div id="professors-list" class="professors-list"></div>
-            <div id="professors-empty" class="surface-empty compact"><i class="fa-solid fa-user-lock"></i><strong>No hay profesores cargados</strong><span>Agregá uno para asignarlo a clases y registrar su actividad.</span></div>
+
           </section>
+
+          <section id="class-detail-panel" class="classes-screen class-detail-page" data-classes-screen="detail" aria-labelledby="class-detail-title">
+            <div class="admin-section-heading">
+              <div class="admin-section-title-block">
+                <h2 id="class-detail-title" class="section-title" tabindex="-1">Detalle de clase</h2>
+                <p id="class-detail-meta" class="class-detail-meta"></p>
+              </div>
+              <div class="class-detail-actions">
+                <button id="class-detail-refresh" class="app-button" type="button">Actualizar</button>
+                <button id="class-delete" class="app-button" type="button" hidden>Eliminar clase</button>
+                <button id="class-edit-open" class="app-button" type="button" hidden>Editar clase</button>
+                <button id="class-enroll-open" class="app-button app-button-primary" type="button" disabled><i class="fa-solid fa-user-plus" aria-hidden="true"></i><span>Nuevo Alumno</span></button>
+              </div>
+            </div>
+            <div class="class-detail-context">
+              <button id="class-detail-close" class="app-back-button" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Volver a clases</button>
+              <div class="class-detail-summary" aria-live="polite"><span id="class-detail-state"></span><span id="class-detail-trial" hidden>Clase de prueba</span><span id="class-detail-count"></span></div>
+            </div>
+            <div class="class-roster-toolbar">
+              <label class="class-roster-search" for="class-detail-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="class-detail-search" type="search" placeholder="Buscar socio por nombre o CI" autocomplete="off"><span class="visually-hidden">Buscar socio por nombre o CI</span></label>
+              <div id="class-roster-filters" class="class-roster-filters" role="group" aria-label="Filtrar socios de la clase">
+                <button type="button" data-roster-filter="all" aria-pressed="true">Todos <span></span></button>
+                <button type="button" data-roster-filter="present" aria-pressed="false">Presentes <span></span></button>
+                <button type="button" data-roster-filter="unrated" aria-pressed="false" hidden>Sin evaluar <span></span></button>
+              </div>
+            </div>
+            <section class="class-roster-surface" aria-label="Socios de esta clase">
+              <div id="class-roster-scroll" class="class-roster-scroll">
+                <table class="data-table class-roster-table"><thead><tr><th scope="col">Socio</th><th scope="col">Asistencia</th><th scope="col" id="class-rating-heading" hidden>Evaluación <span class="class-evaluation-optional">Opcional</span></th><th scope="col" id="class-remove-heading" aria-label="Acciones" hidden></th></tr></thead><tbody id="class-enrollment-list"></tbody></table>
+              </div>
+              <div id="class-detail-empty" class="class-detail-empty" role="status" hidden></div>
+            </section>
+            <p id="class-detail-feedback" class="visually-hidden" role="status" aria-live="polite"></p>
+          </section>
+
+          <span id="classes-professors-count" hidden>0</span>
+          <button id="classes-refresh" type="button" hidden>Actualizar</button>
+          <button id="classes-open-tablet" type="button" hidden>Vista tablet</button>
+        </section>
+
+        <section class="app-view training-page training-approved-page admin-index-page" data-admin-view="training">
+          <div class="training-approved-heading admin-section-heading">
+            <div class="training-heading-copy admin-section-title-block">
+              <h2 class="section-title">Rutinas</h2>
+              <div class="training-live-counts" aria-label="Resumen de entrenamiento">
+                <span><strong id="training-active-count">0</strong> plantillas</span>
+                <span><strong id="training-assigned-count">0</strong> socios con rutina</span>
+                <span><strong id="training-exercise-overview-count">0</strong> ejercicios</span>
+              </div>
+              <span id="training-heading-copy" hidden></span>
+            </div>
+            <div class="training-heading-actions">
+              <button id="training-open-exercises" class="app-button" type="button"><i class="fa-solid fa-dumbbell"></i>Ejercicios</button>
+              <button id="training-primary-action" class="app-button app-button-primary" type="button"><i class="fa-solid fa-plus"></i>Nueva plantilla</button>
+            </div>
+          </div>
+
+          <div class="training-control-bar">
+            <nav class="training-tabs training-primary-tabs" aria-label="Secciones de rutinas">
+              <button class="is-active" type="button" data-training-tab="templates">Plantillas</button>
+              <button type="button" data-training-tab="members">Rutinas de socios</button>
+            </nav>
+            <label class="training-search" data-training-control="templates"><i class="fa-solid fa-magnifying-glass"></i><input id="template-search" placeholder="Buscar plantilla"><kbd>Ctrl K</kbd></label>
+            <label class="training-search" data-training-control="members" hidden><i class="fa-solid fa-magnifying-glass"></i><input id="member-routine-search" placeholder="Buscar socio por nombre o CI"><kbd>Ctrl K</kbd></label>
+            <span class="training-control-summary" id="template-summary" data-training-control="templates">0 rutinas</span>
+            <span class="training-control-summary" id="member-routine-summary" data-training-control="members" hidden>0 socios</span>
+          </div>
+
+          <section class="training-panel is-active" data-training-panel="templates">
+            <div class="training-table-card">
+              <table class="training-data-table">
+                <thead><tr><th scope="col">Plantilla de rutina</th><th scope="col">Días de entrenamiento</th><th scope="col">Socios</th><th scope="col">Última edición</th></tr></thead>
+                <tbody id="template-list"></tbody>
+              </table>
+              <div id="template-empty" class="training-empty" hidden>Todavía no hay plantillas guardadas.</div>
+            </div>
+          </section>
+
+          <section class="training-panel" data-training-panel="members">
+            <div class="training-table-card training-member-card">
+              <table class="training-data-table training-member-table">
+                <thead><tr><th scope="col">Socio</th><th scope="col">Rutina asignada</th><th scope="col">Entrenamiento</th><th scope="col">Actualizada</th></tr></thead>
+                <tbody id="member-routines-list"></tbody>
+              </table>
+              <div id="member-routines-empty" class="training-empty" hidden>No encontramos socios con ese criterio.</div>
+            </div>
+          </section>
+
+          <section class="training-panel" data-training-panel="editor">
+            <header class="training-editor-heading">
+              <div>
+                <h2 id="workout-editor-title" class="section-title">Crear plantilla</h2>
+                <div class="training-editor-context">
+                  <button id="workout-editor-back" class="app-back-button" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>Volver a plantillas</span></button>
+                  <span id="workout-member-caption" hidden></span>
+                  <span id="workout-editor-summary">0 días · 0 ejercicios</span>
+                </div>
+              </div>
+              <button id="workout-create-exercise" class="app-button" type="button"><i class="fa-solid fa-plus"></i>Crear ejercicio</button>
+            </header>
+            <form id="workout-form" class="training-workspace" data-editor-mode="template">
+              <div class="training-builder-columns">
+                  <section class="training-exercise-catalog">
+                    <div class="training-builder-heading"><span><strong>Ejercicios</strong><small id="workout-exercise-catalog-count">0 disponibles</small></span></div>
+                    <div class="exercise-search-box">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                      <input id="workout-exercise-search" type="search" autocomplete="off" aria-label="Buscar ejercicios por nombre o grupo muscular" placeholder="Buscar ejercicio">
+                      <button id="workout-exercise-search-clear" type="button" aria-label="Limpiar búsqueda" title="Limpiar búsqueda" hidden><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="workout-exercise-results" class="exercise-search-results"></div>
+                  </section>
+                <div class="training-day-editor">
+                  <header class="training-routine-header">
+                    <input id="workout-member" type="hidden">
+                    <label class="training-name-field"><span id="workout-name-label">Nombre de la plantilla</span><input id="workout-name" required placeholder="Ej. Fuerza inicial"></label>
+                    <label class="training-member-only training-professor-field">Profesor<select id="workout-professor"></select><small id="workout-professor-help">Cargando profesores…</small></label>
+                    <label class="training-template-field">Usar plantilla<select id="workout-template"><option value="">Empezar vacía</option></select><small id="workout-template-help">Cargando plantillas…</small></label>
+                  </header>
+                  <nav class="training-day-navigation" aria-label="Días de la rutina">
+                    <div id="workout-day-tabs" class="training-day-tabs" role="tablist" aria-label="Días de la rutina"></div>
+                    <button id="workout-add-day" type="button" aria-label="Agregar día" title="Agregar día"><i class="fa-solid fa-plus"></i></button>
+                  </nav>
+                  <section class="training-group-draft">
+                    <div id="workout-day-exercises" class="training-sort-list" role="tabpanel" aria-labelledby="workout-day-tab-0"><div class="training-empty">Seleccioná ejercicios desde el catálogo.</div></div>
+                  </section>
+                </div>
+              </div>
+              <footer class="training-footer">
+                <div class="training-footer-actions">
+                  <button id="workout-cancel" class="app-button" type="button">Cancelar</button>
+                  <button id="workout-save-template" class="app-button" type="button">Guardar como plantilla</button>
+                  <button id="workout-save-routine" class="app-button app-button-primary" type="submit">Guardar rutina</button>
+                </div>
+              </footer>
+            </form>
+          </section>
+
+          <section class="training-panel training-exercises-panel" data-training-panel="exercises">
+            <div class="training-exercises-heading">
+              <div>
+                <h2 class="section-title">Ejercicios</h2>
+                <div class="training-editor-context">
+                  <button id="exercises-back" class="app-back-button" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>Volver a plantillas</span></button>
+                  <span><strong id="exercise-active-count">0</strong> disponibles</span>
+                </div>
+              </div>
+              <button id="exercise-create" class="app-button app-button-primary" type="button"><i class="fa-solid fa-plus"></i>Crear ejercicio</button>
+            </div>
+            <div class="exercise-library-toolbar">
+              <label class="training-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="exercise-library-search" type="search" autocomplete="off" aria-label="Buscar ejercicio por nombre o grupo muscular" placeholder="Buscar ejercicio por nombre o grupo muscular"><kbd>Ctrl K</kbd></label>
+              <span id="exercise-library-results" class="exercise-library-results" role="status" aria-live="polite"></span>
+              <div id="exercise-muscle-filters" class="exercise-muscle-filters" role="group" aria-label="Filtrar por grupo muscular"></div>
+            </div>
+            <div class="exercise-library-content">
+              <div id="exercise-list" class="exercise-library-grid"></div>
+              <div id="exercise-library-empty" class="training-empty" hidden><strong>No encontramos ejercicios</strong><span>Probá otro nombre o grupo muscular.</span><button id="exercise-reset-filters" class="app-button" type="button">Restablecer filtros</button></div>
+            </div>
+          </section>
+            <div id="exercise-editor" class="exercise-editor-overlay" role="dialog" aria-modal="true" aria-labelledby="exercise-editor-title" hidden>
+              <form id="exercise-form" class="training-form exercise-editor-card">
+                <div class="exercise-editor-heading"><h3 id="exercise-editor-title">Crear ejercicio</h3><button id="exercise-editor-close" type="button" aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+                <input id="exercise-id" type="hidden">
+                <input id="exercise-gif" type="hidden">
+                <div class="exercise-editor-body">
+                  <div class="exercise-editor-fields">
+                    <label for="exercise-name">Nombre del ejercicio<input id="exercise-name" required maxlength="120" placeholder="Ej. Press de banca" autocomplete="off"></label>
+                    <div class="exercise-muscle-field"><label for="exercise-muscle">Grupo muscular</label><div class="exercise-muscle-combobox"><input id="exercise-muscle" role="combobox" aria-autocomplete="list" aria-controls="exercise-muscle-options" aria-expanded="false" required maxlength="80" placeholder="Elegí o escribí un grupo" autocomplete="off"><button id="exercise-muscle-toggle" type="button" aria-label="Mostrar grupos musculares" aria-expanded="false" aria-controls="exercise-muscle-options"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button></div><div id="exercise-muscle-options" role="listbox" aria-label="Grupos musculares" hidden></div></div>
+                    <label class="exercise-technique" for="exercise-instructions"><span>Técnica <span class="exercise-field-optional">Opcional</span></span><textarea id="exercise-instructions" rows="4" placeholder="Cómo realizar el movimiento y qué tener en cuenta"></textarea></label>
+                  </div>
+                  <div class="exercise-editor-media" role="group" aria-labelledby="exercise-media-label">
+                    <div id="exercise-media-label" class="exercise-field-label">Demostración <span class="exercise-field-optional">Opcional</span></div>
+                    <div id="exercise-video-drop" class="exercise-video-drop">
+                      <div id="exercise-video-empty" class="exercise-video-empty"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i><strong>Arrastrá un video aquí</strong><span>MP4, MOV, M4V o WebM</span></div>
+                      <div id="exercise-video-preview" class="exercise-video-preview" hidden><video muted loop autoplay playsinline controls aria-label="Vista previa del ejercicio"></video><img alt="Demostración del ejercicio" hidden></div>
+                      <div class="exercise-media-actions"><button id="exercise-video-choose" class="app-button" type="button">Elegir video</button><button id="exercise-video-remove" class="exercise-media-remove" type="button" hidden>Quitar</button></div>
+                      <input id="exercise-video-file" type="file" accept=".mp4,.mov,.m4v,.webm" hidden>
+                    </div>
+                    <span class="exercise-video-format">1:1 · 720 × 720 · recorte centrado · hasta 15 s</span>
+                    <span id="exercise-media-status" role="status" aria-live="polite"></span>
+                  </div>
+                </div>
+                <div class="training-actions training-wide"><button id="exercise-delete" class="app-button" type="button" hidden>Eliminar ejercicio</button><button id="exercise-cancel" class="app-button" type="button">Cancelar</button><button id="exercise-save" class="app-button app-button-primary" type="submit">Guardar</button></div>
+              </form>
+            </div>
         </section>
       </main>
     </div>
   </div>
 
-  <div id="modal-dashboard" class="app-modal">
-    <div class="app-modal-card app-modal-card-dashboard">
-      <div class="app-modal-header">
-        <div><span class="section-kicker">Operación diaria</span><h3>Dashboard</h3></div>
-        <button type="button" class="app-modal-close" data-close-modal="modal-dashboard">Cerrar</button>
-      </div>
-
-      <div class="app-modal-body app-modal-dashboard-body">
-        <div class="dashboard-top-grid">
-          <div class="dashboard-top-left">
-            <div class="dashboard-toolbar">
-              <div class="dashboard-toolbar-date">
-                <label for="dashboard-fecha">Jornada</label>
-                <input id="dashboard-fecha" type="date">
-                <span id="dashboard-estado-ingresos" class="dashboard-status"></span>
-              </div>
-            </div>
-            <div class="dashboard-state-block">
-              <span id="dashboard-estado-caja-pill" class="cash-state-pill cash-state-closed">
-                <span class="cash-state-dot"></span>
-                <span id="dashboard-estado-caja-texto">Caja cerrada</span>
-              </span>
-              <p id="dashboard-cierre-estado" class="dashboard-state-copy">Sin apertura registrada para esta fecha.</p>
-            </div>
-            <div id="dashboard-apertura-resumen" class="dashboard-opening-summary" style="display: none;">
-              <span id="dashboard-apertura-estado" class="dashboard-opening-title">Caja abierta</span>
-              <span id="dashboard-apertura-resumen-monto" class="dashboard-opening-meta">$ 0</span>
-              <span id="dashboard-apertura-resumen-observacion" class="dashboard-opening-note"></span>
-              <button id="dashboard-editar-apertura" class="app-button" type="button">Editar apertura</button>
-            </div>
-            <div class="dashboard-tabs" hidden><button class="dashboard-tab-button is-active" type="button" data-dashboard-tab="caja">Caja</button></div>
-          </div>
-
-          <section id="dashboard-apertura-card" class="dashboard-compact-card dashboard-opening-card" data-caja-only>
-            <div class="cash-opening-label">
-              <i class="fa-solid fa-key"></i>
-              <span><strong>Iniciar jornada</strong><small>Fondo inicial y persona en caja</small></span>
-            </div>
-            <div class="dashboard-inline-form">
-              <div class="form-field">
-                <label for="dashboard-apertura-cajero">Cajero que abre</label>
-                <input id="dashboard-apertura-cajero" type="text" placeholder="Nombre">
-              </div>
-              <div class="form-field">
-                <label for="dashboard-apertura-monto">Monto inicial</label>
-                <input id="dashboard-apertura-monto" type="number" min="0" step="1" placeholder="Monto">
-              </div>
-              <div class="form-field dashboard-inline-form-grow">
-                <label for="dashboard-apertura-observacion">Observación</label>
-                <input id="dashboard-apertura-observacion" type="text" placeholder="Obs.">
-              </div>
-              <button id="dashboard-guardar-apertura" class="app-button app-button-primary" type="button">Abrir caja</button>
-            </div>
-          </section>
+  <section id="modal-dashboard" class="app-modal cash-ledger-page admin-index-page">
+    <header class="admin-section-heading">
+      <div class="admin-section-title-block">
+        <h3 class="section-title">Caja</h3>
+        <div class="users-live-counts ledger-status" aria-live="polite">
+          <span id="dashboard-estado-caja-pill"><span id="dashboard-estado-caja-texto">Cargando caja…</span></span>
+          <span id="dashboard-apertura-resumen" style="display:none"><span id="dashboard-apertura-resumen-monto"></span></span>
         </div>
-
-        <section class="content-panel dashboard-caja-panel" data-dashboard-panel="caja">
-          <section class="dashboard-overview">
-            <section class="dashboard-compact-card dashboard-legacy-opening-card" style="display: none;">
-              <div class="section-heading">
-                <div>
-                  <h3 class="section-title"><i class="fa-solid fa-cash-register"></i>Apertura de caja</h3>
-                  <p class="section-subtitle">Ingresá el efectivo inicial para comenzar la jornada.</p>
-                </div>
-              </div>
-              <div class="dashboard-inline-form">
-                <div class="form-field">
-                  <label for="dashboard-apertura-cajero">Cajero que abre</label>
-                  <input type="text" placeholder="Nombre del cajero">
-                </div>
-                <div class="form-field">
-                  <label for="dashboard-apertura-monto">Monto inicial en efectivo</label>
-                  <input type="number" min="0" step="1" placeholder="Monto inicial">
-                </div>
-                <div class="form-field dashboard-inline-form-grow">
-                  <label for="dashboard-apertura-observacion">Observación</label>
-                  <input type="text" placeholder="Observación de apertura">
-                </div>
-                <button class="app-button app-button-primary" type="button">Guardar</button>
-              </div>
-            </section>
-
-            <section id="dashboard-cierre-resumen" class="dashboard-compact-card dashboard-history-card" style="display: none;">
-              <div class="section-heading">
-                <div>
-                  <h3 class="section-title">Cierre del día</h3>
-                  <p class="section-subtitle">Resumen histórico de la caja cerrada.</p>
-                </div>
-              </div>
-              <div class="dashboard-history-grid">
-                <div>
-                  <span class="dashboard-history-label">Hora de cierre</span>
-                  <span id="dashboard-cierre-hora" class="dashboard-history-value">-</span>
-                </div>
-                <div>
-                  <span class="dashboard-history-label">Contado final</span>
-                  <span id="dashboard-cierre-contado" class="dashboard-history-value">$ 0</span>
-                </div>
-                <div>
-                  <span class="dashboard-history-label">Diferencia</span>
-                  <span id="dashboard-cierre-diferencia" class="dashboard-history-value">$ 0</span>
-                </div>
-                <div>
-                  <span class="dashboard-history-label">Observación</span>
-                  <span id="dashboard-cierre-observacion-resumen" class="dashboard-history-value">-</span>
-                </div>
-              </div>
-            </section>
-
-            <div class="widgets-row dashboard-widgets-row" aria-label="Resumen de caja">
-              <article class="summary-widget summary-widget-compact summary-widget-clickable" title="Click para ajustar total">
-                <span class="summary-widget-label"><i class="fa-solid fa-wallet"></i>Total cobrado</span>
-                <span id="dashboard-total-ingresos" class="summary-widget-value">$ 0</span>
-              </article>
-              <article class="summary-widget summary-widget-compact dashboard-cash-expected-widget">
-                <span class="summary-widget-label"><i class="fa-solid fa-money-bill-wave"></i>Efectivo esperado</span>
-                <span id="dashboard-total-efectivo" class="summary-widget-value">$ 0</span>
-              </article>
-              <article class="summary-widget summary-widget-compact">
-                <span class="summary-widget-label"><i class="fa-solid fa-building-columns"></i>Transferencias</span>
-                <span id="dashboard-total-tarjeta" class="summary-widget-value">$ 0</span>
-              </article>
-              <article class="summary-widget summary-widget-compact">
-                <span class="summary-widget-label"><i class="fa-solid fa-arrow-trend-down"></i>Salidas</span>
-                <span id="dashboard-total-egresos" class="summary-widget-value">$ 0</span>
-              </article>
-              <article class="summary-widget summary-widget-compact summary-widget-pending" data-admin-section="pending" tabindex="0">
-                <span class="summary-widget-label"><i class="fa-regular fa-clock"></i>Sin cobrar</span>
-                <span id="dashboard-total-pendiente" class="summary-widget-value">$ 0</span>
-                <small id="dashboard-pending-count">0 ventas</small>
-              </article>
-            </div>
-          </section>
-
-          <section class="dashboard-movements-section">
-            <div class="section-heading dashboard-movements-heading">
-              <div>
-                <h3 class="section-title">Movimientos de caja</h3>
-                <p class="section-subtitle">Altas, renovaciones, ventas, entradas manuales y salidas del día.</p>
-              </div>
-              <div class="dashboard-inline-actions">
-                <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button"><i class="fa-solid fa-plus"></i>Entrada</button>
-                <button id="dashboard-registrar-salida" class="app-button app-button-danger" type="button"><i class="fa-solid fa-minus"></i>Salida</button>
-              </div>
-            </div>
-
-            <div class="dashboard-table-shell">
-              <div class="table-scroll table-scroll-dashboard dashboard-table-plain dashboard-table-primary">
-                <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Hora</th>
-                    <th>Tipo</th>
-                    <th>Detalle</th>
-                    <th>Pago</th>
-                    <th>Monto</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="tabla-dashboard-caja"></tbody>
-                </table>
-              </div>
-              <div id="dashboard-sin-caja" class="table-empty dashboard-empty-state"><i class="fa-regular fa-folder-open"></i><strong>No hay movimientos registrados</strong><span>Los movimientos de caja apareceran aqui.</span></div>
-            </div>
-          </section>
-
-          <div class="dashboard-footer-actions">
-            <div><strong>Fin de jornada</strong><span>Revisá movimientos y cobros pendientes antes de confirmar.</span></div>
-            <button id="dashboard-cerrar-caja" class="app-button app-button-primary" type="button"><i class="fa-solid fa-lock"></i>Cerrar caja</button>
-          </div>
-        </section>
-
-        <section class="content-panel" data-dashboard-panel="ingresos">
-          <div class="section-heading">
-            <div>
-              <h3 class="section-title">Registro de personas que entraron</h3>
-              <p class="section-subtitle">Actividad de acceso del gimnasio para la fecha seleccionada.</p>
-            </div>
-          </div>
-          <div class="dashboard-table-shell">
-            <div class="table-scroll table-scroll-dashboard dashboard-table-plain">
-              <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Hora</th>
-                  <th>CI</th>
-                  <th>Nombre</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="tabla-dashboard-ingresos"></tbody>
-              </table>
-            </div>
-            <div id="dashboard-sin-ingresos" class="table-empty dashboard-empty-state"><i class="fa-solid fa-door-open"></i><strong>No hay ingresos registrados</strong><span>Los accesos de la fecha seleccionada apareceran aqui.</span></div>
-          </div>
-        </section>
+      </div>
+      <div class="ledger-actions">
+        <button id="dashboard-cobrar" class="app-button" type="button" data-open-pending aria-haspopup="dialog">Cobros pendientes <span id="pending-sales-count" class="cash-pending-count" hidden>0</span></button>
+        <button id="dashboard-ver-cierre" class="app-button" type="button" hidden>Ver cierre</button>
+        <button id="dashboard-abrir-caja" class="app-button app-button-primary" type="button" hidden>Abrir caja</button>
+        <button id="dashboard-cerrar-caja" class="app-button" type="button" style="display:none">Cerrar caja</button>
+      </div>
+    </header>
+    <div class="ledger-content">
+      <section id="dashboard-apertura-card" class="ledger-opening" style="display:none">
+        <div class="form-field"><label for="dashboard-apertura-cajero">Responsable</label><input id="dashboard-apertura-cajero" type="text" placeholder="Nombre"></div>
+        <div class="form-field"><label for="dashboard-apertura-monto">Monto inicial</label><input id="dashboard-apertura-monto" type="number" min="0" step="1" placeholder="$ 0"></div>
+        <div class="form-field"><label for="dashboard-apertura-observacion">Observación</label><input id="dashboard-apertura-observacion" type="text" placeholder="Opcional"></div>
+        <button id="dashboard-guardar-apertura" class="app-button app-button-primary" type="button">Abrir caja</button>
+      </section>
+      <section class="ledger-metrics" aria-label="Resumen de caja">
+        <div><span>Total cobrado</span><button id="dashboard-total-ingresos" type="button" aria-label="Ajustar total cobrado">$ 0</button></div>
+        <div><span>Efectivo esperado</span><strong id="dashboard-total-efectivo">$ 0</strong></div>
+        <div><span>Transferencias</span><strong id="dashboard-total-tarjeta">$ 0</strong></div>
+        <div><span>Salidas</span><strong id="dashboard-total-egresos">$ 0</strong></div>
+      </section>
+      <div class="ledger-toolbar">
+        <div class="ledger-date-group">
+          <input id="dashboard-fecha" type="date" aria-label="Fecha de caja">
+          <span id="ledger-movement-count" aria-live="polite">Movimientos</span>
+        </div>
+        <div class="ledger-actions">
+          <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i>Entrada</button>
+          <button id="dashboard-registrar-salida" class="app-button" type="button"><i class="fa-solid fa-minus" aria-hidden="true"></i>Salida</button>
+        </div>
+      </div>
+      <div class="ledger-table-scroll">
+        <table class="ledger-table" aria-label="Movimientos de caja">
+          <colgroup><col class="ledger-col-time"><col><col class="ledger-col-payment"><col class="ledger-col-amount"><col class="ledger-col-action"></colgroup>
+          <thead><tr><th scope="col">Hora</th><th scope="col">Movimiento</th><th scope="col">Forma de pago</th><th scope="col">Importe</th><th scope="col"><span class="ledger-sr-only">Acciones</span></th></tr></thead>
+          <tbody id="tabla-dashboard-caja"></tbody>
+        </table>
+        <div id="dashboard-sin-caja" class="ledger-empty" style="display:none">No hay movimientos en esta fecha.</div>
       </div>
     </div>
-  </div>
+    <div hidden aria-hidden="true">
+      <span id="dashboard-apertura-estado"></span><span id="dashboard-apertura-resumen-observacion"></span><button id="dashboard-editar-apertura" type="button">Editar apertura</button>
+      <span id="dashboard-cierre-estado"></span><span id="dashboard-estado-ingresos"></span>
+      <section id="dashboard-cierre-resumen"><span id="dashboard-cierre-hora"></span><span id="dashboard-cierre-contado"></span><span id="dashboard-cierre-diferencia"></span><span id="dashboard-cierre-observacion-resumen"></span></section>
+      <span id="dashboard-total-pendiente"></span><span id="dashboard-pending-count"></span>
+      <table><tbody id="tabla-dashboard-ingresos"></tbody></table><div id="dashboard-sin-ingresos"></div>
+    </div>
+  </section>
 
   <div id="modal-anular-ingreso" class="app-modal">
     <div class="app-modal-card">
@@ -514,18 +529,17 @@
     </div>
   </div>
 
-  <div id="modal-salida-caja" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-salida-caja" class="app-modal product-workflow-modal cash-movement-modal" role="dialog" aria-modal="true" aria-labelledby="salida-caja-titulo">
+    <div class="app-modal-card product-workflow-card cash-movement-card">
       <div class="app-modal-header">
-        <h3>Registrar salida de caja</h3>
+        <h3 id="salida-caja-titulo">Salida de caja</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-salida-caja">Cerrar</button>
       </div>
 
-      <div class="app-modal-body">
-        <label for="salida-caja-monto">Monto de salida</label>
-        <input id="salida-caja-monto" type="number" min="0" step="1">
-        <label>Forma de pago</label>
-        <div class="binary-choice">
+      <form id="form-salida-caja" class="app-modal-body cash-movement-fields">
+        <div class="form-field"><label for="salida-caja-monto">Monto ($)</label><input id="salida-caja-monto" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0" required></div>
+        <div class="form-field"><label id="salida-pago-label">Forma de pago</label>
+        <div class="binary-choice payment-choice" role="radiogroup" aria-labelledby="salida-pago-label">
           <label class="binary-choice-option">
             <input type="radio" name="salida-caja-forma-pago" value="efectivo" checked>
             <span>Efectivo</span>
@@ -534,29 +548,30 @@
             <input type="radio" name="salida-caja-forma-pago" value="transferencia">
             <span>Transferencia</span>
           </label>
-        </div>
-        <label for="salida-caja-observacion">Motivo</label>
-        <input id="salida-caja-observacion" type="text" placeholder="Motivo de la salida">
-      </div>
+        </div></div>
+        <div class="form-field cash-movement-wide"><label for="salida-caja-responsable">Responsable</label><input id="salida-caja-responsable" type="text" placeholder="Nombre de quien registra" required></div>
+        <div class="form-field cash-movement-wide"><label for="salida-caja-observacion">Motivo <span class="cash-field-optional">Opcional</span></label><input id="salida-caja-observacion" type="text" placeholder="Ej. Compra de insumos"></div>
+      </form>
 
       <div class="app-modal-footer">
-        <button id="guardar-salida-caja" class="app-button app-button-primary" type="button">Registrar salida</button>
+        <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-salida-caja">Cancelar</button>
+        <button id="guardar-salida-caja" class="app-button app-button-primary" type="submit" form="form-salida-caja">Registrar salida</button>
       </div>
     </div>
   </div>
 
-  <div id="modal-corregir-movimiento" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-corregir-movimiento" class="app-modal cash-correction-modal">
+    <div class="app-modal-card cash-correction-card">
       <div class="app-modal-header">
         <h3>Corregir movimiento</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-corregir-movimiento">Cerrar</button>
       </div>
-      <div class="app-modal-body">
+      <div class="app-modal-body cash-correction-body">
         <input id="corregir-movimiento-id" type="hidden">
-        <label for="corregir-movimiento-monto">Monto correcto</label>
-        <input id="corregir-movimiento-monto" type="number" min="0" step="1">
-        <label>Forma de pago</label>
-        <div class="binary-choice">
+        <div id="corregir-movimiento-original" class="cash-original-movement"></div>
+        <div class="cash-correction-grid"><div class="form-field"><label for="corregir-movimiento-monto">Monto correcto</label><input id="corregir-movimiento-monto" type="number" min="0" step="1"></div>
+        <div class="form-field"><label>Forma de pago</label>
+        <div class="binary-choice payment-choice">
           <label class="binary-choice-option">
             <input type="radio" name="corregir-movimiento-forma-pago" value="efectivo" checked>
             <span>Efectivo</span>
@@ -565,30 +580,27 @@
             <input type="radio" name="corregir-movimiento-forma-pago" value="transferencia">
             <span>Transferencia</span>
           </label>
-        </div>
-        <label for="corregir-movimiento-observacion">Detalle correcto</label>
-        <input id="corregir-movimiento-observacion" type="text">
-        <label for="corregir-movimiento-motivo">Motivo de la correccion</label>
-        <input id="corregir-movimiento-motivo" type="text" placeholder="Obligatorio">
+        </div></div></div>
+        <div class="form-field"><label for="corregir-movimiento-observacion">Detalle correcto</label><input id="corregir-movimiento-observacion" type="text"></div>
+        <div class="form-field correction-reason"><label for="corregir-movimiento-motivo">Motivo de la corrección <span>Obligatorio</span></label><input id="corregir-movimiento-motivo" type="text" placeholder="Explicá por qué se corrige este movimiento"></div>
       </div>
       <div class="app-modal-footer">
-        <button id="guardar-correccion-movimiento" class="app-button app-button-primary" type="button">Guardar correccion</button>
+        <button id="guardar-correccion-movimiento" class="app-button app-button-danger" type="button">Guardar</button>
       </div>
     </div>
   </div>
 
-  <div id="modal-ingreso-manual-caja" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-ingreso-manual-caja" class="app-modal product-workflow-modal cash-movement-modal" role="dialog" aria-modal="true" aria-labelledby="entrada-caja-titulo">
+    <div class="app-modal-card product-workflow-card cash-movement-card">
       <div class="app-modal-header">
-        <h3>Registrar ingreso manual</h3>
+        <h3 id="entrada-caja-titulo">Entrada de caja</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-ingreso-manual-caja">Cerrar</button>
       </div>
 
-      <div class="app-modal-body">
-        <label for="ingreso-manual-monto">Monto</label>
-        <input id="ingreso-manual-monto" type="number" min="0" step="1">
-        <label>Forma de pago</label>
-        <div class="binary-choice">
+      <form id="form-ingreso-manual-caja" class="app-modal-body cash-movement-fields">
+        <div class="form-field"><label for="ingreso-manual-monto">Monto ($)</label><input id="ingreso-manual-monto" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0" required></div>
+        <div class="form-field"><label id="entrada-pago-label">Forma de pago</label>
+        <div class="binary-choice payment-choice" role="radiogroup" aria-labelledby="entrada-pago-label">
           <label class="binary-choice-option">
             <input type="radio" name="ingreso-manual-forma-pago" value="efectivo" checked>
             <span>Efectivo</span>
@@ -597,42 +609,42 @@
             <input type="radio" name="ingreso-manual-forma-pago" value="transferencia">
             <span>Transferencia</span>
           </label>
-        </div>
-        <label for="ingreso-manual-observacion">Motivo</label>
-        <input id="ingreso-manual-observacion" type="text" placeholder="Motivo del ingreso">
-      </div>
+        </div></div>
+        <div class="form-field cash-movement-wide"><label for="ingreso-manual-responsable">Responsable</label><input id="ingreso-manual-responsable" type="text" placeholder="Nombre de quien registra" required></div>
+        <div class="form-field cash-movement-wide"><label for="ingreso-manual-observacion">Motivo <span class="cash-field-optional">Opcional</span></label><input id="ingreso-manual-observacion" type="text" placeholder="Ej. Aporte de efectivo"></div>
+      </form>
 
       <div class="app-modal-footer">
-        <button id="guardar-ingreso-manual-caja" class="app-button app-button-primary" type="button">Registrar ingreso</button>
+        <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-ingreso-manual-caja">Cancelar</button>
+        <button id="guardar-ingreso-manual-caja" class="app-button app-button-primary" type="submit" form="form-ingreso-manual-caja">Registrar entrada</button>
       </div>
     </div>
   </div>
 
-  <div id="modal-cierre-caja" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-cierre-caja" class="app-modal product-workflow-modal closure-dialog" role="dialog" aria-modal="true" aria-labelledby="closure-title">
+    <div class="app-modal-card product-workflow-card">
       <div class="app-modal-header">
-        <h3>Cerrar caja</h3>
+        <h3 id="closure-title">Cerrar caja</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-cierre-caja">Cerrar</button>
       </div>
 
-      <div class="app-modal-body">
-        <div id="cierre-pendientes-resumen" class="task-context-card task-context-warning">
-          <span>Entregado sin cobrar</span><strong>$ 0</strong><span>No se suma al efectivo ni a las transferencias cobradas.</span>
+      <form id="closure-form" class="app-modal-body closure-body">
+        <p id="closure-date" class="closure-date"></p>
+        <div class="closure-totals">
+          <div class="form-field"><label for="cierre-efectivo-esperado">Efectivo esperado</label><input id="cierre-efectivo-esperado" readonly></div>
+          <div class="form-field"><label for="cierre-efectivo-contado">Efectivo contado</label><input id="cierre-efectivo-contado" type="number" min="0" step="0.01" required></div>
+          <div class="form-field"><label for="cierre-diferencia">Diferencia</label><input id="cierre-diferencia" readonly></div>
         </div>
-        <label for="cierre-efectivo-esperado">Efectivo esperado</label>
-        <input id="cierre-efectivo-esperado" readonly>
-        <label for="cierre-efectivo-contado">Efectivo contado</label>
-        <input id="cierre-efectivo-contado" type="number" min="0" step="1">
-        <label for="cierre-cajero">Cajero que cierra</label>
-        <input id="cierre-cajero" type="text" placeholder="Nombre de quien cierra">
-        <label for="cierre-diferencia">Diferencia</label>
-        <input id="cierre-diferencia" readonly>
-        <label for="cierre-observacion">Observaciones</label>
-        <input id="cierre-observacion" type="text" placeholder="Observaciones del cierre">
-      </div>
+        <div class="closure-meta">
+          <div class="form-field"><label for="cierre-cajero">Responsable del cierre</label><input id="cierre-cajero" type="text" placeholder="Nombre de quien cierra" required></div>
+          <div class="form-field"><label for="cierre-observacion">Observación</label><input id="cierre-observacion" type="text" placeholder="Opcional"></div>
+        </div>
+        <p id="cierre-pendientes-resumen" class="closure-pending" hidden></p>
+        <p id="closure-error" class="form-inline-error" role="alert" hidden></p>
+      </form>
 
       <div class="app-modal-footer">
-        <button id="guardar-cierre-caja" class="app-button app-button-primary" type="button">Confirmar cierre</button>
+        <button id="guardar-cierre-caja" class="app-button app-button-primary" type="submit" form="closure-form">Cerrar caja</button>
       </div>
     </div>
   </div>
@@ -640,56 +652,61 @@
   <div id="modal-alta-usuario" class="app-modal">
     <div class="app-modal-card app-modal-card-form-wide app-modal-card-user-detail">
       <div class="app-modal-header">
-        <h3>Agregar socio</h3>
+        <h3>Nuevo <em>socio</em></h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-alta-usuario">Cerrar</button>
       </div>
 
       <div class="app-modal-body user-detail-body">
         <section class="user-detail-section user-detail-personal">
-          <h4>Informacion personal</h4>
+          <h4>Información personal</h4>
           <div class="user-detail-section-grid">
             <div class="form-field">
               <label for="ci">CI</label>
-              <input type="text" id="ci" placeholder="CI">
+              <input type="text" id="ci" placeholder="Ej. 4.567.890-1">
             </div>
             <div class="form-field">
               <label for="nombre">Nombre completo</label>
-              <input type="text" id="nombre" placeholder="Nombre">
+              <input type="text" id="nombre" placeholder="Ej. Lucía Fernández">
             </div>
             <div class="form-field">
               <label for="fecha-nacimiento">Fecha de nacimiento</label>
               <input type="date" id="fecha-nacimiento">
             </div>
             <div class="form-field">
-              <label for="numero">Telefono</label>
-              <input type="text" id="numero" placeholder="Telefono">
+              <label for="numero">Teléfono</label>
+              <input type="text" id="numero" placeholder="Ej. 099 123 456">
             </div>
             <div class="form-field">
               <label for="email">Correo</label>
-              <input type="text" id="email" placeholder="Correo">
+              <input type="text" id="email" placeholder="Ej. lucia@email.com">
             </div>
             <div class="form-field">
-              <label for="direccion">Direccion</label>
-              <input type="text" id="direccion" placeholder="Direccion">
+              <label for="direccion">Dirección</label>
+              <input type="text" id="direccion" placeholder="Ej. Av. Italia 2450">
             </div>
           </div>
         </section>
 
         <section class="user-detail-section user-detail-membership">
-          <h4>Membresia y pago</h4>
+          <h4>Membresía y pago</h4>
           <div class="membership-context"><i class="fa-solid fa-calendar-check"></i><span><strong>Alta inmediata</strong><small>La vigencia comienza al guardar el socio.</small></span></div>
           <div class="user-detail-section-grid">
             <div class="form-field">
-              <label for="tipo-membresia">Membresia</label>
-              <select id="tipo-membresia" class="app-select">
+              <label for="tipo-membresia">Membresía</label>
+              <select id="tipo-membresia" class="visually-hidden" aria-hidden="true" tabindex="-1">
                 <option value="mensual">1 Mes</option>
                 <option value="trimestral">3 Meses</option>
                 <option value="semestral">6 Meses</option>
               </select>
+              <div class="membership-duration-choice" role="group" aria-label="Duración de la membresía">
+                <button class="is-active" type="button" data-membership-duration="mensual">1 mes</button>
+                <button type="button" data-membership-duration="trimestral">3 meses</button>
+                <button type="button" data-membership-duration="semestral">6 meses</button>
+              </div>
             </div>
             <div class="form-field user-detail-wide-field">
               <label>Forma de pago</label>
-              <div class="binary-choice">
+              <div class="binary-choice payment-choice">
                 <label class="binary-choice-option">
                   <input type="radio" name="forma-pago-alta" value="efectivo" checked>
                   <span>Efectivo</span>
@@ -708,15 +725,15 @@
           <div class="user-detail-section-grid">
             <div class="form-field">
               <label for="contacto-emergencia">Nombre completo</label>
-              <input type="text" id="contacto-emergencia" placeholder="Contacto">
+              <input type="text" id="contacto-emergencia" placeholder="Nombre del contacto">
             </div>
             <div class="form-field">
-              <label for="telefono-emergencia">Telefono</label>
-              <input type="text" id="telefono-emergencia" placeholder="Telefono">
+              <label for="telefono-emergencia">Teléfono</label>
+              <input type="text" id="telefono-emergencia" placeholder="Ej. 098 765 432">
             </div>
             <div class="form-field user-detail-wide-field">
-              <label for="relacion-emergencia">Relacion</label>
-              <input type="text" id="relacion-emergencia" placeholder="Relacion">
+              <label for="relacion-emergencia">Relación</label>
+              <input type="text" id="relacion-emergencia" placeholder="Ej. Familiar">
             </div>
           </div>
         </section>
@@ -725,19 +742,19 @@
           <h4>Salud, objetivo y consentimiento</h4>
           <div class="user-detail-section-grid">
             <div class="form-field">
-              <label for="condicion-medica">Condicion medica</label>
-              <input type="text" id="condicion-medica" placeholder="Condicion medica">
+              <label for="condicion-medica">Condición médica</label>
+              <input type="text" id="condicion-medica" placeholder="Opcional">
             </div>
             <div class="form-field">
               <label for="objetivo">Objetivo</label>
-              <input type="text" id="objetivo" placeholder="Objetivo">
+              <input type="text" id="objetivo" placeholder="Ej. Mejorar fuerza y movilidad">
             </div>
             <div class="form-field">
-              <label>Autorizacion de uso de imagen</label>
+              <label>Autorización de uso de imagen</label>
               <div class="binary-choice">
                 <label class="binary-choice-option">
                   <input type="radio" name="autorizacion-imagen" value="si">
-                  <span>Si</span>
+                  <span>Sí</span>
                 </label>
                 <label class="binary-choice-option">
                   <input type="radio" name="autorizacion-imagen" value="no" checked>
@@ -747,7 +764,7 @@
             </div>
             <div class="form-field">
               <label for="alta-detalle">Observaciones</label>
-              <input type="text" id="alta-detalle" placeholder="Observaciones">
+              <input type="text" id="alta-detalle" placeholder="Opcional">
             </div>
           </div>
         </section>
@@ -760,217 +777,307 @@
   </div>
 
   <div id="modal-renovar-suscripcion" class="app-modal">
-    <div class="app-modal-card">
+    <div class="app-modal-card app-modal-card-renewal">
       <div class="app-modal-header">
-        <h3>Renovar suscripción</h3>
+        <h3>Renovar <em>membresía</em></h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-renovar-suscripcion">Cerrar</button>
       </div>
 
       <div class="app-modal-body">
-        <label for="actualizar-ci">CI del usuario</label>
-        <input type="text" id="actualizar-ci" placeholder="CI del usuario">
-        <label>Forma de pago</label>
-        <div class="binary-choice">
-          <label class="binary-choice-option">
-            <input type="radio" name="renovar-forma-pago" value="efectivo" checked>
-            <span>Efectivo</span>
-          </label>
-            <label class="binary-choice-option">
-              <input type="radio" name="renovar-forma-pago" value="transferencia">
-              <span>Transferencia</span>
-            </label>
+        <div class="form-field renewal-member-field">
+          <label for="actualizar-ci">Socio</label>
+          <div id="renewal-member-picker" class="renewal-member-picker">
+            <input type="search" id="actualizar-ci" placeholder="Buscar por nombre o CI" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="renewal-member-suggestions">
+            <input type="hidden" id="actualizar-socio-ci">
+            <div id="renewal-member-suggestions" class="renewal-member-suggestions" role="listbox" hidden></div>
+          </div>
+        </div>
+        <div class="renewal-fields-row">
+          <div class="form-field"><label>Período</label><div id="botones-membresia" class="membership-duration-choice"></div></div>
+          <div class="form-field"><label>Forma de pago</label><div class="binary-choice payment-choice">
+            <label class="binary-choice-option"><input type="radio" name="renovar-forma-pago" value="efectivo" checked><span>Efectivo</span></label>
+            <label class="binary-choice-option"><input type="radio" name="renovar-forma-pago" value="transferencia"><span>Transferencia</span></label>
+          </div></div>
         </div>
       </div>
 
-      <div id="botones-membresia" class="app-modal-footer"></div>
+      <div class="app-modal-footer"><button id="renovar-confirmar" class="app-button app-button-primary" type="button">Renovar membresía</button></div>
     </div>
   </div>
 
-  <div id="modal-nuevo-producto" class="app-modal">
-    <div class="app-modal-card app-modal-card-product">
+  <div id="modal-nuevo-producto" class="app-modal product-workflow-modal">
+    <div class="app-modal-card app-modal-card-product product-workflow-card">
       <div class="app-modal-header">
         <h3>Nuevo producto</h3>
-        <button type="button" class="app-modal-close" data-close-modal="modal-nuevo-producto">Cerrar</button>
+        <button type="button" class="app-modal-close" data-close-modal="modal-nuevo-producto" aria-label="Cerrar">×</button>
       </div>
 
       <div class="app-modal-body product-editor-body">
-        <div class="product-editor-intro"><span class="section-kicker">Catálogo general</span><strong>Información del producto</strong><p>El stock inicial se carga en el Local 1 y luego puede asignarse al Local 2.</p></div>
         <div class="product-editor-grid">
           <div class="form-field product-editor-name"><label for="producto-nuevo-nombre">Nombre del producto</label><input type="text" id="producto-nuevo-nombre" placeholder="Ej: Agua mineral 600 ml"></div>
           <div class="form-field"><label for="producto-nuevo-precio">Precio de venta</label><input type="number" id="producto-nuevo-precio" min="0" step="1" placeholder="$ 0"></div>
-          <div class="form-field"><label for="producto-nuevo-stock">Stock inicial · Local 1</label><input type="number" id="producto-nuevo-stock" min="0" step="1" placeholder="0 unidades"></div>
+          <div class="form-field product-availability-field">
+            <span class="product-control-label">Disponibilidad</span>
+            <label class="product-availability-switch" for="producto-nuevo-activo"><span><strong>Disponible para vender</strong><small id="product-new-location-copy">Local 1</small></span><input type="checkbox" id="producto-nuevo-activo" checked><i></i></label>
+          </div>
         </div>
       </div>
 
       <div class="app-modal-footer">
-        <button id="guardar-producto" class="app-button app-button-primary" type="button">Guardar producto</button>
+        <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-nuevo-producto">Cancelar</button>
+        <button id="guardar-producto" class="app-button app-button-primary" type="button">Guardar</button>
       </div>
     </div>
   </div>
 
-  <div id="modal-vender-producto" class="app-modal">
-    <div class="app-modal-card app-modal-card-sale">
+  <div id="modal-vender-producto" class="app-modal product-workflow-modal">
+    <div class="app-modal-card app-modal-card-sale product-workflow-card">
       <div class="app-modal-header">
-        <h3>Registrar venta</h3>
-        <button type="button" class="app-modal-close" data-close-modal="modal-vender-producto">Cerrar</button>
+        <h3>Venta rápida</h3>
+        <button type="button" class="app-modal-close" data-close-modal="modal-vender-producto" aria-label="Cerrar">×</button>
       </div>
 
       <div class="app-modal-body sale-dialog-body">
         <section class="sale-overview">
-          <div class="sale-product-identity"><span class="section-kicker">Producto seleccionado</span><input type="text" id="producto-venta-nombre" class="sale-product-name" placeholder="Producto" readonly></div>
-          <div class="form-field sale-quantity-field"><label for="producto-venta-cantidad">Cantidad</label><input type="number" id="producto-venta-cantidad" min="1" step="1" value="1"></div>
-          <div class="sale-total-preview"><span>Total de la venta</span><strong id="producto-venta-total-preview">$ 0</strong></div>
-        </section>
-        <section class="sale-payment-grid">
-          <div class="form-field"><label for="producto-venta-monto">Monto cobrado</label><input type="number" id="producto-venta-monto" min="0" step="1" placeholder="$ 0"></div>
-          <div class="form-field sale-payment-method"><label>Forma de pago</label>
-            <div class="binary-choice">
-              <label class="binary-choice-option"><input type="radio" name="producto-venta-forma-pago" value="efectivo" checked><span>Efectivo</span></label>
-              <label class="binary-choice-option">
-                <input type="radio" name="producto-venta-forma-pago" value="transferencia">
-                <span>Transferencia</span>
-              </label>
-            </div>
+          <div class="sale-product-summary">
+            <span>Producto</span>
+            <strong id="producto-venta-nombre">Producto</strong>
           </div>
-          <div class="form-field sale-observation"><label for="producto-venta-observacion">Observación</label><input type="text" id="producto-venta-observacion" placeholder="Opcional"></div>
+          <div class="form-field sale-quantity-field"><label for="producto-venta-cantidad">Cantidad</label><input type="number" id="producto-venta-cantidad" min="1" step="1" value="1"></div>
+          <div class="sale-total-preview"><span>Total</span><strong id="producto-venta-total-preview">$ 0</strong></div>
         </section>
+        <div class="form-field sale-payment-method"><label>Forma de pago</label>
+          <div class="binary-choice payment-choice">
+            <label class="binary-choice-option"><input type="radio" name="producto-venta-forma-pago" value="efectivo" checked><span>Efectivo</span></label>
+            <label class="binary-choice-option"><input type="radio" name="producto-venta-forma-pago" value="transferencia"><span>Transferencia</span></label>
+          </div>
+        </div>
       </div>
 
       <div class="app-modal-footer">
-        <button id="guardar-venta-producto" class="app-button app-button-primary" type="button">Registrar venta</button>
+        <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-vender-producto">Cancelar</button>
+        <button id="guardar-venta-producto" class="app-button app-button-primary" type="button">Vender</button>
       </div>
     </div>
   </div>
 
-  <div id="modal-nueva-clase" class="app-modal">
-    <div class="app-modal-card app-modal-card-form-wide">
+  <div id="modal-nueva-clase" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="class-create-title" aria-describedby="class-create-context">
+    <div class="app-modal-card class-schedule-modal-card">
       <div class="app-modal-header">
-        <h3>Programar clase</h3>
-        <button type="button" class="app-modal-close" data-close-modal="modal-nueva-clase">Cerrar</button>
+        <div><h3 id="class-create-title">Nueva clase</h3><p id="class-create-context">Se repetirá semanalmente en los días seleccionados.</p></div>
+        <button type="button" class="app-modal-close" data-close-modal="modal-nueva-clase" aria-label="Cerrar">×</button>
       </div>
-      <div class="app-modal-body app-modal-body-two-columns">
-        <div class="form-field"><label for="class-name">Nombre de la clase</label><input id="class-name" type="text" placeholder="Ej: Funcional mañana"></div>
-        <div class="form-field"><label for="class-local">Local</label><select id="class-local" class="app-select"><option value="">Seleccionar local</option></select></div>
-        <div class="form-field"><label for="class-coach">Profesor</label><select id="class-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
-        <div class="form-field"><label for="class-time">Hora</label><input id="class-time" type="time"></div>
-        <div class="form-field form-field-full"><label>Días de la semana</label><div class="weekday-picker" role="group" aria-label="Días de la semana"><label><input type="checkbox" name="class-weekday" value="1" checked><span>Lun</span></label><label><input type="checkbox" name="class-weekday" value="2"><span>Mar</span></label><label><input type="checkbox" name="class-weekday" value="3" checked><span>Mié</span></label><label><input type="checkbox" name="class-weekday" value="4"><span>Jue</span></label><label><input type="checkbox" name="class-weekday" value="5" checked><span>Vie</span></label><label><input type="checkbox" name="class-weekday" value="6"><span>Sáb</span></label><label><input type="checkbox" name="class-weekday" value="0"><span>Dom</span></label></div></div>
-        <div class="form-field"><label for="class-start-date">Comienza</label><input id="class-start-date" type="date"></div>
-        <div class="form-field"><label for="class-end-date">Finaliza</label><input id="class-end-date" type="date"><span class="field-help">Opcional; vacío significa sin fecha de fin.</span></div>
-        <div class="form-field"><label for="class-capacity">Cupos</label><input id="class-capacity" type="number" min="1" step="1" value="12"></div>
-        <div class="form-field"><label for="class-duration">Duración</label><select id="class-duration" class="app-select"><option value="45">45 minutos</option><option value="60" selected>60 minutos</option><option value="75">75 minutos</option></select></div>
+      <div class="app-modal-body class-create-grid">
+        <div class="form-field class-create-name"><label for="class-name">Clase</label><input id="class-name" type="text" autocomplete="off" placeholder="Ej: Funcional de mañana"></div>
+        <div class="form-field class-create-coach"><label for="class-coach">Profesor</label><select id="class-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
+        <div class="form-field class-create-local"><label for="class-local">Local</label><select id="class-local" class="app-select"><option value="">Seleccionar local</option></select></div>
+        <div class="form-field class-create-weekdays"><label>Días</label><div class="weekday-picker" role="group" aria-label="Días de la semana"><label><input type="checkbox" name="class-weekday" value="1" checked><span>L</span></label><label><input type="checkbox" name="class-weekday" value="2"><span>M</span></label><label><input type="checkbox" name="class-weekday" value="3" checked><span>X</span></label><label><input type="checkbox" name="class-weekday" value="4"><span>J</span></label><label><input type="checkbox" name="class-weekday" value="5" checked><span>V</span></label><label><input type="checkbox" name="class-weekday" value="6"><span>S</span></label><label><input type="checkbox" name="class-weekday" value="0"><span>D</span></label></div></div>
+        <div class="class-create-timing">
+          <div class="form-field"><label for="class-start-date">Comienza</label><input id="class-start-date" type="date"></div>
+          <div class="form-field"><label for="class-time">Hora de inicio</label><input id="class-time" type="time"></div>
+          <div class="form-field"><label for="class-end-time">Hora de fin</label><input id="class-end-time" type="time" value="19:00"></div>
+          <div class="form-field"><label for="class-capacity">Cupo</label><input id="class-capacity" type="number" min="1" step="1" value="12"></div>
+          <div class="form-field"><label for="class-end-date">Finaliza</label><input id="class-end-date" type="date"><span class="field-help">Opcional</span></div>
+        </div>
+        <input id="class-duration" type="hidden" value="60">
         <input id="class-notes" type="hidden" value="">
       </div>
-      <div class="app-modal-footer"><button id="class-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-calendar-check"></i>Programar clase</button></div>
+      <div class="app-modal-footer"><button class="app-button modal-cancel-action" type="button" data-close-modal="modal-nueva-clase">Cancelar</button><button id="class-save" class="app-button app-button-primary" type="button">Crear clase</button></div>
     </div>
   </div>
 
-  <div id="modal-profesor" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-editar-clase" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="class-edit-title" aria-describedby="class-edit-scope">
+    <div class="app-modal-card class-schedule-modal-card">
       <div class="app-modal-header">
-        <h3>Agregar profesor</h3>
-        <button type="button" class="app-modal-close" data-close-modal="modal-profesor">Cerrar</button>
+        <div><h3 id="class-edit-title">Editar clase</h3><p id="class-edit-scope">Los cambios se aplicarán únicamente a las próximas clases.</p></div>
+        <button type="button" class="app-modal-close" data-close-modal="modal-editar-clase" aria-label="Cerrar">×</button>
       </div>
-      <div class="app-modal-body">
-        <input id="professor-id" type="hidden">
-        <div class="form-field"><label for="professor-name">Nombre</label><input id="professor-name" type="text" autocomplete="off" placeholder="Nombre del profesor"></div>
-        <div class="form-field"><label for="professor-pin">PIN de tablet</label><input id="professor-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="new-password" placeholder="4 dígitos"></div>
-        <p id="professor-pin-help" class="field-help">Se usará solamente para identificar al profesor al iniciar su turno.</p>
-        <label class="settings-switch-row" for="professor-active">
-          <span><strong>Profesor activo</strong><small>Puede iniciar sesión y ser asignado a nuevas clases.</small></span>
-          <span class="settings-switch"><input id="professor-active" type="checkbox" checked><span></span></span>
-        </label>
+      <div class="app-modal-body class-edit-grid">
+        <div class="form-field class-edit-name"><label for="class-edit-name">Clase</label><input id="class-edit-name" type="text" autocomplete="off"></div>
+        <div class="form-field class-edit-coach"><label for="class-edit-coach">Profesor</label><select id="class-edit-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
+        <div class="form-field class-edit-local"><label for="class-edit-local">Local</label><select id="class-edit-local" class="app-select"><option value="">Seleccionar local</option></select></div>
+        <div class="form-field class-edit-weekdays"><label>Días</label><div class="weekday-picker" role="group" aria-label="Días de la semana"><label><input type="checkbox" name="class-edit-weekday" value="1"><span>L</span></label><label><input type="checkbox" name="class-edit-weekday" value="2"><span>M</span></label><label><input type="checkbox" name="class-edit-weekday" value="3"><span>X</span></label><label><input type="checkbox" name="class-edit-weekday" value="4"><span>J</span></label><label><input type="checkbox" name="class-edit-weekday" value="5"><span>V</span></label><label><input type="checkbox" name="class-edit-weekday" value="6"><span>S</span></label><label><input type="checkbox" name="class-edit-weekday" value="0"><span>D</span></label></div></div>
+        <div class="form-field"><label for="class-edit-time">Hora de inicio</label><input id="class-edit-time" type="time"></div>
+        <div class="form-field"><label for="class-edit-end-time">Hora de fin</label><input id="class-edit-end-time" type="time"></div>
+        <div class="form-field"><label for="class-edit-capacity">Cupo</label><input id="class-edit-capacity" type="number" min="1" step="1"></div>
+        <div class="form-field"><label for="class-edit-end-date">Finaliza</label><input id="class-edit-end-date" type="date"><span class="field-help">Sin fecha: continúa semanalmente.</span></div>
       </div>
-      <div class="app-modal-footer"><button id="professor-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-floppy-disk"></i>Guardar profesor</button></div>
+      <div class="app-modal-footer">
+        <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-editar-clase">Cancelar</button>
+        <button id="class-edit-save" class="app-button app-button-primary" type="button">Guardar cambios</button>
+      </div>
     </div>
   </div>
 
-  <div id="modal-inscribir-clase" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-profesor" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="professor-modal-title" aria-describedby="professor-modal-context">
+    <div class="app-modal-card professor-manager-card">
       <div class="app-modal-header">
-        <h3>Inscribir socio</h3>
+        <div><h3 id="professor-modal-title">Profesores</h3><p id="professor-modal-context"><span id="professors-count">0 profesores</span> disponibles para clases y rutinas.</p></div>
+        <button type="button" class="app-modal-close" data-close-modal="modal-profesor" aria-label="Cerrar">×</button>
+      </div>
+      <div class="app-modal-body professor-manager-body">
+        <div class="professor-create-row">
+          <div class="form-field"><label for="professor-name">Nuevo profesor</label><input id="professor-name" type="text" autocomplete="off" placeholder="Nombre completo"></div>
+          <button id="professor-save" class="app-button app-button-primary" type="button">Agregar</button>
+        </div>
+        <section class="professor-manager-list" aria-label="Profesores cargados">
+          <div class="professors-approved-head" aria-hidden="true"><span>Profesor</span><span>Acción</span></div>
+          <div id="professors-list" class="professors-list"></div>
+          <div id="professors-empty" class="surface-empty compact"><strong>No hay profesores cargados</strong><span>Agregá un nombre para asignarlo a clases y rutinas.</span></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="class-remove-dialog" class="class-member-dialog" aria-labelledby="class-remove-title" aria-describedby="class-remove-description">
+    <header><h3 id="class-remove-title">Quitar alumno</h3></header>
+    <div class="class-member-dialog-body">
+      <p id="class-remove-description"></p>
+      <p class="class-remove-history">Su ficha, asistencias y evaluaciones anteriores se conservan.</p>
+      <p id="class-remove-error" role="alert"></p>
+      <div class="class-remove-actions"><button id="class-remove-cancel" class="app-button" type="button" autofocus>Cancelar</button><button id="class-remove-confirm" class="app-button" type="button">Quitar del grupo</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="class-member-dialog" class="class-member-dialog" aria-labelledby="class-member-title" aria-describedby="class-member-context">
+    <header><div><h3 id="class-member-title"></h3><p id="class-member-ci"></p></div><button id="class-member-close" class="app-modal-close" type="button" aria-label="Cerrar participación"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
+    <div class="class-member-dialog-body">
+      <p id="class-member-context"></p>
+      <dl id="class-member-facts"></dl>
+      <button id="class-member-correct" class="app-button" type="button" hidden>Corregir asistencia</button>
+      <form id="class-member-correction" hidden>
+        <label for="class-member-reason">Motivo de la corrección</label>
+        <input id="class-member-reason" required maxlength="240" autocomplete="off" aria-describedby="class-member-error" placeholder="Describí qué ocurrió">
+        <p id="class-member-error" role="alert"></p>
+        <div><button id="class-member-cancel" class="app-button" type="button">Cancelar</button><button id="class-member-save" class="app-button app-button-primary" type="submit">Guardar corrección</button></div>
+      </form>
+    </div>
+  </dialog>
+
+  <div id="modal-inscribir-clase" class="app-modal product-workflow-modal" role="dialog" aria-modal="true" aria-labelledby="class-enroll-title" aria-describedby="class-enroll-help">
+    <div class="app-modal-card product-workflow-card">
+      <div class="app-modal-header">
+        <h3 id="class-enroll-title">Nuevo Alumno</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-inscribir-clase">Cerrar</button>
       </div>
       <div class="app-modal-body">
-        <div id="class-enroll-summary" class="task-context-card"></div>
-        <div class="form-field"><label for="class-enroll-search">Buscar socio</label><div class="modal-search-field"><i class="fa-solid fa-magnifying-glass"></i><input id="class-enroll-search" type="search" placeholder="Nombre o CI" autocomplete="off"></div></div>
-        <input id="class-enroll-member" type="hidden">
-        <div id="class-enroll-results" class="modal-member-results"></div>
-        <p id="class-enroll-help" class="field-help">La inscripción quedará visible para recepción y para el profesor en la tablet.</p>
+        <div id="class-enroll-summary" class="class-enroll-context"><div id="class-enroll-context-main"></div><p id="class-enroll-help" class="field-help"></p><span id="class-enroll-capacity"></span></div>
+        <div class="class-enroll-picker">
+          <div class="form-field"><label for="class-enroll-search">Buscar socio</label><div class="modal-search-field"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="class-enroll-search" type="search" placeholder="Nombre o CI" autocomplete="off" aria-controls="class-enroll-results" aria-expanded="false"></div></div>
+          <input id="class-enroll-member" type="hidden">
+          <div id="class-enroll-results" class="modal-member-results" role="listbox" aria-label="Socios encontrados" hidden></div>
+        </div>
+        <div id="class-enroll-selection" class="class-enroll-selection"></div>
+        <p id="class-enroll-status" role="status" aria-live="polite"></p>
       </div>
-      <div class="app-modal-footer"><button id="class-enroll-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-user-check"></i>Confirmar inscripción</button></div>
+      <div class="app-modal-footer"><button class="app-button modal-cancel-action" type="button" data-close-modal="modal-inscribir-clase">Cancelar</button><button id="class-enroll-save" class="app-button app-button-primary" type="button" disabled>Agregar alumno</button></div>
     </div>
   </div>
 
-  <div id="modal-cobrar-pendiente" class="app-modal">
-    <div class="app-modal-card">
+  <div id="modal-cobrar-pendiente" class="app-modal product-workflow-modal pending-payment-modal" role="dialog" aria-modal="true" aria-labelledby="pending-modal-title">
+    <div class="app-modal-card product-workflow-card pending-payment-card">
       <div class="app-modal-header">
-        <h3>Cobrar venta pendiente</h3>
+        <h3 id="pending-modal-title">Cobros pendientes</h3>
         <button type="button" class="app-modal-close" data-close-modal="modal-cobrar-pendiente">Cerrar</button>
       </div>
-      <div class="app-modal-body">
-        <div id="pending-collect-summary" class="task-context-card"></div>
-        <label>Forma de pago</label>
-        <div class="binary-choice">
+      <div id="pending-list-panel" class="app-modal-body pending-list-panel">
+        <div class="pending-ledger-toolbar">
+          <label class="pending-ledger-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="pending-search" type="search" aria-label="Buscar socio o producto" placeholder="Buscar socio o producto" autocomplete="off"></label>
+          <div class="pending-balance"><span>Total por cobrar</span><strong id="pending-sales-total">$ 0</strong></div>
+        </div>
+        <div class="pending-ledger-content">
+          <div class="pending-ledger-scroll">
+            <table class="pending-ledger-table" aria-label="Entregas pendientes de cobro">
+              <colgroup><col style="width:44%"><col style="width:27%"><col style="width:13%"><col style="width:16%"></colgroup>
+              <thead><tr><th>Socio y producto</th><th>Entrega</th><th>Importe</th><th><span class="ledger-sr-only">Acciones</span></th></tr></thead>
+              <tbody id="pending-sales-body"></tbody>
+            </table>
+          </div>
+          <div class="pending-empty-state"><strong>No hay cobros pendientes</strong><span>Las entregas sin cobrar aparecerán aquí.</span><button id="pending-retry" class="app-button" type="button" hidden>Reintentar</button></div>
+        </div>
+        <span id="pending-results-summary" class="pending-ledger-note" aria-live="polite"></span>
+      </div>
+      <div id="pending-payment-panel" class="app-modal-body pending-payment-panel" hidden>
+        <div id="pending-collect-summary" class="pending-payment-summary"></div>
+        <div class="form-field"><label id="pending-payment-label">Forma de pago</label>
+        <div class="binary-choice payment-choice" role="radiogroup" aria-labelledby="pending-payment-label">
           <label class="binary-choice-option"><input type="radio" name="pending-payment-method" value="efectivo" checked><span>Efectivo</span></label>
           <label class="binary-choice-option"><input type="radio" name="pending-payment-method" value="transferencia"><span>Transferencia</span></label>
-        </div>
-        <label for="pending-collect-note">Observación</label>
-        <input id="pending-collect-note" type="text" placeholder="Opcional">
+        </div></div>
+        <div class="form-field"><label for="pending-collect-note">Observación <span class="pending-optional">Opcional</span></label>
+        <input id="pending-collect-note" type="text" placeholder="Agregar una observación"></div>
+        <p id="pending-collect-error" role="alert" hidden></p>
+        <p id="pending-cash-notice" class="pending-cash-notice" role="status" hidden></p>
       </div>
-      <div class="app-modal-footer"><button id="pending-collect-save" class="app-button app-button-primary" type="button"><i class="fa-solid fa-circle-check"></i>Registrar cobro en caja</button></div>
+      <div class="app-modal-footer">
+        <button class="app-button modal-cancel-action" type="button" data-close-modal="modal-cobrar-pendiente">Cerrar</button>
+        <button id="pending-collect-back" class="app-button" type="button" hidden>Volver</button>
+        <button id="pending-review-cash" class="app-button" type="button" hidden>Revisar caja</button>
+        <button id="pending-collect-save" class="app-button app-button-primary" type="button" hidden>Registrar cobro</button>
+      </div>
     </div>
   </div>
 
-  <div id="modal-editar-producto" class="app-modal">
-    <div class="app-modal-card app-modal-card-product app-modal-card-product-edit">
+  <div id="modal-editar-producto" class="app-modal product-workflow-modal">
+    <div class="app-modal-card app-modal-card-product app-modal-card-product-edit product-workflow-card">
       <div class="app-modal-header">
         <h3>Editar producto</h3>
-        <button type="button" class="app-modal-close" data-close-modal="modal-editar-producto">Cerrar</button>
+        <button type="button" class="app-modal-close" data-close-modal="modal-editar-producto" aria-label="Cerrar">×</button>
       </div>
 
       <div class="app-modal-body product-editor-body">
-        <div class="product-editor-intro"><span class="section-kicker">Local 1</span><strong>Datos y existencias</strong><p>Editá el precio o corregí el stock actual. Para una reposición, usá “Agregar unidades”.</p></div>
         <div class="product-editor-grid product-editor-grid-edit">
           <div class="form-field product-editor-name"><label for="producto-editar-nombre">Nombre del producto</label><input type="text" id="producto-editar-nombre" placeholder="Nombre del producto"></div>
           <div class="form-field"><label for="producto-editar-precio">Precio de venta</label><input type="number" id="producto-editar-precio" min="0" step="1" placeholder="$ 0"></div>
-          <div class="form-field"><label for="producto-editar-stock">Stock actual · Local 1</label><input type="number" id="producto-editar-stock" min="0" step="1" placeholder="0 unidades"></div>
-          <div class="form-field product-stock-add"><label for="producto-editar-sumar-stock">Agregar unidades · Local 1</label><input type="number" id="producto-editar-sumar-stock" min="0" step="1" placeholder="0 unidades"><span class="field-help">Estas unidades se suman al stock actual al guardar.</span></div>
+          <div class="form-field product-availability-field">
+            <span class="product-control-label">Disponibilidad</span>
+            <label class="product-availability-switch" for="producto-editar-activo"><span><strong>Disponible para vender</strong><small>Locales asignados</small></span><input type="checkbox" id="producto-editar-activo"><i></i></label>
+          </div>
         </div>
       </div>
 
       <div class="app-modal-footer app-modal-footer-split">
         <button id="eliminar-producto" class="app-button app-button-danger" type="button">Eliminar</button>
-        <button id="guardar-producto-edicion" class="app-button app-button-primary" type="button">Guardar</button>
+        <div><button class="app-button modal-cancel-action" type="button" data-close-modal="modal-editar-producto">Cancelar</button><button id="guardar-producto-edicion" class="app-button app-button-primary" type="button">Guardar</button></div>
       </div>
     </div>
   </div>
 
-  <div id="modal-configuracion" class="app-modal">
-    <div class="app-modal-card">
-      <div class="app-modal-header">
-        <div><span class="section-kicker">Administración del sistema</span><h3>Configuración</h3><p class="section-subtitle">Cuotas, almacenamiento y funciones especiales.</p></div>
-        <button type="button" class="app-modal-close" data-close-modal="modal-configuracion">Cerrar</button>
-      </div>
-
-      <div class="app-modal-body">
-        <p class="placeholder-copy">Esta seccion queda preparada para proximas opciones del sistema.</p>
-      </div>
+  <div id="modal-configuracion" class="app-modal settings-index-page admin-index-page">
+    <div class="admin-section-heading">
+      <div class="admin-section-title-block"><h2 class="section-title">Configuración</h2><div class="users-live-counts">Preferencias del gimnasio y de esta PC</div></div>
+      <div id="settings-header-actions"></div>
+    </div>
+    <div class="app-modal-card settings-content">
+      <form id="settings-form" class="app-modal-body"></form>
     </div>
   </div>
 
   <div id="detalle" class="app-modal">
     <div class="app-modal-card app-modal-card-form-wide app-modal-card-user-detail">
-      <div class="app-modal-header">
-        <h3>Editar usuario</h3>
-        <button id="cerrar" type="button" class="app-modal-close">Cerrar</button>
+      <div class="user-detail-route-header">
+        <button id="cerrar" type="button" class="user-detail-back app-back-button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Volver a usuarios</button>
+        <div class="user-detail-profile">
+          <div class="user-detail-photo"><span id="detalle-avatar">UF</span><small>Sin foto</small></div>
+          <div class="user-detail-heading-copy">
+            <h2 id="detalle-header-nombre">Socio</h2>
+            <p id="detalle-header-meta">CI — · Socio</p>
+            <span id="detalle-header-status" class="user-detail-status"><i></i>Membresía</span>
+          </div>
+        </div>
+        <div class="user-detail-header-actions">
+          <button id="detalle-rutina" class="app-button" type="button" disabled><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>Rutina</span></button>
+          <button class="app-button" type="button" data-open-modal="modal-renovar-suscripcion">Renovar membresía</button>
+          <button id="guardar-cambios" class="app-button app-button-primary" type="button">Guardar cambios</button>
+        </div>
       </div>
 
       <div class="app-modal-body user-detail-body">
         <section class="user-detail-section user-detail-personal">
-          <h4>Informacion personal</h4>
+          <h4>Información personal</h4>
           <div class="user-detail-section-grid">
             <div class="form-field">
-              <label for="detalle-ci">Cedula</label>
+              <label for="detalle-ci">Cédula</label>
               <input id="detalle-ci" readonly>
             </div>
             <div class="form-field">
@@ -982,7 +1089,7 @@
               <input id="detalle-fecha-nacimiento" type="date">
             </div>
             <div class="form-field">
-              <label for="detalle-telefono">Telefono</label>
+              <label for="detalle-telefono">Teléfono</label>
               <input id="detalle-telefono">
             </div>
             <div class="form-field">
@@ -990,21 +1097,22 @@
               <input id="detalle-email">
             </div>
             <div class="form-field">
-              <label for="detalle-direccion">Direccion</label>
+              <label for="detalle-direccion">Dirección</label>
               <input id="detalle-direccion">
             </div>
           </div>
         </section>
 
         <section class="user-detail-section user-detail-membership">
-          <h4>Membresia y pago</h4>
+          <h4>Membresía y pago</h4>
+          <div class="user-membership-summary"><strong id="detalle-vencimiento-resumen">Sin vencimiento registrado</strong><span id="detalle-dias-resumen">—</span></div>
           <div class="user-detail-section-grid">
             <div class="form-field">
-              <label for="detalle-dias">Días restantes</label>
+              <label for="detalle-dias">Días</label>
               <input id="detalle-dias" type="number" min="0" placeholder="Ej: 30">
             </div>
             <div class="form-field">
-              <label for="detalle-tipo-membresia">Membresia</label>
+              <label for="detalle-tipo-membresia">Membresía</label>
               <select id="detalle-tipo-membresia" class="app-select">
                 <option value="mensual">1 Mes</option>
                 <option value="trimestral">3 Meses</option>
@@ -1016,12 +1124,12 @@
               <input id="detalle-inicio" type="date">
             </div>
             <div class="form-field">
-              <label for="detalle-pago">Ultimo pago</label>
+              <label for="detalle-pago">Último pago</label>
               <input id="detalle-pago" type="date">
             </div>
             <div class="form-field user-detail-wide-field">
               <label>Forma de pago de alta</label>
-              <div class="binary-choice">
+              <div class="binary-choice payment-choice">
                 <label class="binary-choice-option">
                   <input type="radio" name="detalle-forma-pago-alta" value="efectivo" checked>
                   <span>Efectivo</span>
@@ -1035,6 +1143,7 @@
           </div>
         </section>
 
+        <div class="user-detail-health-emergency">
         <section class="user-detail-section user-detail-emergency">
           <h4>Contacto de emergencia</h4>
           <div class="user-detail-section-grid">
@@ -1043,21 +1152,25 @@
               <input id="detalle-contacto-emergencia">
             </div>
             <div class="form-field">
-              <label for="detalle-telefono-emergencia">Telefono</label>
+              <label for="detalle-telefono-emergencia">Teléfono</label>
               <input id="detalle-telefono-emergencia">
             </div>
             <div class="form-field user-detail-wide-field">
-              <label for="detalle-relacion-emergencia">Relacion</label>
+              <label for="detalle-relacion-emergencia">Relación</label>
               <input id="detalle-relacion-emergencia">
+            </div>
+            <div class="form-field user-detail-wide-field">
+              <label for="detalle-detalle">Observaciones</label>
+              <input id="detalle-detalle">
             </div>
           </div>
         </section>
 
         <section class="user-detail-section user-detail-health">
-          <h4>Salud, objetivo y consentimiento</h4>
+          <h4>Salud y objetivos</h4>
           <div class="user-detail-section-grid">
             <div class="form-field">
-              <label for="detalle-condicion-medica">Condicion medica</label>
+              <label for="detalle-condicion-medica">Condición médica</label>
               <input id="detalle-condicion-medica">
             </div>
             <div class="form-field">
@@ -1065,11 +1178,11 @@
               <input id="detalle-objetivo">
             </div>
             <div class="form-field">
-              <label>Autorizacion de imagen</label>
+              <label>Autorización de imagen</label>
               <div class="binary-choice">
                 <label class="binary-choice-option">
                   <input type="radio" name="detalle-autorizacion-imagen" value="si">
-                  <span>Si</span>
+                  <span>Sí</span>
                 </label>
                 <label class="binary-choice-option">
                   <input type="radio" name="detalle-autorizacion-imagen" value="no" checked>
@@ -1077,22 +1190,40 @@
                 </label>
               </div>
             </div>
-            <div class="form-field">
-              <label for="detalle-detalle">Observaciones</label>
-              <input id="detalle-detalle">
-            </div>
           </div>
         </section>
+        </div>
 
         <section class="user-detail-section user-detail-section-history">
           <h4>Historial de pagos</h4>
           <div id="detalle-historial-pagos" class="payment-history-list">Sin pagos registrados.</div>
         </section>
-      </div>
+        <section class="user-detail-section user-detail-mobile">
+          <h4>Acceso a la app móvil</h4>
+          <div class="user-mobile-status">
+            <i aria-hidden="true"></i>
+            <div><strong>Acceso habilitado</strong></div>
+          </div>
+          <div class="user-detail-section-grid">
+            <div class="form-field">
+              <label for="detalle-password-movil">Nueva contraseña</label>
+              <input id="detalle-password-movil" type="password"
+                     placeholder="Mínimo 10 caracteres, letras y números">
+            </div>
+            <div class="form-field">
+              <label>&nbsp;</label>
+              <button id="restablecer-password-movil" class="app-button" type="button">
+                Restablecer acceso
+              </button>
+            </div>
+          </div>
+          <p class="section-subtitle">Al restablecerla se cerrarán las sesiones abiertas en otros dispositivos.</p>
+        </section>
 
-      <div class="app-modal-footer app-modal-footer-split">
-        <button id="eliminar" class="app-button app-button-danger" type="button">Eliminar</button>
-        <button id="guardar-cambios" class="app-button app-button-primary" type="button">Guardar</button>
+        <section class="user-detail-danger">
+          <div><strong>Zona sensible</strong><span>Eliminar al socio requiere confirmación.</span></div>
+          <button id="eliminar" class="app-button app-button-danger" type="button">Eliminar socio</button>
+        </section>
       </div>
     </div>
   </div>
@@ -1110,15 +1241,22 @@
   <div id="notificaciones"></div>
 
   <script src="membershipRules.js?v=2.5.0.3"></script>
+  <script src="adminSync.js"></script>
   <script src="adminShared.js?v=2.5.0.3"></script>
-  <script src="adminLayout.js?v=2.5.0.9"></script>
-  <script src="adminUsers.js?v=2.5.0.5"></script>
+  <script src="adminLayout.js?v=2.5.0.10"></script>
+  <script src="adminUsers.js?v=2.5.0.7"></script>
   <script src="adminMemberships.js?v=2.5.0.3"></script>
   <script src="adminProducts.js?v=2.5.0.4"></script>
-  <script src="adminEntries.js?v=2.5.0.9"></script>
-  <script src="adminRecords.js?v=2.5.0.2"></script>
-  <script src="adminOperations.js?v=2.5.0.11"></script>
+  <script src="adminEntries.js?v=2.5.0.11"></script>
+  <script src="adminRecords.js?v=2.5.0.4"></script>
+  <script src="classDetailModel.js?v=1"></script>
+  <script src="adminClassDetail.js?v=4"></script>
+  <script src="adminClassEnrollment.js?v=2"></script>
+  <script src="adminOperations.js?v=2.5.0.22"></script>
+  <script src="exerciseGroups.js?v=1"></script>
+  <script src="adminTraining.js?v=2.5.0.8"></script>
   <script src="homeDashboard.js?v=2.5.0.6"></script>
-  <script src="renderer.js?v=2.5.0.8"></script>
+  <script src="kioskAudio.js"></script>
+  <script src="renderer.js?v=2.5.0.10"></script>
 </body>
 </html>

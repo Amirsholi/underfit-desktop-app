@@ -1,12 +1,12 @@
 function createProductRepository(db) {
-  function create({ nombre, precio, stock }) {
+  function create({ nombre, precio, activo }) {
     return new Promise((resolve, reject) => {
       db.run(
-        `INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)`,
-        [nombre, precio, stock],
+        `INSERT INTO productos (nombre, precio, stock, activo) VALUES (?, ?, 10000, ?)`,
+        [nombre, precio, activo ? 1 : 0],
         function (err) {
           if (err) return reject(err);
-          resolve({ id: this.lastID, nombre, precio, stock });
+          resolve({ id: this.lastID, nombre, precio, activo });
         }
       );
     });
@@ -15,7 +15,7 @@ function createProductRepository(db) {
   function findAll() {
     return new Promise((resolve, reject) => {
       db.all(
-        `SELECT id, nombre, precio, stock
+        `SELECT id, nombre, precio, activo
          FROM productos
          ORDER BY LOWER(nombre) ASC, id ASC`,
         [],
@@ -30,7 +30,7 @@ function createProductRepository(db) {
   function findById(id) {
     return new Promise((resolve, reject) => {
       db.get(
-        `SELECT id, nombre, precio, stock
+        `SELECT id, nombre, precio, activo
          FROM productos
          WHERE id = ?`,
         [id],
@@ -42,13 +42,13 @@ function createProductRepository(db) {
     });
   }
 
-  function update(id, { nombre, precio, stock }) {
+  function update(id, { nombre, precio, activo }) {
     return new Promise((resolve, reject) => {
       db.run(
         `UPDATE productos
-         SET nombre = ?, precio = ?, stock = ?
+         SET nombre = ?, precio = ?, activo = ?
          WHERE id = ?`,
-        [nombre, precio, stock, id],
+        [nombre, precio, activo ? 1 : 0, id],
         function (err) {
           if (err) return reject(err);
           resolve({ success: true, changes: this.changes });

@@ -35,6 +35,11 @@
   const quantityMinus = document.getElementById('tablet-quantity-minus');
   const quantityPlus = document.getElementById('tablet-quantity-plus');
   const toast = document.getElementById('tablet-toast');
+  const ratingsModal = document.getElementById('tablet-ratings-modal');
+  const openRatingsButton = document.getElementById('tablet-open-ratings');
+  const closeRatingsButton = document.getElementById('tablet-close-ratings');
+  const ratingClasses = document.getElementById('tablet-rating-classes');
+  const ratingRoster = document.getElementById('tablet-rating-roster');
 
   const state = {
     deviceId: getDeviceId(),
@@ -60,6 +65,10 @@
     isLoggingOut: false,
     feedbackTimer: null,
     toastTimer: null,
+    attendanceOperation: null,
+    saleOperation: null,
+    retryTimer: null,
+    processingQueue: false,
   };
 
   const SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
@@ -71,6 +80,11 @@
     const value = `tablet-${random}`;
     localStorage.setItem('underfit-tablet-device', value);
     return value;
+  }
+
+  function newOperationKey() {
+    return globalThis.crypto?.randomUUID?.()
+      || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
   function escapeHtml(value) {
@@ -87,6 +101,65 @@
     return new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU', maximumFractionDigits: 0 }).format(Number(value || 0));
   }
 
+  function localDateKey() {
+    const date = new Date();
+    const pad = value => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+
+  async function openRatings() {
+    ratingsModal.hidden = false;
+    document.body.classList.add('tablet-modal-open');
+    ratingClasses.innerHTML = '<span>Cargando clases…</span>';
+    ratingRoster.innerHTML = '';
+    try {
+      const records = api?.obtenerRegistrosClases
+        ? await api.obtenerRegistrosClases(localDateKey()) : [];
+      const completed = records.filter(item =>
+        item.estado === 'dictada' && Number(item.localId) === Number(state.localId));
+      ratingClasses.innerHTML = completed.map(item => `
+        <button type="button" data-rating-class="${Number(item.id)}"><strong>${escapeHtml(item.nombre)}</strong><small>${escapeHtml(String(item.hora || '').slice(0,5))}</small></button>
+      `).join('') || '<span>No hay clases realizadas para calificar hoy.</span>';
+      if (completed.length) await loadRatingRoster(completed[0].id);
+    } catch (error) {
+      ratingClasses.innerHTML = '<span>No se pudieron cargar las clases.</span>';
+      showToast(error?.message || 'No se pudieron cargar las clases', 'error');
+    }
+  }
+
+  function closeRatings() {
+    ratingsModal.hidden = true;
+    if (saleModal.hidden) document.body.classList.remove('tablet-modal-open');
+  }
+
+  async function loadRatingRoster(classId) {
+    ratingRoster.innerHTML = '<span>Cargando asistencias…</span>';
+    const detail = await api.obtenerDetalleRegistroClase(Number(classId));
+    const present = detail.students.filter(item => item.presente);
+    ratingRoster.innerHTML = present.map(student => `
+      <article><span><strong>${escapeHtml(student.usuarioNombre)}</strong><small>CI ${escapeHtml(student.usuarioCi)}</small></span>
+      <span class="tablet-stars">${[1,2,3,4,5].map(score => `<button type="button" data-tablet-rate="${escapeHtml(student.asistenciaId)}" data-class-id="${Number(classId)}" data-score="${score}" class="${Number(student.puntuacion||0)>=score?'is-active':''}">★</button>`).join('')}</span></article>
+    `).join('') || '<span>No hay asistencias registradas.</span>';
+  }
+
+  async function rateStudent(button) {
+    button.disabled = true;
+    try {
+      await api.puntuarAsistenciaClase({
+        asistenciaId: button.dataset.tabletRate,
+        puntuacion: Number(button.dataset.score),
+        profesorId: state.session.profesorId,
+        profesorSesionId: state.session.id,
+        dispositivoId: state.deviceId,
+      });
+      showToast(`Puntuación guardada: ${button.dataset.score}/5`);
+      await loadRatingRoster(Number(button.dataset.classId));
+    } catch (error) {
+      button.disabled = false;
+      showToast(error?.message || 'No se pudo guardar la puntuación', 'error');
+    }
+  }
+
   function currentLocal() {
     return state.locations.find(item => Number(item.id) === Number(state.localId)) || { id: state.localId, nombre: `Local ${state.localId}` };
   }
@@ -96,6 +169,70 @@
     toast.textContent = message;
     toast.className = `tablet-toast is-visible${type === 'error' ? ' is-error' : ''}`;
     state.toastTimer = setTimeout(() => { toast.className = 'tablet-toast'; }, 2600);
+  }
+
+  const RETRY_QUEUE_KEY = 'underfit-tablet-retry-queue';
+
+  function readRetryQueue() {
+    try {
+      const value = JSON.parse(localStorage.getItem(RETRY_QUEUE_KEY) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function writeRetryQueue(queue) {
+    localStorage.setItem(RETRY_QUEUE_KEY, JSON.stringify(queue));
+  }
+
+  function isConnectionError(error) {
+    return /no se pudo conectar|no respondio|timeout|api\.unavailable|api\.timeout|fetch failed|network/i
+      .test(String(error?.message || error || ''));
+  }
+
+  function queueRetry(type, payload) {
+    const queue = readRetryQueue();
+    if (!queue.some(item => item.payload?.idempotencyKey === payload.idempotencyKey)) {
+      queue.push({
+        id: newOperationKey(),
+        type,
+        payload,
+        createdAt: new Date().toISOString(),
+      });
+      writeRetryQueue(queue);
+    }
+  }
+
+  async function processRetryQueue() {
+    if (state.processingQueue || !api) return;
+    state.processingQueue = true;
+    let queue = readRetryQueue();
+    let sent = 0;
+    try {
+      for (const operation of [...queue]) {
+        try {
+          if (operation.type === 'attendance') {
+            await api.registrarAsistenciaClase(operation.payload);
+          } else if (operation.type === 'pending-sale') {
+            await api.crearVentaPendiente(operation.payload);
+          }
+          queue = queue.filter(item => item.id !== operation.id);
+          writeRetryQueue(queue);
+          sent++;
+        } catch (error) {
+          if (isConnectionError(error)) break;
+          queue = queue.filter(item => item.id !== operation.id);
+          writeRetryQueue(queue);
+          showToast('Una operacion pendiente ya no era valida', 'error');
+        }
+      }
+      if (sent > 0) {
+        showToast(`${sent} operacion${sent === 1 ? '' : 'es'} pendiente${sent === 1 ? '' : 's'} enviada${sent === 1 ? '' : 's'}`);
+      }
+    } finally {
+      state.processingQueue = false;
+    }
   }
 
   function demoLocations() {
@@ -359,16 +496,25 @@
     if (!state.activeClass) return showToast('No hay una clase activa', 'error');
     if (state.entryDigits.length < 6) return showToast('Ingresá un documento válido', 'error');
     const ci = state.entryDigits;
+    const attendanceSignature = `${state.activeClass.id}:${ci}`;
+    if (state.attendanceOperation?.signature !== attendanceSignature) {
+      state.attendanceOperation = {
+        signature: attendanceSignature,
+        key: newOperationKey(),
+      };
+    }
+    const attendancePayload = {
+      ci,
+      claseId: state.activeClass.id,
+      profesorSesionId: state.session.id,
+      localId: state.localId,
+      dispositivoId: state.deviceId,
+      idempotencyKey: state.attendanceOperation.key,
+    };
     entrySubmit.disabled = true;
     try {
       const result = api?.registrarAsistenciaClase
-        ? await api.registrarAsistenciaClase({
-            ci,
-            claseId: state.activeClass.id,
-            profesorSesionId: state.session.id,
-            localId: state.localId,
-            dispositivoId: state.deviceId,
-          })
+        ? await api.registrarAsistenciaClase(attendancePayload)
         : { registered: true, user: demoUsers().find(item => String(item.ci) === ci) || { ci, nombre: 'Martina Silva' } };
       if (!result.registered) throw new Error('No se pudo registrar la asistencia');
       state.attendanceCount += 1;
@@ -379,10 +525,24 @@
       entryTitle.textContent = 'Ingreso registrado';
       entryCopy.textContent = result.user?.nombre || 'Socio';
       state.entryDigits = '';
+      state.attendanceOperation = null;
       entryDisplay.value = '';
       state.feedbackTimer = setTimeout(resetEntryFeedback, 1800);
       loadClassMembers();
     } catch (error) {
+      if (isConnectionError(error)) {
+        queueRetry('attendance', attendancePayload);
+        entryFeedback.classList.remove('is-error');
+        entryFeedback.classList.add('is-success');
+        entryFeedback.hidden = false;
+        entryTitle.textContent = 'Ingreso guardado';
+        entryCopy.textContent = 'Se enviara cuando vuelva la conexion';
+        state.entryDigits = '';
+        state.attendanceOperation = null;
+        entryDisplay.value = '';
+        state.feedbackTimer = setTimeout(resetEntryFeedback, 2300);
+        return;
+      }
       entryFeedback.classList.remove('is-success');
       entryFeedback.classList.add('is-error');
       entryFeedback.hidden = false;
@@ -405,6 +565,7 @@
   }
 
   function stockAmount(item) {
+    if (item.activo !== undefined) return Number(item.activo) === 0 ? 0 : 1;
     return Number(state.localId === 1 ? item.local1 : item.local2 || 0);
   }
 
@@ -425,7 +586,7 @@
       const amount = stockAmount(item);
       return `
         <button class="tablet-product-card${Number(state.selectedProduct?.productoId) === Number(item.productoId) ? ' is-selected' : ''}" type="button" data-product-id="${Number(item.productoId)}" ${amount <= 0 ? 'disabled' : ''}>
-          <span><strong>${escapeHtml(item.nombre)}</strong><small>${money(item.precio)}</small></span><b>${amount}</b>
+          <span><strong>${escapeHtml(item.nombre)}</strong><small>${money(item.precio)}</small></span><b>${item.activo !== undefined ? 'Disponible' : amount}</b>
         </button>
       `;
     }).join('') || '<p class="tablet-form-message">No hay productos disponibles.</p>';
@@ -481,6 +642,7 @@
     state.selectedProduct = null;
     state.selectedMember = null;
     state.quantity = 1;
+    state.saleOperation = null;
     memberSearch.value = '';
     memberResults.innerHTML = '';
     updateSaleSummary();
@@ -502,22 +664,41 @@
 
   async function submitSale() {
     if (saleSubmit.disabled) return;
+    const saleSignature = [
+      state.selectedProduct.productoId,
+      state.selectedMember.ci,
+      state.quantity,
+      state.session.id,
+      state.localId,
+    ].join(':');
+    if (state.saleOperation?.signature !== saleSignature) {
+      state.saleOperation = { signature: saleSignature, key: newOperationKey() };
+    }
+    const salePayload = {
+      productoId: state.selectedProduct.productoId,
+      usuarioCi: state.selectedMember.ci,
+      cantidad: state.quantity,
+      profesorSesionId: state.session.id,
+      localId: state.localId,
+      idempotencyKey: state.saleOperation.key,
+    };
     saleSubmit.disabled = true;
     try {
       await (api?.crearVentaPendiente
-        ? api.crearVentaPendiente({
-            productoId: state.selectedProduct.productoId,
-            usuarioCi: state.selectedMember.ci,
-            cantidad: state.quantity,
-            profesorSesionId: state.session.id,
-            localId: state.localId,
-          })
+        ? api.crearVentaPendiente(salePayload)
         : Promise.resolve({ id: Date.now() }));
       const memberName = state.selectedMember.nombre;
       showToast(`Venta enviada · queda pendiente para ${memberName}`);
       await loadStock();
       closeSale();
     } catch (error) {
+      if (isConnectionError(error)) {
+        const memberName = state.selectedMember.nombre;
+        queueRetry('pending-sale', salePayload);
+        showToast(`Venta guardada para ${memberName}; se enviara al volver la conexion`);
+        closeSale();
+        return;
+      }
       showToast(String(error?.message || 'No se pudo enviar la venta').replace(/^Error invoking remote method '[^']+': Error: /, ''), 'error');
       updateSaleSummary();
     }
@@ -578,6 +759,19 @@
       if (selected) selectClass(selected);
     });
     openSaleButton.addEventListener('click', openSale);
+    openRatingsButton.addEventListener('click', openRatings);
+    closeRatingsButton.addEventListener('click', closeRatings);
+    ratingClasses.addEventListener('click', event => {
+      const button = event.target.closest('[data-rating-class]');
+      if (button) loadRatingRoster(Number(button.dataset.ratingClass));
+    });
+    ratingRoster.addEventListener('click', event => {
+      const button = event.target.closest('[data-tablet-rate]');
+      if (button) rateStudent(button);
+    });
+    ratingsModal.addEventListener('click', event => {
+      if (event.target === ratingsModal) closeRatings();
+    });
     closeSaleButton.addEventListener('click', closeSale);
     saleModal.addEventListener('click', event => {
       if (event.target === saleModal) closeSale();
@@ -610,6 +804,10 @@
     });
     saleSubmit.addEventListener('click', submitSale);
     window.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !ratingsModal.hidden) {
+        closeRatings();
+        return;
+      }
       if (event.key === 'Escape' && !saleModal.hidden) {
         closeSale();
         return;
@@ -624,8 +822,10 @@
     });
     window.addEventListener('beforeunload', () => {
       clearInterval(state.classPoll);
+      clearInterval(state.retryTimer);
       clearTimeout(state.autoLogoutTimer);
     });
+    window.addEventListener('online', processRetryQueue);
   }
 
   async function init() {
@@ -643,6 +843,8 @@
     renderLocations();
     renderProfessors();
     await restoreSession();
+    await processRetryQueue();
+    state.retryTimer = setInterval(processRetryQueue, 10000);
   }
 
   init();

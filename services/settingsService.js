@@ -32,6 +32,7 @@ function createSettingsService({ settingsRepository }) {
       eventoRunningNombre: normalizeText(settings.evento_running_nombre, 'UNDER RUNNING'),
       eventoRunningDistancias: normalizeText(settings.evento_running_distancias, '3KM & 5KM'),
       eventoRunningFecha: normalizeDate(settings.evento_running_fecha, '2026-05-24'),
+      eventoRunningLeyenda: normalizeText(settings.evento_running_leyenda, 'ya falta menos'),
     };
   }
 
@@ -44,7 +45,9 @@ function createSettingsService({ settingsRepository }) {
     eventoRunningNombre,
     eventoRunningDistancias,
     eventoRunningFecha,
+    eventoRunningLeyenda,
   }) {
+    const previous = await getSettings();
     const normalized = {
       precio_inscripcion: normalizePrice(precioInscripcion ?? 0),
       precio_membresia_mensual: normalizePrice(precioMembresiaMensual ?? 0),
@@ -54,6 +57,7 @@ function createSettingsService({ settingsRepository }) {
       evento_running_nombre: normalizeText(eventoRunningNombre, 'UNDER RUNNING'),
       evento_running_distancias: normalizeText(eventoRunningDistancias, '3KM & 5KM'),
       evento_running_fecha: normalizeDate(eventoRunningFecha, '2026-05-24'),
+      evento_running_leyenda: normalizeText(eventoRunningLeyenda, previous.eventoRunningLeyenda),
     };
     await settingsRepository.upsertMany(normalized);
     return getSettings();

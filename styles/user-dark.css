@@ -589,6 +589,9 @@ body.user-page.under-running-active .kiosk-submit {
 }
 
 .running-transition-panel {
+  width: min(1100px, 90vw);
+  overflow-wrap: anywhere;
+  text-align: center;
   display: grid;
   justify-items: center;
   gap: 14px;
@@ -884,7 +887,8 @@ body.user-page.under-running-active .feedback-panel.feedback-success .feedback-t
     text-indent: 0.22em;
   }
 
-  .running-event-title {
+.running-event-title {
+  overflow-wrap: anywhere;
     font-size: 36px;
   }
 

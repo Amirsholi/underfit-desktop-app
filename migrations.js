@@ -144,6 +144,7 @@ async function migrarProductos(dbPath) {
         stock INTEGER NOT NULL DEFAULT 0
       )
     `);
+    await addColumnIfMissing(db, 'productos', 'activo', 'INTEGER NOT NULL', '1');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS ventas_productos (
@@ -233,6 +234,7 @@ async function migrarCaja(dbPath) {
     await addColumnIfMissing(db, 'caja_movimientos', 'caja_sesion_id', 'INTEGER');
     await addColumnIfMissing(db, 'caja_movimientos', 'correccion_de_id', 'INTEGER');
     await addColumnIfMissing(db, 'caja_movimientos', 'motivo_correccion', 'TEXT');
+    await addColumnIfMissing(db, 'caja_movimientos', 'responsable', 'TEXT');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS caja_sesiones (
@@ -600,6 +602,7 @@ async function migrarAsistenciasClases(dbPath) {
     await addColumnIfMissing(db, 'clases', 'fin_real_ts', 'TEXT');
     await addColumnIfMissing(db, 'clases', 'cancelada_ts', 'TEXT');
     await addColumnIfMissing(db, 'clases', 'motivo_cancelacion', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'es_prueba', 'INTEGER NOT NULL', '0');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS asistencias_clase (
@@ -622,10 +625,63 @@ async function migrarAsistenciasClases(dbPath) {
       )
     `);
 
+    await addColumnIfMissing(db, 'asistencias_clase', 'puntuacion', 'INTEGER');
+    await addColumnIfMissing(db, 'asistencias_clase', 'puntuado_por_profesor_id', 'INTEGER');
+    await addColumnIfMissing(db, 'asistencias_clase', 'puntuado_ts', 'TEXT');
+
     await runAsync(db, `CREATE UNIQUE INDEX IF NOT EXISTS unq_asistencia_clase_activa ON asistencias_clase(clase_id, usuario_ci) WHERE anulado = 0`);
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_asistencias_clase_fecha ON asistencias_clase(fecha, clase_id)`);
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_asistencias_clase_usuario ON asistencias_clase(usuario_ci, fecha)`);
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ingresos_local_fecha ON ingresos(local_id, fecha, hora)`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
+async function migrarEntrenamientoLocal(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS ejercicios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        grupo_muscular TEXT NOT NULL,
+        instrucciones TEXT,
+        gif_url TEXT,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS plantillas_rutina (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        dias_json TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS rutinas_socios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_ci INTEGER NOT NULL UNIQUE,
+        nombre TEXT NOT NULL,
+        profesor_id INTEGER NOT NULL,
+        profesor_nombre TEXT NOT NULL,
+        dias_json TEXT NOT NULL,
+        asignado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1
+      )
+    `);
+
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ejercicios_activo_nombre ON ejercicios(activo, nombre)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_plantillas_rutina_activo ON plantillas_rutina(activo, nombre)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_rutinas_socios_activo ON rutinas_socios(activo, usuario_ci)`);
   } finally {
     await closeAsync(db);
   }
@@ -641,6 +697,7 @@ async function ejecutarMigraciones(dbPath) {
   await migrarProfesores(dbPath);
   await migrarProgramacionesClases(dbPath);
   await migrarAsistenciasClases(dbPath);
+  await migrarEntrenamientoLocal(dbPath);
 }
 
 module.exports = {
@@ -653,5 +710,6 @@ module.exports = {
   migrarProfesores,
   migrarProgramacionesClases,
   migrarAsistenciasClases,
+  migrarEntrenamientoLocal,
   ejecutarMigraciones,
 };

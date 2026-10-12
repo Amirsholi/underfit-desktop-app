@@ -80,6 +80,21 @@ test('professor PIN opens a traceable tablet session without exposing credential
   });
 });
 
+test('a professor can be created without login credentials', async () => {
+  const repository = createFakeRepository();
+  const service = createStaffService({ staffRepository: repository });
+  const professor = await service.createProfessor({ nombre: '  Camila   López  ' });
+
+  assert.equal(professor.nombre, 'Camila López');
+  assert.equal(professor.activo, true);
+  assert.equal(professor.pinConfigurado, false);
+  assert.equal(Object.hasOwn(professor, 'pinHash'), false);
+
+  const stored = await repository.findProfessorById(professor.id);
+  assert.equal(stored.pinHash, '');
+  assert.equal(stored.pinSalt, '');
+});
+
 test('deactivating a professor prevents future tablet sessions', async () => {
   const service = createStaffService({ staffRepository: createFakeRepository() });
   const professor = await service.createProfessor({ nombre: 'Santiago Lima', pin: '1234' });

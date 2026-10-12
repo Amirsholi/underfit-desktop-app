@@ -17,8 +17,9 @@ contextBridge.exposeInMainWorld('api', {
 
   renovarMembresia: (payload) => ipcRenderer.invoke('renovar-membresia', payload),
 
-  obtenerIngresos: (desde, hasta) =>
-    ipcRenderer.invoke('obtener-ingresos', { desde, hasta }),
+  obtenerUltimosIngresos: () => ipcRenderer.invoke('obtener-ultimos-ingresos'),
+  obtenerIngresos: (desde, hasta, socioCi) =>
+    ipcRenderer.invoke('obtener-ingresos', { desde, hasta, socioCi }),
 
   anularIngreso: (payload) => ipcRenderer.invoke('anular-ingreso', payload),
 
@@ -45,10 +46,14 @@ contextBridge.exposeInMainWorld('api', {
   obtenerClasesProximas: (desde) => ipcRenderer.invoke('obtener-clases-proximas', desde),
 
   crearClase: (payload) => ipcRenderer.invoke('crear-clase', payload),
+  actualizarProgramacionClase: (payload) => ipcRenderer.invoke('actualizar-programacion-clase', payload),
+  marcarClasePrueba: (payload) => ipcRenderer.invoke('marcar-clase-prueba', payload),
 
   obtenerInscripcionesClase: (claseId) => ipcRenderer.invoke('obtener-inscripciones-clase', claseId),
 
   inscribirSocioClase: (payload) => ipcRenderer.invoke('inscribir-socio-clase', payload),
+  quitarAlumnoClase: (payload) => ipcRenderer.invoke('quitar-alumno-clase', payload),
+  eliminarClase: id => ipcRenderer.invoke('eliminar-clase', id),
 
   obtenerClaseActual: (payload) => ipcRenderer.invoke('obtener-clase-actual', payload),
 
@@ -59,6 +64,10 @@ contextBridge.exposeInMainWorld('api', {
   obtenerDetalleRegistroClase: (claseId) => ipcRenderer.invoke('obtener-detalle-registro-clase', claseId),
 
   marcarEstadoClase: (payload) => ipcRenderer.invoke('marcar-estado-clase', payload),
+
+  puntuarAsistenciaClase: (payload) => ipcRenderer.invoke('puntuar-asistencia-clase', payload),
+
+  corregirAsistenciaClase: (payload) => ipcRenderer.invoke('corregir-asistencia-clase', payload),
 
   obtenerVentasPendientes: () => ipcRenderer.invoke('obtener-ventas-pendientes'),
 
@@ -73,6 +82,17 @@ contextBridge.exposeInMainWorld('api', {
   crearProfesor: (payload) => ipcRenderer.invoke('crear-profesor', payload),
 
   actualizarProfesor: (id, datos) => ipcRenderer.invoke('actualizar-profesor', { id, datos }),
+  obtenerEjercicios: (incluirInactivos = false) =>
+    ipcRenderer.invoke('obtener-ejercicios', incluirInactivos),
+  crearEjercicio: (payload) => ipcRenderer.invoke('crear-ejercicio', payload),
+  actualizarEjercicio: (id, datos) =>
+    ipcRenderer.invoke('actualizar-ejercicio', { id, datos }),
+  asignarRutinaSocio: (identityNumber, plan) =>
+    ipcRenderer.invoke('asignar-rutina-socio', { identityNumber, plan }),
+  obtenerPreRutinas: () => ipcRenderer.invoke('obtener-pre-rutinas'),
+  obtenerRutinasSocios: () => ipcRenderer.invoke('obtener-rutinas-socios'),
+  guardarPreRutina: (payload) => ipcRenderer.invoke('guardar-pre-rutina', payload),
+  subirVideoEjercicio: (filePath) => ipcRenderer.invoke('subir-video-ejercicio', filePath),
 
   iniciarSesionProfesor: (payload) => ipcRenderer.invoke('iniciar-sesion-profesor', payload),
 
@@ -105,14 +125,30 @@ contextBridge.exposeInMainWorld('api', {
   ajustarTotalCajaDia: (fecha, nuevoTotal, observacion = null) =>
     ipcRenderer.invoke('ajustar-total-caja-dia', { fecha, nuevoTotal, observacion }),
 
-  registrarSalidaCaja: (fecha, monto, formaPago = 'efectivo', observacion = null) =>
-    ipcRenderer.invoke('registrar-salida-caja', { fecha, monto, formaPago, observacion }),
+  registrarSalidaCaja: (fecha, monto, formaPago = 'efectivo', observacion = null, responsable = null) =>
+    ipcRenderer.invoke('registrar-salida-caja', { fecha, monto, formaPago, observacion, responsable }),
+
+  abrirCarpetaCierres: (fecha) => ipcRenderer.invoke('abrir-carpeta-cierres', fecha),
 
   corregirMovimientoCaja: (payload) => ipcRenderer.invoke('corregir-movimiento-caja', payload),
 
   obtenerInfoSistema: () => ipcRenderer.invoke('obtener-info-sistema'),
+  obtenerSonidosIngreso: () => ipcRenderer.invoke('obtener-sonidos-ingreso'),
+  guardarSonidosIngreso: muted => ipcRenderer.invoke('guardar-sonidos-ingreso', muted),
+  cargarSonidoIngreso: kind => ipcRenderer.invoke('cargar-sonido-ingreso', kind),
+  onSonidosIngresoActualizados: callback => {
+    const listener = (_event, preferences) => callback(preferences);
+    ipcRenderer.on('sonidos-ingreso-actualizados', listener);
+    return () => ipcRenderer.removeListener('sonidos-ingreso-actualizados', listener);
+  },
 
   guardarConfiguracionNegocio: (payload) => ipcRenderer.invoke('guardar-configuracion-negocio', payload),
+  crearCodigoTablet: deviceId => ipcRenderer.invoke('crear-codigo-tablet', deviceId),
+  onEventoActualizado: callback => {
+    const listener = (_event, settings) => callback(settings);
+    ipcRenderer.on('evento-actualizado', listener);
+    return () => ipcRenderer.removeListener('evento-actualizado', listener);
+  },
 
   crearBackupManual: () => ipcRenderer.invoke('crear-backup-manual'),
 
@@ -121,6 +157,8 @@ contextBridge.exposeInMainWorld('api', {
   abrirPantallaTablet: () => ipcRenderer.invoke('abrir-pantalla-tablet'),
 
   eliminarUsuario: (ci) => ipcRenderer.invoke('eliminar-usuario', ci),
+  restablecerAccesoMovil: (ci, password) =>
+    ipcRenderer.invoke('restablecer-acceso-movil', { ci, password }),
 
   onEnfocarInput: (callback) => {
     ipcRenderer.removeAllListeners('enfocar-input');

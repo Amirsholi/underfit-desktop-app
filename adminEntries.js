@@ -1,6 +1,10 @@
+function orderCashMovementsByRegistration(movements) {
+  return [...(movements || [])].sort((a, b) => Number(b.id) - Number(a.id));
+}
+
 function createAdminEntriesController({ shared }) {
   const fechaDashboard = document.getElementById('dashboard-fecha');
-  const dashboardPageTitle = document.querySelector('#modal-dashboard > .app-modal-card > .app-modal-header h3');
+  const dashboardPageTitle = document.querySelector('#modal-dashboard > .admin-section-heading h3');
   const dashboardPageKicker = document.getElementById('dashboard-page-kicker');
   const dashboardPageHeading = document.getElementById('dashboard-page-heading');
   const dashboardPageCopy = document.getElementById('dashboard-page-copy');
@@ -46,6 +50,8 @@ function createAdminEntriesController({ shared }) {
   const ingresoManualButton = document.getElementById('dashboard-registrar-ingreso-manual');
   const salidaButton = document.getElementById('dashboard-registrar-salida');
   const cerrarCajaButton = document.getElementById('dashboard-cerrar-caja');
+  const abrirCajaButton = document.getElementById('dashboard-abrir-caja');
+  const verCierreButton = document.getElementById('dashboard-ver-cierre');
 
   const adjustmentModal = document.getElementById('modal-ajuste-total');
   const adjustmentTotalInput = document.getElementById('ajuste-total-nuevo');
@@ -54,6 +60,7 @@ function createAdminEntriesController({ shared }) {
 
   const outputModal = document.getElementById('modal-salida-caja');
   const outputAmountInput = document.getElementById('salida-caja-monto');
+  const outputResponsibleInput = document.getElementById('salida-caja-responsable');
   const outputReasonInput = document.getElementById('salida-caja-observacion');
   const outputSaveButton = document.getElementById('guardar-salida-caja');
 
@@ -63,9 +70,11 @@ function createAdminEntriesController({ shared }) {
   const correctionObservationInput = document.getElementById('corregir-movimiento-observacion');
   const correctionReasonInput = document.getElementById('corregir-movimiento-motivo');
   const correctionSaveButton = document.getElementById('guardar-correccion-movimiento');
+  const correctionOriginal = document.getElementById('corregir-movimiento-original');
 
   const manualIncomeModal = document.getElementById('modal-ingreso-manual-caja');
   const manualIncomeAmountInput = document.getElementById('ingreso-manual-monto');
+  const manualIncomeResponsibleInput = document.getElementById('ingreso-manual-responsable');
   const manualIncomeObservationInput = document.getElementById('ingreso-manual-observacion');
   const manualIncomeSaveButton = document.getElementById('guardar-ingreso-manual-caja');
 
@@ -82,6 +91,12 @@ function createAdminEntriesController({ shared }) {
   let currentMovements = new Map();
   let currentEntries = new Map();
   let showDashboardTab = () => {};
+
+  function cashEscape(value) {
+    const span = document.createElement('span');
+    span.textContent = String(value ?? '');
+    return span.innerHTML;
+  }
 
   function hoyYYYYMMDD() {
     const d = new Date();
@@ -101,7 +116,8 @@ function createAdminEntriesController({ shared }) {
   function formatearTipoMovimiento(tipo) {
     const labels = {
       alta: 'Alta',
-      renovacion: 'Renovacion',
+      renovacion: 'Renovación',
+      membresia: 'Renovación',
       venta_producto: 'Venta',
       ingreso_manual: 'Entrada',
       egreso: 'Salida',
@@ -142,7 +158,7 @@ function createAdminEntriesController({ shared }) {
   }
 
   function mostrarFormularioApertura(mostrar) {
-    aperturaCard.style.display = mostrar ? 'block' : 'none';
+    aperturaCard.style.display = mostrar ? 'grid' : 'none';
   }
 
   async function cargarIngresosDelDia(fecha) {
@@ -202,7 +218,7 @@ function createAdminEntriesController({ shared }) {
       return;
     }
     try {
-      await window.api.anularIngreso({ id: Number(annulEntryIdInput.value), motivo });
+      await window.api.anularIngreso({ id: annulEntryIdInput.value, motivo });
       annulEntryModal.style.display = 'none';
       shared.mostrarNotificacion('Ingreso anulado con trazabilidad', 'success');
       const fecha = fechaDashboard?.value || hoyYYYYMMDD();
@@ -268,7 +284,7 @@ function createAdminEntriesController({ shared }) {
       aperturaGuardarButton.textContent = 'Guardar';
       aperturaEditarButton.style.display = 'none';
     } else if (apertura) {
-      mostrarFormularioApertura(esHoy);
+      mostrarFormularioApertura(false);
       aperturaResumen.style.display = 'none';
       aperturaEstado.textContent = `Ultima caja: ${apertura.cajero_apertura || 'Sin registrar'} a las ${apertura.hora_apertura}`;
       aperturaResumenMonto.textContent = `Monto inicial: ${formatearMoneda(apertura.monto_inicial_efectivo)}`;
@@ -282,7 +298,7 @@ function createAdminEntriesController({ shared }) {
       aperturaGuardarButton.textContent = esHoy ? 'Abrir caja' : 'Fecha historica';
       aperturaEditarButton.style.display = 'none';
     } else {
-      mostrarFormularioApertura(esHoy);
+      mostrarFormularioApertura(false);
       aperturaResumen.style.display = 'none';
       aperturaEstado.textContent = esHoy ? 'Sin apertura registrada.' : 'Fecha historica sin apertura.';
       aperturaCajeroInput.value = '';
@@ -302,6 +318,8 @@ function createAdminEntriesController({ shared }) {
       setCajaActionsEnabled(true);
       cerrarCajaButton.style.display = 'inline-flex';
       cerrarCajaButton.disabled = false;
+      if (abrirCajaButton) abrirCajaButton.hidden = true;
+      if (verCierreButton) verCierreButton.hidden = true;
     } else if (cierre) {
       estadoCajaPill.classList.remove('cash-state-open');
       estadoCajaPill.classList.add('cash-state-closed');
@@ -315,8 +333,10 @@ function createAdminEntriesController({ shared }) {
       setCajaActionsEnabled(esHoy);
       ingresoManualButton.disabled = true;
       salidaButton.disabled = true;
-      cerrarCajaButton.style.display = 'inline-flex';
+      cerrarCajaButton.style.display = 'none';
       cerrarCajaButton.disabled = true;
+      if (abrirCajaButton) abrirCajaButton.hidden = !esHoy;
+      if (verCierreButton) verCierreButton.hidden = false;
     } else {
       estadoCajaPill.classList.remove('cash-state-open');
       estadoCajaPill.classList.add('cash-state-closed');
@@ -326,19 +346,28 @@ function createAdminEntriesController({ shared }) {
       setCajaActionsEnabled(esHoy);
       ingresoManualButton.disabled = true;
       salidaButton.disabled = true;
-      cerrarCajaButton.style.display = 'inline-flex';
+      cerrarCajaButton.style.display = 'none';
       cerrarCajaButton.disabled = true;
+      if (abrirCajaButton) abrirCajaButton.hidden = !esHoy;
+      if (verCierreButton) verCierreButton.hidden = true;
     }
   }
 
   async function cargarCajaDelDia(fecha) {
     try {
       const previewMovements = [
-        { id: 5, hora: '18:24', tipo_ingreso: 'venta_producto', producto_id: 1, producto_nombre: 'Agua mineral 1.5 L', forma_pago: 'efectivo', monto: 95, cantidad: 1 },
-        { id: 4, hora: '17:58', tipo_ingreso: 'renovacion', usuario_ci: 49876543, usuario_nombre: 'Martina Silva', forma_pago: 'transferencia', monto: 1600, cantidad: 1 },
-        { id: 3, hora: '16:12', tipo_ingreso: 'venta_producto', producto_id: 4, producto_nombre: 'Barrita de cereal chocolate', forma_pago: 'efectivo', monto: 140, cantidad: 2 },
-        { id: 2, hora: '11:36', tipo_ingreso: 'egreso', descripcion: 'Insumos de limpieza', forma_pago: 'transferencia', monto: -500, cantidad: 1 },
-        { id: 1, hora: '09:18', tipo_ingreso: 'alta', usuario_ci: 48723901, usuario_nombre: 'Federico Núñez', forma_pago: 'efectivo', monto: 1600, cantidad: 1 },
+        { id: 12, hora: '20:50', tipo_ingreso: 'venta_producto', producto_nombre: 'Shaker Under-Fit', usuario_nombre: 'Martina Silva', forma_pago: 'transferencia', monto: 390, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 11, hora: '20:45', tipo_ingreso: 'renovacion', usuario_nombre: 'Carolina Díaz', forma_pago: 'efectivo', monto: 1600, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 10, hora: '20:31', tipo_ingreso: 'venta_producto', producto_nombre: 'Proteína individual', usuario_nombre: 'Nicolás Torres', forma_pago: 'efectivo', monto: 180, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 9, hora: '20:02', tipo_ingreso: 'egreso', descripcion: 'Compra de limpieza', forma_pago: 'efectivo', monto: -280, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 8, hora: '19:34', tipo_ingreso: 'renovacion', usuario_nombre: 'Sofía Núñez', forma_pago: 'transferencia', monto: 4400, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 7, hora: '19:16', tipo_ingreso: 'ingreso_manual', descripcion: 'Entrada eventual', forma_pago: 'efectivo', monto: 500, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 6, hora: '18:42', tipo_ingreso: 'venta_producto', producto_nombre: 'Barrita de cereal chocolate', usuario_nombre: 'Ana Pereira', forma_pago: 'efectivo', monto: 70, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 5, hora: '18:24', tipo_ingreso: 'venta_producto', producto_nombre: 'Agua mineral 1.5 L', usuario_nombre: 'Agustín Moreira', forma_pago: 'efectivo', monto: 95, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 4, hora: '17:58', tipo_ingreso: 'renovacion', usuario_nombre: 'Federico Ramos', forma_pago: 'transferencia', monto: 1600, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 3, hora: '16:12', tipo_ingreso: 'venta_producto', producto_nombre: 'Bebida isotónica 500 ml', usuario_nombre: 'Camila Bentancur', forma_pago: 'efectivo', monto: 120, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 2, hora: '11:36', tipo_ingreso: 'egreso', descripcion: 'Insumos de recepción', forma_pago: 'transferencia', monto: -450, cantidad: 1, responsable: 'Laura Méndez' },
+        { id: 1, hora: '09:18', tipo_ingreso: 'alta', usuario_nombre: 'Federico Núñez', forma_pago: 'efectivo', monto: 1600, cantidad: 1, responsable: 'Laura Méndez' },
       ];
       const previewSummary = {
         totalIngresos: 10545,
@@ -358,19 +387,36 @@ function createAdminEntriesController({ shared }) {
           fecha,
           hora_apertura: '08:00',
           cajero_apertura: 'Recepción',
-          monto_inicial_efectivo: 2000,
+          monto_inicial_efectivo: 10000,
           observacion: 'Turno mañana',
         },
         apertura: null,
         cierre: null,
         sesiones: [],
       };
-      const [resumen, movimientos] = window.api?.obtenerResumenCajaDia && window.api?.obtenerMovimientosCaja
+      const [resumen, loadedMovements] = window.api?.obtenerResumenCajaDia && window.api?.obtenerMovimientosCaja
         ? await Promise.all([
             window.api.obtenerResumenCajaDia(fecha),
             window.api.obtenerMovimientosCaja(fecha),
           ])
         : [previewSummary, previewMovements];
+      renderCashSnapshot(fecha, resumen, loadedMovements);
+    } catch (error) {
+      console.error('Error cargando caja del dia:', error);
+      totalIngresosCaja.textContent = formatearMoneda(0);
+      totalEfectivoCaja.textContent = formatearMoneda(0);
+      totalTransferenciaCaja.textContent = formatearMoneda(0);
+      totalEgresosCaja.textContent = formatearMoneda(0);
+      aperturaEstado.textContent = 'Error al cargar apertura';
+      cierreEstado.textContent = 'Error al cargar caja';
+      sinCaja.style.display = 'grid';
+    }
+  }
+
+  function renderCashSnapshot(fecha, resumen, loadedMovements) {
+      // Show newly recorded operations first, including when imported/demo
+      // movements have a later clock time than the current real transaction.
+      const movimientos = orderCashMovementsByRegistration(loadedMovements);
 
       const totalPorForma = Object.fromEntries(
         (resumen?.totalPorFormaPago || []).map(item => [item.formaPago, item.total])
@@ -386,7 +432,7 @@ function createAdminEntriesController({ shared }) {
       totalEgresosCaja.textContent = formatearMoneda(totalEgresos);
       actualizarEstadoAperturaYCierre(resumen);
 
-      tablaDashboardCaja.innerHTML = '';
+      const movementRows = document.createDocumentFragment();
       currentMovements = new Map((movimientos || []).map(row => [Number(row.id), row]));
       const correctedMovementIds = new Set(
         (movimientos || [])
@@ -394,20 +440,30 @@ function createAdminEntriesController({ shared }) {
           .map(row => Number(row.correccion_de_id))
       );
       sinCaja.style.display = movimientos?.length ? 'none' : 'block';
+      document.getElementById('ledger-movement-count').textContent = `${movimientos?.length || 0} movimientos`;
 
       (movimientos || []).forEach(row => {
-        const detalle = row.usuario_nombre || row.producto_nombre || row.descripcion || '-';
+        const isSale = row.tipo_ingreso === 'venta_producto';
+        const detalle = isSale ? row.producto_nombre || row.descripcion || 'Venta de producto' : row.usuario_nombre || row.descripcion || 'Movimiento de caja';
+        const esSalida = Number(row.monto || 0) < 0 || row.tipo_ingreso === 'egreso';
+        const esManual = ['ingreso_manual', 'egreso'].includes(row.tipo_ingreso);
+        const canCorrect = esManual && Boolean(resumen?.sesionAbierta) && !correctedMovementIds.has(Number(row.id));
+        const metadata = [formatearTipoMovimiento(row.tipo_ingreso)];
+        if (isSale && row.cantidad) metadata.push(`${row.cantidad} ${Number(row.cantidad) === 1 ? 'unidad' : 'unidades'}`);
+        if (isSale && row.usuario_nombre) metadata.push(row.usuario_nombre);
+        if (esManual && row.responsable) metadata.push(`Responsable: ${row.responsable}`);
         const tr = document.createElement('tr');
+        tr.className = esSalida ? 'ledger-row ledger-row-output' : 'ledger-row';
         tr.innerHTML = `
-          <td>${row.hora || '-'}</td>
-          <td>${formatearTipoMovimiento(row.tipo_ingreso)}</td>
-          <td>${detalle}</td>
-          <td>${capitalizarFormaPago(row.forma_pago)}</td>
-          <td>${formatearMoneda(row.monto)}</td>
-          <td>${['ingreso_manual', 'egreso'].includes(row.tipo_ingreso) && resumen?.sesionAbierta && !correctedMovementIds.has(Number(row.id)) ? `<button class="table-action-button" type="button" data-corregir-movimiento="${row.id}">Corregir</button>` : ''}</td>
+          <td>${cashEscape(row.hora || '-')}</td>
+          <td><div class="ledger-identity"><strong>${cashEscape(detalle)}</strong><span>${cashEscape(metadata.join(' · '))}</span></div></td>
+          <td>${cashEscape(capitalizarFormaPago(row.forma_pago))}</td>
+          <td class="ledger-amount">${cashEscape(formatearMoneda(row.monto))}</td>
+          <td>${canCorrect ? `<button class="ledger-correct" type="button" data-corregir-movimiento="${Number(row.id)}">Corregir</button>` : ''}</td>
         `;
-        tablaDashboardCaja.appendChild(tr);
+        movementRows.appendChild(tr);
       });
+      tablaDashboardCaja.replaceChildren(movementRows);
 
       if (fecha === hoyYYYYMMDD() && homeActivityBody && homeActivityEmpty) {
         homeActivityBody.innerHTML = '';
@@ -425,16 +481,6 @@ function createAdminEntriesController({ shared }) {
           homeActivityBody.appendChild(tr);
         });
       }
-    } catch (error) {
-      console.error('Error cargando caja del dia:', error);
-      totalIngresosCaja.textContent = formatearMoneda(0);
-      totalEfectivoCaja.textContent = formatearMoneda(0);
-      totalTransferenciaCaja.textContent = formatearMoneda(0);
-      totalEgresosCaja.textContent = formatearMoneda(0);
-      aperturaEstado.textContent = 'Error al cargar apertura';
-      cierreEstado.textContent = 'Error al cargar caja';
-      sinCaja.style.display = 'grid';
-    }
   }
 
   async function guardarApertura() {
@@ -505,26 +551,36 @@ function createAdminEntriesController({ shared }) {
 
   function abrirModalSalidaCaja() {
     outputAmountInput.value = '';
+    if (outputResponsibleInput) outputResponsibleInput.value = '';
     outputReasonInput.value = '';
     document.querySelectorAll('input[name="salida-caja-forma-pago"]').forEach(input => {
       input.checked = input.value === 'efectivo';
     });
     outputModal.style.display = 'flex';
+    outputAmountInput.focus();
   }
 
   async function guardarSalidaCaja() {
+    if (outputSaveButton.disabled) return;
     const fecha = fechaDashboard?.value || hoyYYYYMMDD();
     const monto = Number(outputAmountInput.value || 0);
     const observacion = outputReasonInput.value.trim();
+    const responsable = outputResponsibleInput?.value.trim() || '';
     const formaPago = getCheckedValue('salida-caja-forma-pago', 'efectivo');
 
     if (Number.isNaN(monto) || monto <= 0) {
       shared.mostrarNotificacion('Ingresa un monto valido', 'warning');
       return;
     }
+    if (!responsable) {
+      shared.mostrarNotificacion('Ingresa el responsable de la salida', 'warning');
+      return;
+    }
 
     try {
-      await window.api.registrarSalidaCaja(fecha, monto, formaPago, observacion);
+      outputSaveButton.disabled = true;
+      outputSaveButton.textContent = 'Registrando…';
+      await window.api.registrarSalidaCaja(fecha, monto, formaPago, observacion, responsable);
       outputModal.style.display = 'none';
       shared.mostrarNotificacion('Egreso registrado', 'success');
       await cargarCajaDelDia(fecha);
@@ -532,6 +588,9 @@ function createAdminEntriesController({ shared }) {
     } catch (error) {
       console.error('Error registrando egreso:', error);
       shared.mostrarNotificacion(error?.message || 'No se pudo registrar el egreso', 'error');
+    } finally {
+      outputSaveButton.disabled = false;
+      outputSaveButton.textContent = 'Registrar salida';
     }
   }
 
@@ -542,6 +601,9 @@ function createAdminEntriesController({ shared }) {
     correctionAmountInput.value = String(Math.abs(Number(row.monto || 0)));
     correctionObservationInput.value = row.descripcion || row.observacion || '';
     correctionReasonInput.value = '';
+    if (correctionOriginal) {
+      correctionOriginal.innerHTML = `<span>${formatearTipoMovimiento(row.tipo_ingreso)}</span><small>#${row.id}</small><strong>${formatearMoneda(row.monto)}</strong>`;
+    }
     document.querySelectorAll('input[name="corregir-movimiento-forma-pago"]').forEach(input => {
       input.checked = input.value === row.forma_pago;
     });
@@ -573,26 +635,36 @@ function createAdminEntriesController({ shared }) {
 
   function abrirModalIngresoManual() {
     manualIncomeAmountInput.value = '';
+    if (manualIncomeResponsibleInput) manualIncomeResponsibleInput.value = '';
     manualIncomeObservationInput.value = '';
     document.querySelectorAll('input[name="ingreso-manual-forma-pago"]').forEach(input => {
       input.checked = input.value === 'efectivo';
     });
     manualIncomeModal.style.display = 'flex';
+    manualIncomeAmountInput.focus();
   }
 
   async function guardarIngresoManual() {
+    if (manualIncomeSaveButton.disabled) return;
     const fecha = fechaDashboard?.value || hoyYYYYMMDD();
     const monto = Number(manualIncomeAmountInput.value || 0);
     const formaPago = getCheckedValue('ingreso-manual-forma-pago', 'efectivo');
     const observacion = manualIncomeObservationInput.value.trim();
+    const responsable = manualIncomeResponsibleInput?.value.trim() || '';
 
     if (Number.isNaN(monto) || monto <= 0) {
       shared.mostrarNotificacion('Ingresa un monto valido', 'warning');
       return;
     }
+    if (!responsable) {
+      shared.mostrarNotificacion('Ingresa el responsable de la entrada', 'warning');
+      return;
+    }
 
     try {
-      await window.api.registrarIngresoManualCaja({ fecha, monto, formaPago, observacion });
+      manualIncomeSaveButton.disabled = true;
+      manualIncomeSaveButton.textContent = 'Registrando…';
+      await window.api.registrarIngresoManualCaja({ fecha, monto, formaPago, observacion, responsable });
       manualIncomeModal.style.display = 'none';
       shared.mostrarNotificacion('Ingreso manual registrado', 'success');
       await cargarCajaDelDia(fecha);
@@ -600,6 +672,9 @@ function createAdminEntriesController({ shared }) {
     } catch (error) {
       console.error('Error registrando ingreso manual:', error);
       shared.mostrarNotificacion(error?.message || 'No se pudo registrar el ingreso', 'error');
+    } finally {
+      manualIncomeSaveButton.disabled = false;
+      manualIncomeSaveButton.textContent = 'Registrar entrada';
     }
   }
 
@@ -608,14 +683,20 @@ function createAdminEntriesController({ shared }) {
     const pendingCount = Number(currentSummary?.pendientes?.cantidad || 0);
     const pendingTotal = Number(currentSummary?.pendientes?.total || 0);
     if (closePendingSummary) {
-      closePendingSummary.innerHTML = `<span>Entregado sin cobrar · ${pendingCount} ${pendingCount === 1 ? 'venta' : 'ventas'}</span><strong>${formatearMoneda(pendingTotal)}</strong><span>No se suma al efectivo ni a las transferencias cobradas.</span>`;
+      closePendingSummary.hidden = pendingCount === 0;
+      closePendingSummary.textContent = `${pendingCount} ${pendingCount === 1 ? 'venta pendiente' : 'ventas pendientes'} · ${formatearMoneda(pendingTotal)} sin cobrar. No impide cerrar la caja.`;
     }
+    document.getElementById('closure-date').textContent = `Cierre del ${String(fechaDashboard.value).split('-').reverse().join('/')}`;
+    document.getElementById('closure-error').hidden = true;
     closeExpectedCashInput.value = formatearMoneda(efectivoEsperado);
     closeCountedCashInput.value = String(efectivoEsperado);
     closeCashierInput.value = currentSummary?.sesionAbierta?.cajero_apertura || '';
-    closeDifferenceInput.value = formatearDiferenciaCaja(0);
+    closeDifferenceInput.value = formatearMoneda(0);
+    document.querySelector('label[for="cierre-diferencia"]').textContent = 'Diferencia';
     closeObservationInput.value = '';
     closeModal.style.display = 'flex';
+    closeCountedCashInput.focus();
+    closeCountedCashInput.select();
   }
 
   function actualizarDiferenciaCierre() {
@@ -628,16 +709,18 @@ function createAdminEntriesController({ shared }) {
     }
 
     const diferencia = Number((contado - esperado).toFixed(2));
-    closeDifferenceInput.value = formatearDiferenciaCaja(diferencia);
+    closeDifferenceInput.value = formatearMoneda(diferencia);
+    document.querySelector('label[for="cierre-diferencia"]').textContent = diferencia < 0 ? 'Diferencia · faltante' : diferencia > 0 ? 'Diferencia · sobrante' : 'Diferencia';
   }
 
   async function guardarCierreCaja() {
+    if (closeSaveButton.disabled || !document.getElementById('closure-form').reportValidity()) return;
     const fecha = fechaDashboard?.value || hoyYYYYMMDD();
     const efectivoContado = Number(closeCountedCashInput.value || 0);
     const cajeroCierre = closeCashierInput?.value.trim() || '';
     const observacion = closeObservationInput.value.trim();
 
-    if (Number.isNaN(efectivoContado) || efectivoContado < 0) {
+    if (!Number.isFinite(efectivoContado) || efectivoContado < 0) {
       shared.mostrarNotificacion('Ingresa un efectivo contado valido', 'warning');
       return;
     }
@@ -648,6 +731,9 @@ function createAdminEntriesController({ shared }) {
     }
 
     try {
+      closeSaveButton.disabled = true;
+      closeSaveButton.textContent = 'Cerrando…';
+      document.getElementById('closure-error').hidden = true;
       const resultado = await window.api.cerrarCajaDia(fecha, efectivoContado, observacion, cajeroCierre);
       closeModal.style.display = 'none';
       if (resultado?.exportacion?.created) {
@@ -661,14 +747,27 @@ function createAdminEntriesController({ shared }) {
       await actualizarWidgetDineroHoy();
     } catch (error) {
       console.error('Error cerrando caja:', error);
-      shared.mostrarNotificacion(error?.message || 'No se pudo cerrar la caja', 'error');
+      const message = String(error?.message || 'No se pudo cerrar la caja. Volvé a intentar.').replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '');
+      document.getElementById('closure-error').textContent = message;
+      document.getElementById('closure-error').hidden = false;
+    } finally {
+      closeSaveButton.disabled = false;
+      closeSaveButton.textContent = 'Cerrar caja';
+    }
+  }
+
+  async function abrirCarpetaDeCierres() {
+    try {
+      const fecha = fechaDashboard?.value || hoyYYYYMMDD();
+      await window.api.abrirCarpetaCierres(fecha);
+    } catch (error) {
+      shared.mostrarNotificacion(error?.message || 'No se pudo abrir la carpeta de cierres', 'error');
     }
   }
 
   function initDashboardTabs() {
     const buttons = Array.from(document.querySelectorAll('[data-dashboard-tab]'));
     const panels = Array.from(document.querySelectorAll('[data-dashboard-panel]'));
-    const cajaOnlyElements = Array.from(document.querySelectorAll('[data-caja-only]'));
 
     function showTab(tabId) {
       buttons.forEach(button => {
@@ -679,15 +778,6 @@ function createAdminEntriesController({ shared }) {
         panel.style.display = panel.getAttribute('data-dashboard-panel') === tabId ? 'grid' : 'none';
       });
 
-      cajaOnlyElements.forEach(element => {
-        if (tabId === 'caja') {
-          element.style.display = element.dataset.previousDisplay || '';
-          delete element.dataset.previousDisplay;
-        } else {
-          element.dataset.previousDisplay = element.style.display || '';
-          element.style.display = 'none';
-        }
-      });
     }
     showDashboardTab = showTab;
 
@@ -707,6 +797,30 @@ function createAdminEntriesController({ shared }) {
 
   function init() {
     if (!fechaDashboard) return;
+    window.adminSync?.watch({
+      enabled: () => Boolean(window.api && window.adminSync.active('home')),
+      read: async () => {
+        const today = hoyYYYYMMDD();
+        return Promise.all([window.api.obtenerIngresos(today, today), window.api.obtenerResumenCajaDia(today)]);
+      },
+      apply: ([entries, summary]) => {
+        if (widgetIngresosHoy) widgetIngresosHoy.textContent = String(entries.length);
+        if (widgetDineroHoy) widgetDineroHoy.textContent = formatearMoneda(summary?.totalIngresos || 0);
+      },
+    });
+    window.adminSync?.watch({
+      enabled: () => Boolean(window.api && window.adminSync.active('operations') &&
+        !window.adminSync.visible(aperturaCajeroInput)),
+      read: async () => {
+        const date = fechaDashboard.value || hoyYYYYMMDD();
+        const [summary, movements] = await Promise.all([window.api.obtenerResumenCajaDia(date), window.api.obtenerMovimientosCaja(date)]);
+        return { date, summary, movements };
+      },
+      apply: ({ date, summary, movements }) => {
+        if (date !== (fechaDashboard.value || hoyYYYYMMDD())) return;
+        renderCashSnapshot(date, summary, movements);
+      },
+    });
 
     fechaDashboard.value = hoyYYYYMMDD();
     initDashboardTabs();
@@ -715,20 +829,43 @@ function createAdminEntriesController({ shared }) {
 
     totalIngresosCaja?.addEventListener('click', abrirModalAjusteTotal);
     aperturaGuardarButton?.addEventListener('click', guardarApertura);
+    abrirCajaButton?.addEventListener('click', () => mostrarFormularioApertura(true));
+    verCierreButton?.addEventListener('click', abrirCarpetaDeCierres);
     aperturaEditarButton?.addEventListener('click', () => mostrarFormularioApertura(true));
     adjustmentSaveButton?.addEventListener('click', guardarAjusteTotal);
     salidaButton?.addEventListener('click', abrirModalSalidaCaja);
-    outputSaveButton?.addEventListener('click', guardarSalidaCaja);
+    document.getElementById('form-salida-caja')?.addEventListener('submit', event => {
+      event.preventDefault();
+      guardarSalidaCaja();
+    });
     correctionSaveButton?.addEventListener('click', guardarCorreccionMovimiento);
     tablaDashboardCaja?.addEventListener('click', event => {
       const button = event.target.closest('[data-corregir-movimiento]');
       if (button) abrirCorreccionMovimiento(button.dataset.corregirMovimiento);
     });
     ingresoManualButton?.addEventListener('click', abrirModalIngresoManual);
-    manualIncomeSaveButton?.addEventListener('click', guardarIngresoManual);
+    document.getElementById('form-ingreso-manual-caja')?.addEventListener('submit', event => {
+      event.preventDefault();
+      guardarIngresoManual();
+    });
     cerrarCajaButton?.addEventListener('click', abrirModalCierreCaja);
     closeCountedCashInput?.addEventListener('input', actualizarDiferenciaCierre);
-    closeSaveButton?.addEventListener('click', guardarCierreCaja);
+    document.getElementById('closure-form')?.addEventListener('submit', event => { event.preventDefault(); guardarCierreCaja(); });
+    closeModal?.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !closeSaveButton.disabled) {
+        event.preventDefault(); closeModal.style.display = 'none'; cerrarCajaButton.focus();
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(closeModal.querySelectorAll('button:not(:disabled), input:not([readonly]):not(:disabled)')).filter(el => el.getClientRects().length);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+    closeModal?.addEventListener('click', event => {
+      if (!event.target.closest('[data-close-modal]')) return;
+      if (closeSaveButton.disabled) { event.preventDefault(); event.stopImmediatePropagation(); }
+      else cerrarCajaButton.focus();
+    }, true);
     annulEntrySaveButton?.addEventListener('click', guardarAnulacionIngreso);
     tablaDashboardIngresos?.addEventListener('click', event => {
       const button = event.target.closest('[data-anular-ingreso]');

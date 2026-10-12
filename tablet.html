@@ -40,6 +40,7 @@
         <div class="tablet-session-person"><span class="tablet-session-avatar" id="tablet-session-avatar">—</span><span><small>Profesor</small><strong id="tablet-session-professor">—</strong></span></div>
         <div class="tablet-current-class"><span id="tablet-class-state" class="tablet-class-state">Buscando clase</span><span><strong id="tablet-class-name">Clase actual</strong><small id="tablet-class-meta">Consultando horario…</small></span></div>
         <div class="tablet-header-attendance" aria-label="Ingresos registrados"><i class="fa-solid fa-user-check"></i><strong id="tablet-attendance-count">0</strong></div>
+        <button id="tablet-open-ratings" class="tablet-cart-button" type="button"><i class="fa-solid fa-star"></i><span>Calificar</span></button>
         <button id="tablet-open-sale" class="tablet-cart-button" type="button" aria-label="Abrir venta rápida"><i class="fa-solid fa-cart-shopping"></i><span>Venta</span></button>
       </header>
 
@@ -92,6 +93,18 @@
         </div>
       </section>
 
+      <section id="tablet-ratings-modal" class="tablet-sale-modal" hidden>
+        <div class="tablet-sale-dialog tablet-ratings-dialog" role="dialog" aria-modal="true">
+          <header class="tablet-sale-dialog-header">
+            <div><span class="tablet-kicker">Fin de clase</span><h2>Desempeño de alumnos</h2><p>Elegí una clase realizada y puntuá solamente a quienes asistieron.</p></div>
+            <button id="tablet-close-ratings" type="button" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+          </header>
+          <div class="tablet-ratings-body">
+            <div id="tablet-rating-classes" class="tablet-class-options"></div>
+            <div id="tablet-rating-roster" class="tablet-rating-roster"></div>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
 

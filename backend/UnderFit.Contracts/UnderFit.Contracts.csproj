@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../UnderFit.Domain/UnderFit.Domain.csproj" />
+  </ItemGroup>
+</Project>

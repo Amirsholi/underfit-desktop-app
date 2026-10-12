@@ -1,0 +1,19 @@
+{
+  "name": "Under-Fit Socios",
+  "short_name": "Under-Fit",
+  "description": "Rutinas, clases e historial para socios de Under-Fit.",
+  "start_url": "/socios/",
+  "scope": "/socios/",
+  "display": "standalone",
+  "background_color": "#08090b",
+  "theme_color": "#ff5a1f",
+  "lang": "es-UY",
+  "icons": [
+    {
+      "src": "/socios/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

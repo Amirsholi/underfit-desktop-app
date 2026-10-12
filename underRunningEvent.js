@@ -7,6 +7,7 @@
     backgroundImage: 'gym.jpg',
     eventName: 'UNDER RUNNING',
     distances: '3KM & 5KM',
+    legend: 'ya falta menos',
   };
 
   function parseEventDate(value) {
@@ -48,12 +49,26 @@
       backgroundImage: CONFIG.backgroundImage,
       eventName: String(settings.eventoRunningNombre || CONFIG.eventName).trim() || CONFIG.eventName,
       distances: String(settings.eventoRunningDistancias || CONFIG.distances).trim() || CONFIG.distances,
+      legend: String(settings.eventoRunningLeyenda || CONFIG.legend).trim() || CONFIG.legend,
     };
   }
 
   function isActive(config = CONFIG, now = new Date()) {
-    return config.enabled === true;
+    return config.enabled === true && now.getTime() <= config.activeUntil.getTime();
   }
+
+
+  async function loadConfig() {
+    if (!window.api?.obtenerInfoSistema) return buildConfig();
+    try {
+      const info = await window.api.obtenerInfoSistema();
+      return buildConfig(info?.settings || {});
+    } catch (error) {
+      console.error('No se pudo cargar configuracion de evento:', error);
+      return buildConfig();
+    }
+  }
+
 
   function getCountdownParts(targetDate, now = new Date()) {
     const diff = targetDate.getTime() - now.getTime();
@@ -83,6 +98,8 @@
     let height = 0;
     let frame = 0;
     let animationId = 0;
+    let previousTime = 0;
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const particles = Array.from({ length: 38 }, (_, index) => ({
       x: Math.random(),
       y: Math.random(),
@@ -102,13 +119,17 @@
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     }
 
-    function draw() {
-      frame += 0.006;
+    function draw(time = 0) {
+      const step = previousTime ? Math.min((time - previousTime) / (1000 / 60), 2) : 1;
+      previousTime = time;
+      frame += motion.matches ? 0 : 0.006 * step;
       ctx.clearRect(0, 0, width, height);
 
       particles.forEach((particle) => {
-        particle.x += (particle.speed / Math.max(width, 1)) + Math.sin(frame + particle.y * 5) * particle.drift / 20;
-        particle.y -= particle.drift / 22;
+        if (!motion.matches) {
+          particle.x += ((particle.speed / Math.max(width, 1)) + Math.sin(frame + particle.y * 5) * particle.drift / 20) * step;
+          particle.y -= particle.drift / 22 * step;
+        }
 
         if (particle.x > 1.08) particle.x = -0.08;
         if (particle.y < -0.08) particle.y = 1.08;
@@ -125,44 +146,43 @@
         ctx.fill();
       });
 
-      animationId = window.requestAnimationFrame(draw);
+      if (!motion.matches && !document.hidden) animationId = window.requestAnimationFrame(draw);
     }
 
-    resize();
-    window.addEventListener('resize', resize);
-    animationId = window.requestAnimationFrame(draw);
+    function resume() {
+      window.cancelAnimationFrame(animationId);
+      previousTime = 0;
+      resize();
+      if (!document.hidden) draw();
+    }
+    window.addEventListener('resize', resume);
+    document.addEventListener('visibilitychange', resume);
+    motion.addEventListener('change', resume);
+    resume();
 
     return () => {
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', resume);
+      document.removeEventListener('visibilitychange', resume);
+      motion.removeEventListener('change', resume);
       window.cancelAnimationFrame(animationId);
     };
-  }
-
-  async function loadConfig() {
-    if (!window.api?.obtenerInfoSistema) return buildConfig();
-    try {
-      const info = await window.api.obtenerInfoSistema();
-      return buildConfig(info?.settings || {});
-    } catch (error) {
-      console.error('No se pudo cargar configuracion de evento:', error);
-      return buildConfig();
-    }
   }
 
   async function init(options = {}) {
     const config = options.config || await loadConfig();
     if (!isActive(config)) {
-      return { active: false, playEntryTransition: () => Promise.resolve(), destroy: () => {} };
+      return { active: false, destroy: () => {} };
     }
 
     const content = options.content || document.querySelector('.kiosk-content');
     const form = options.form || document.querySelector('.kiosk-form');
     if (!content || !form) {
-      return { active: false, playEntryTransition: () => Promise.resolve(), destroy: () => {} };
+      return { active: false, destroy: () => {} };
     }
 
     document.body.classList.add('under-running-active');
-    document.documentElement.style.setProperty('--event-poster-image', `url('${config.backgroundImage}')`);
+    const posterUrl = new URL(config.backgroundImage, document.baseURI).href;
+    document.documentElement.style.setProperty('--event-poster-image', `url('${posterUrl}')`);
     const eventName = escapeHtml(config.eventName);
     const distances = escapeHtml(config.distances);
     const dateLabel = escapeHtml(config.dateLabel);
@@ -183,7 +203,7 @@
 
     const banner = document.createElement('section');
     banner.className = 'running-event-banner';
-    banner.setAttribute('aria-label', 'UNDER RUNNING - 3KM y 5KM');
+    banner.setAttribute('aria-label', config.eventName);
     banner.innerHTML = `
       <div class="running-event-poster" aria-hidden="true"></div>
       <div class="running-event-content">
@@ -191,8 +211,8 @@
         <h2 class="running-event-title">${distances}</h2>
         <p class="running-event-date"><span>///</span> ${dateLabel} <span>///</span></p>
         <div class="running-event-divider"><span></span><strong>FALTAN</strong><span></span></div>
-        <div class="running-event-countdown" aria-live="polite"></div>
-        <p class="running-event-question">Viv&iacute este <span>evento</span> con Under-Fit</p>
+        <div class="running-event-countdown" aria-label="Cuenta regresiva del evento"></div>
+        <p class="running-event-question">${escapeHtml(config.legend)}</p>
       </div>
     `;
     const panel = options.panel || document.querySelector('.kiosk-panel');
@@ -207,7 +227,10 @@
     let previousCountdown = '';
     let countdownTimer = 0;
 
+    let destroyed = false;
     function renderCountdown() {
+      if (destroyed) return;
+      if (!isActive(config)) { destroy(); return; }
       const parts = getCountdownParts(config.targetDate);
       const nextValue = `${parts.days}:${parts.hours}:${parts.minutes}:${parts.seconds}`;
       if (nextValue === previousCountdown) return;
@@ -219,38 +242,20 @@
         <span class="running-count-box"><strong>${parts.seconds}</strong><small>SEG</small></span>
       `;
       countdown.classList.remove('is-changing');
-      window.requestAnimationFrame(() => countdown.classList.add('is-changing'));
+      window.requestAnimationFrame(() => { if (!destroyed) countdown.classList.add('is-changing'); });
     }
 
-    renderCountdown();
-    countdownTimer = window.setInterval(renderCountdown, 1000);
     const stopParticles = initParticles(canvas);
-
-    function playEntryTransition() {
-      return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.className = 'running-transition';
-        overlay.innerHTML = `
-          <div class="running-transition-flash"></div>
-          <div class="running-transition-panel">
-            <strong>${eventName}</strong>
-            <em>ya falta menos</em>
-          </div>
-        `;
-        document.body.appendChild(overlay);
-
-        window.setTimeout(() => overlay.classList.add('is-active'), 20);
-        window.setTimeout(() => {
-          overlay.classList.add('is-leaving');
-          window.setTimeout(() => {
-            overlay.remove();
-            resolve();
-          }, 360);
-        }, 1740);
-      });
+    renderCountdown();
+    if (!destroyed) {
+      countdownTimer = window.setInterval(renderCountdown, 1000);
+      window.addEventListener('focus', renderCountdown);
     }
 
     function destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      window.removeEventListener('focus', renderCountdown);
       window.clearInterval(countdownTimer);
       stopParticles();
       canvas.remove();
@@ -259,10 +264,10 @@
       document.body.classList.remove('under-running-active');
     }
 
-    return { active: true, playEntryTransition, destroy };
+    return { active: true, destroy };
   }
 
-  const publicApi = { init, isActive };
+  const publicApi = { init, isActive, buildConfig };
   if (typeof window !== 'undefined') window.UnderRunningEvent = publicApi;
   if (typeof module !== 'undefined' && module.exports) module.exports = { buildConfig, isActive };
 })();

@@ -141,9 +141,42 @@ test('attendance records the gym entry without making the tablet operator contro
       ['Martina Silva', true],
       ['Bruno Rodriguez', false],
     ]);
+    await assert.rejects(
+      service.setClassPerformanceRating({
+        asistenciaId: result.attendance.id,
+        puntuacion: 4,
+        profesorId: scheduled.id,
+      }),
+      /clase de prueba/,
+    );
+    await service.setClassTrial({ claseId: classOccurrence.id, esPrueba: true });
+    await service.setClassPerformanceRating({
+      asistenciaId: result.attendance.id,
+      puntuacion: 4,
+      profesorId: scheduled.id,
+    });
+    const rated = await service.getClassRecordDetail(classOccurrence.id);
+    assert.equal(rated.esPrueba, 1);
+    assert.equal(rated.students.find(student => student.usuarioCi === 49876543).puntuacion, 4);
 
     now = new Date(2026, 6, 22, 9, 1, 0);
     assert.equal((await service.getClassRecordDetail(classOccurrence.id)).estado, 'dictada');
+    await service.correctClassAttendance({
+      claseId: classOccurrence.id,
+      usuarioCi: 43219876,
+      presente: true,
+      profesorId: scheduled.id,
+      motivo: 'Corrección administrativa',
+    });
+    assert.equal((await service.getClassRecordDetail(classOccurrence.id)).students.filter(student => student.presente).length, 2);
+    await service.correctClassAttendance({
+      claseId: classOccurrence.id,
+      usuarioCi: 43219876,
+      presente: false,
+      profesorId: scheduled.id,
+      motivo: 'Corrección revertida',
+    });
+    assert.equal((await service.getClassRecordDetail(classOccurrence.id)).students.filter(student => student.presente).length, 1);
     await service.setClassHeldStatus({ claseId: classOccurrence.id, realizada: false });
     assert.equal((await service.getClassRecordDetail(classOccurrence.id)).estado, 'cancelada');
     await service.setClassHeldStatus({ claseId: classOccurrence.id, realizada: true });

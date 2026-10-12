@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/UnderFit.Api/UnderFit.Api.csproj" />
+    <Project Path="backend/UnderFit.Application/UnderFit.Application.csproj" />
+    <Project Path="backend/UnderFit.Contracts/UnderFit.Contracts.csproj" />
+    <Project Path="backend/UnderFit.Domain/UnderFit.Domain.csproj" />
+    <Project Path="backend/UnderFit.Infrastructure/UnderFit.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="backend/UnderFit.IntegrationTests/UnderFit.IntegrationTests.csproj" />
+    <Project Path="backend/UnderFit.UnitTests/UnderFit.UnitTests.csproj" />
+  </Folder>
+</Solution>

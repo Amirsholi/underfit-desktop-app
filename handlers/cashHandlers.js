@@ -52,12 +52,21 @@ function registerCashHandlers(ipcMain, cashService, closureExportService = null)
     return cashService.adjustDailyTotal(fecha, nuevoTotal, observacion);
   });
 
-  ipcMain.handle('registrar-salida-caja', async (_evt, { fecha, monto, formaPago = 'efectivo', observacion = null }) => {
-    return cashService.registerCashOutput({ fecha, monto, formaPago, observacion });
+  ipcMain.handle('registrar-salida-caja', async (_evt, { fecha, monto, formaPago = 'efectivo', observacion = null, responsable = null }) => {
+    return cashService.registerCashOutput({ fecha, monto, formaPago, observacion, responsable });
   });
 
   ipcMain.handle('corregir-movimiento-caja', async (_evt, payload) => {
     return cashService.correctMovement(payload || {});
+  });
+
+  ipcMain.handle('abrir-carpeta-cierres', async () => {
+    if (!closureExportService) throw new Error('La carpeta de cierres no está disponible');
+    const { shell } = require('electron');
+    const directory = closureExportService.getClosuresDirectory();
+    const error = await shell.openPath(directory);
+    if (error) throw new Error(error);
+    return { opened: true, directory };
   });
 }
 

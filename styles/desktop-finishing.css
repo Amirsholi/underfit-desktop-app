@@ -1,0 +1,115 @@
+/* Desktop corrections: reuse the approved page frame and product dialog shell. */
+#detalle .user-detail-header-actions { gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+#detalle-rutina { display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
+#detalle-rutina i { color: #ff681f; }
+#detalle-rutina:disabled { opacity: .55; }
+
+#modal-cierre-caja .product-workflow-card { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); border-radius: 8px; }
+#modal-cierre-caja .closure-body { display: grid; gap: 22px; margin: 0; min-height: 0; overflow-y: auto; }
+.closure-date { margin: 0; font-size: 14px; color: #a8afb9; }
+.closure-totals { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+.closure-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+#modal-cierre-caja .form-field { display: grid; align-content: start; gap: 8px; }
+#modal-cierre-caja .form-field label { margin: 0; font-size: 13px; }
+#modal-cierre-caja .form-field input { width: 100%; height: 48px; min-height: 48px; margin: 0; padding: 0 14px; border: 1px solid #343a43; border-radius: 7px; color: #edf0f4; background: #0d1015; font: 400 15px var(--uf-font-body); }
+#modal-cierre-caja .form-field input[readonly] { border-color: transparent; padding-left: 0; background: transparent; font-size: 22px; font-weight: 700; }
+#modal-cierre-caja input:focus-visible { outline: 1px solid #ff681f; border-color: #ff681f; }
+#modal-cierre-caja .closure-pending { margin: 0; padding: 0; color: #a8afb9; font-size: 12px; line-height: 1.5; }
+#modal-cierre-caja .form-inline-error { margin: 0; color: #ffaaa3; font-size: 14px; }
+#modal-cierre-caja [hidden] { display: none !important; }
+#modal-cierre-caja .app-modal-footer .app-button { height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+#modal-cierre-caja .app-modal-footer .modal-cancel-action { margin-right: auto; }
+#modal-cierre-caja button:disabled { opacity: .55; cursor: wait; }
+
+body.admin-page #modal-configuracion.settings-index-page.app-view.is-active { display: grid; grid-template-rows: var(--section-header-height) minmax(0,1fr); }
+#modal-configuracion .settings-content.app-modal-card { display: block; width: 100%; height: 100%; max-width: none; max-height: none; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: auto; }
+#modal-configuracion #settings-form { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); grid-template-rows: auto auto; align-content: start; gap: 20px; margin: 0; padding: 0 4px 0 0; overflow: visible; background: none; }
+#modal-configuracion .config-section { display: grid; align-content: start; gap: 20px; margin: 0; padding: 22px; min-height: 0; border: 1px solid #343a43; border-radius: 8px; background: #0b0f14; box-shadow: none; }
+#modal-configuracion .config-section:first-child { grid-column: 1; grid-row: 1; }
+#modal-configuracion .config-storage { grid-column: 2; grid-row: 1 / 3; }
+#modal-configuracion .config-entry-audio { display: grid; gap: 16px; padding-top: 22px; border-top: 1px solid #2c323a; }
+#modal-configuracion .config-entry-audio h4 { margin: 0; font: 700 18px/1.3 var(--uf-font-body); color: #edf0f4; }
+#modal-configuracion .config-entry-audio .switch-control { margin: 0; justify-self: start; }
+#modal-configuracion .config-entry-audio .switch-label { font-size: 14px; }
+#modal-configuracion .config-audio-files { display: grid; gap: 16px; }
+#modal-configuracion .config-audio-file { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#modal-configuracion .config-audio-file > div { display: grid; gap: 4px; min-width: 0; }
+#modal-configuracion .config-audio-file strong { font-size: 14px; font-weight: 600; }
+#modal-configuracion .config-audio-file span { color: var(--text-muted, #a8adb5); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#modal-configuracion .config-audio-file button { flex-shrink: 0; }
+#modal-configuracion .config-event-panel { grid-column: 1; grid-row: 2; }
+#modal-configuracion .config-section-heading { display: flex; align-items: center; gap: 16px; margin: 0; padding: 0 0 18px; border-bottom: 1px solid #2c323a; }
+#modal-configuracion .config-section-heading h4 { margin: 0; font: 700 18px/1.3 var(--uf-font-body); color: #edf0f4; letter-spacing: 0; text-transform: none; }
+#modal-configuracion .config-section-heading p { margin: 7px 0 0; font-size: 13px; line-height: 1.5; color: #a8afb9; }
+#modal-configuracion .config-price-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+#modal-configuracion .config-paths-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
+#modal-configuracion .config-event-fields { display: grid; grid-template-columns: 1.1fr 1fr 1.2fr; gap: 14px; }
+#modal-configuracion .form-field { display: grid; align-content: start; gap: 8px; min-width: 0; margin: 0; }
+#modal-configuracion .form-field label { margin: 0; font-size: 13px; font-weight: 600; color: #a8afb9; letter-spacing: 0; text-transform: none; }
+#modal-configuracion .form-field input { width: 100%; min-width: 0; height: 44px; min-height: 44px; margin: 0; padding: 0 12px; border: 1px solid #343a43; border-radius: 7px; background: #0d1117; color: #edf0f4; font: 400 14px var(--uf-font-body); color-scheme: dark; }
+#modal-configuracion input:focus-visible { outline: 1px solid #ff681f; border-color: #ff681f; }
+#modal-configuracion input[type="date"]::-webkit-calendar-picker-indicator { width: 18px; height: 18px; margin: 0; padding: 4px; border-radius: 5px; background-color: rgba(255,104,31,.08); filter: invert(49%) sepia(99%) saturate(3030%) hue-rotate(347deg) brightness(104%) contrast(103%); opacity: 1; cursor: pointer; }
+#modal-configuracion input:disabled { opacity: .55; cursor: not-allowed; }
+#modal-configuracion input[readonly] { color: #a8afb9; text-overflow: ellipsis; }
+#modal-configuracion .config-event-heading { flex-wrap: wrap; }
+#modal-configuracion #config-nuevo-evento { margin-left: auto; }
+#modal-configuracion .config-event-visibility { display: flex; }
+#modal-configuracion .config-event-visibility .switch-control { margin: 0; padding: 0; }
+#modal-configuracion .config-event-legend { grid-column: 1/-1; }
+#modal-configuracion #config-event-draft { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; color: #a8afb9; }
+#modal-configuracion #config-event-draft[hidden] { display: none; }
+#modal-configuracion #config-descartar-evento { background: none; border: 0; padding: 0; color: #ff854d; text-decoration: underline; cursor: pointer; }
+#modal-configuracion .switch-control { margin: 0 0 0 auto; display: inline-flex; align-items: center; gap: 9px; padding: 8px 0; color: #c5cbd3; cursor: pointer; }
+#modal-configuracion .switch-label { font-size: 12px; font-weight: 600; }
+#modal-configuracion .switch-control { position: relative; }
+#modal-configuracion .switch-control input { position: absolute; z-index: 1; left: 0; top: 50%; transform: translateY(-50%); width: 52px; height: 32px; min-height: 0; margin: 0; opacity: 0; cursor: pointer; pointer-events: auto; }
+#modal-configuracion .switch-track { pointer-events: none; }
+#modal-configuracion .switch-control:focus-within { outline: 1px solid #ff681f; outline-offset: 3px; }
+#modal-configuracion .config-sync-note { display: flex; gap: 12px; align-items: start; margin: 0; padding: 16px 0; border: 0; border-top: 1px solid #2c323a; border-radius: 0; background: none; }
+#modal-configuracion .config-sync-note > i { margin-top: 2px; color: #a8afb9; }
+#modal-configuracion .config-sync-note > span { display: grid; gap: 6px; }
+#modal-configuracion .config-sync-note strong { color: #edf0f4; font-size: 14px; }
+#modal-configuracion .config-sync-note span span { color: #a8afb9; font-size: 13px; line-height: 1.5; }
+#modal-configuracion .config-status-copy { margin: 0; color: #a8afb9; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+#modal-configuracion .settings-save-actions { display: flex; align-items: center; gap: 16px; }
+#modal-configuracion #settings-save-status { color: #a8afb9; font-size: 13px; max-width: 260px; }
+#modal-configuracion .app-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 44px; min-height: 44px; padding: 0 20px; border: 1px solid #343a43; border-radius: 7px; background: #181d24; color: #edf0f4; font: 700 13px var(--uf-font-body); box-shadow: none; cursor: pointer; }
+#modal-configuracion .app-button-primary { background: #ff681f; color: #080b0e; border-color: #ff681f; }
+#modal-configuracion #config-crear-backup { justify-self: start; }
+#modal-configuracion button:disabled { opacity: .55; cursor: not-allowed; }
+#modal-configuracion button:hover:not(:disabled) { filter: brightness(1.1); }
+#modal-configuracion button:focus-visible { outline: 2px solid #ff681f; outline-offset: 2px; }
+@media(max-width:1100px) {
+  #modal-configuracion .config-price-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #modal-configuracion .config-event-fields { grid-template-columns: 1fr 1fr; }
+  #modal-configuracion .config-event-fields .form-field:last-child { grid-column: 1 / -1; }
+  #modal-configuracion #settings-form { gap: 16px; }
+}
+@media(max-width:700px) {
+  #modal-cierre-caja .closure-meta { grid-template-columns: 1fr; }
+  #modal-configuracion #settings-form { display: flex; flex-direction: column; }
+}
+/* Settings sections share the approved desktop palette and controls. */
+#modal-configuracion .settings-content.app-modal-card { display: flex; flex-direction: column; gap: 24px; }
+#modal-configuracion #settings-form { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 1080px; }
+#modal-configuracion .config-section { width: 100%; box-sizing: border-box; }
+#modal-configuracion .config-section[hidden], #modal-configuracion [hidden] { display: none !important; }
+#modal-configuracion .config-entry-audio { border: 0; padding: 0; }
+#modal-configuracion #settings-panel-tablets { max-width: 720px; }
+#modal-configuracion #settings-panel-tablets > .app-button { justify-self: start; }
+#modal-configuracion #config-tablet-device { display: block; width: 100%; max-width: 360px; height: 48px; padding: 0 42px 0 14px; border: 1px solid #515863; border-radius: 7px; background-color: #181d24; color: #edf0f4; color-scheme: dark; font: 500 16px var(--uf-font-body); cursor: pointer; }
+#modal-configuracion #config-tablet-device option { background: #181d24; color: #edf0f4; }
+#modal-configuracion #config-tablet-device:focus-visible { outline: 2px solid #ff681f; outline-offset: 2px; }
+#modal-configuracion #config-tablet-device:disabled { opacity: .55; }
+#modal-configuracion .tablet-pairing-display { display: grid; justify-items: start; gap: 12px; padding: 24px 0; border-top: 1px solid #343a43; border-bottom: 1px solid #343a43; color: #a8afb9; font-size: 15px; }
+#modal-configuracion #config-tablet-code-label { color: #edf0f4; font-weight: 600; }
+#modal-configuracion #config-tablet-code-value { display: block; max-width: 100%; color: #ff854d; font-family: var(--uf-font-body); font-size: clamp(44px, 6vw, 76px); line-height: 1.15; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .12em; user-select: all; }
+@media(min-width:800px) {
+  #modal-configuracion #settings-panel-tablets { max-width: 940px; grid-template-columns: minmax(240px,1fr) minmax(280px,1fr); column-gap: 32px; row-gap: 16px; }
+  #modal-configuracion #settings-panel-tablets > .config-section-heading { grid-column: 1 / -1; }
+  #modal-configuracion #settings-panel-tablets > .form-field { grid-column: 1; grid-row: 2; }
+  #modal-configuracion #config-tablet-code { grid-column: 1; grid-row: 3; align-self: start; }
+  #modal-configuracion #config-tablet-code-display { grid-column: 2; grid-row: 2 / 4; align-self: start; padding: 0 0 0 24px; border: 0; border-left: 1px solid #343a43; }
+  #modal-configuracion #config-tablet-code-value { font-size: clamp(44px,5vw,68px); letter-spacing: .07em; }
+  #modal-configuracion #config-tablet-result { grid-column: 1 / -1; }
+}

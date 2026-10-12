@@ -3,14 +3,15 @@ function createAdminLayoutController() {
   const btnOpenSettings = document.getElementById('btn-open-settings');
   const workspaceMain = document.querySelector('.workspace-main');
 
-  function promoteModalToPage(modalId, viewId) {
+  function promoteModalToPage(modalId, viewId, { preserveClose = false } = {}) {
     const page = document.getElementById(modalId);
     if (!page || !workspaceMain) return null;
     page.classList.remove('app-modal');
-    page.classList.add('app-view', 'route-page');
+    page.classList.add('app-view');
+    if (!['operations', 'settings'].includes(viewId)) page.classList.add('route-page');
     page.dataset.adminView = viewId;
     page.style.display = '';
-    page.querySelector('.app-modal-close')?.remove();
+    if (!preserveClose) page.querySelector('.app-modal-close')?.remove();
     page.querySelector('.app-modal-card')?.classList.add('route-page-card');
     workspaceMain.appendChild(page);
     return page;
@@ -18,6 +19,7 @@ function createAdminLayoutController() {
 
   promoteModalToPage('modal-dashboard', 'operations');
   promoteModalToPage('modal-configuracion', 'settings');
+  promoteModalToPage('detalle', 'user-detail', { preserveClose: true });
   const navigationButtons = Array.from(document.querySelectorAll('[data-admin-section]'));
   const views = Array.from(document.querySelectorAll('[data-admin-view]'));
 
@@ -36,33 +38,15 @@ function createAdminLayoutController() {
   }
 
   function initModalTriggers() {
-    const modalCopy = {
-      'modal-ingreso-manual-caja': ['fa-arrow-right-to-bracket', 'Registra un ingreso manual a la caja.'],
-      'modal-salida-caja': ['fa-arrow-right-from-bracket', 'Registra un egreso y su metodo de pago.'],
-      'modal-corregir-movimiento': ['fa-pen-to-square', 'Anula el movimiento original y guarda la correccion.'],
-      'modal-cierre-caja': ['fa-lock', 'Compara el efectivo contado antes de cerrar la jornada.'],
-      'modal-ajuste-total': ['fa-scale-balanced', 'Ajusta el total conservando un registro de auditoria.'],
-      'modal-alta-usuario': ['fa-user-plus', 'Completa los datos principales del nuevo socio.'],
-      'modal-renovar-suscripcion': ['fa-arrows-rotate', 'Selecciona el socio y el periodo de renovacion.'],
-      'modal-nuevo-producto': ['fa-bag-shopping', 'Agrega un articulo al inventario.'],
-      'modal-vender-producto': ['fa-cart-shopping', 'Registra una venta y actualiza el stock.'],
-      'modal-editar-producto': ['fa-pen', 'Actualiza los datos y existencias del articulo.'],
-      'modal-anular-ingreso': ['fa-ban', 'El registro quedara anulado con trazabilidad.'],
-      'modal-nueva-clase': ['fa-calendar-plus', 'Definí local, profesor, días, horario y cupos del grupo.'],
-      'modal-profesor': ['fa-user-lock', 'Crea una identidad simple para operar la tablet.'],
-      'modal-inscribir-clase': ['fa-user-check', 'Asocia un socio al grupo o a una fecha puntual.'],
-      'modal-cobrar-pendiente': ['fa-hand-holding-dollar', 'El cobro ingresara a la caja abierta del Local 1.'],
-    };
     document.querySelectorAll('.app-modal:not(.route-page)').forEach(modal => {
       const header = modal.querySelector('.app-modal-header');
       const title = header?.querySelector('h3');
       const close = header?.querySelector('.app-modal-close');
       if (!header || !title) return;
       modal.classList.add('refined-modal');
-      const [icon, subtitle] = modalCopy[modal.id] || ['fa-sliders', 'Completa la informacion para continuar.'];
-      title.innerHTML = `<span class="modal-title-icon"><i class="fa-solid ${icon}"></i></span><span class="modal-title-copy"><span>${title.textContent}</span><small>${subtitle}</small></span>`;
       if (close) {
-        close.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        // Todos los modales usan el mismo cierre visible y accesible.
+        close.textContent = '×';
         close.setAttribute('aria-label', 'Cerrar');
         close.setAttribute('title', 'Cerrar');
       }
@@ -95,6 +79,14 @@ function createAdminLayoutController() {
 
     function showSection(section) {
       if (section === 'locations') section = 'products';
+      if (section === 'records') {
+        document.dispatchEvent(new CustomEvent('admin-records:show'));
+        return;
+      }
+      // Cada vista empieza en su encabezado. Sin este reinicio, el scroll de una
+      // pantalla larga (por ejemplo ejercicios o detalle) se heredaba al abrir
+      // Registros/Caja y hacía que parecieran recortadas.
+      workspaceMain?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       document.dispatchEvent(new CustomEvent('admin-section:show', { detail: { section } }));
       if (section === 'cash') {
         views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'operations'));
@@ -102,14 +94,6 @@ function createAdminLayoutController() {
           button.classList.toggle('is-active', button.dataset.adminSection === section);
         });
         document.dispatchEvent(new CustomEvent('admin-dashboard:show', { detail: { tab: 'caja' } }));
-        return;
-      }
-      if (section === 'records') {
-        views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === 'records'));
-        document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
-          button.classList.toggle('is-active', button.dataset.adminSection === section);
-        });
-        document.dispatchEvent(new CustomEvent('admin-records:show'));
         return;
       }
       if (section === 'settings') {
@@ -120,7 +104,8 @@ function createAdminLayoutController() {
       }
       views.forEach(view => view.classList.toggle('is-active', view.dataset.adminView === section));
       document.querySelectorAll('.workspace-sidebar [data-admin-section]').forEach(button => {
-        button.classList.toggle('is-active', button.dataset.adminSection === section);
+        const activeSection = section === 'user-detail' ? 'users' : section;
+        button.classList.toggle('is-active', button.dataset.adminSection === activeSection);
       });
       if (section === 'home') document.dispatchEvent(new CustomEvent('admin-home:show'));
     }
@@ -136,6 +121,19 @@ function createAdminLayoutController() {
       showSection('home');
     });
     btnOpenSettings?.addEventListener('click', () => showSection('settings'));
+    document.addEventListener('admin:navigate', event => {
+      const section = event.detail?.section;
+      if (section) showSection(section);
+    });
+
+    const reviewSections = ['home', 'cash', 'users', 'classes', 'training', 'products', 'pending', 'records', 'settings'];
+    document.addEventListener('keydown', event => {
+      if (!event.altKey || event.ctrlKey || event.metaKey) return;
+      const index = Number(event.key) - 1;
+      if (index < 0 || index >= reviewSections.length) return;
+      event.preventDefault();
+      showSection(reviewSections[index]);
+    });
   }
 
   return {

@@ -198,8 +198,54 @@ function createOperationsService({
     });
   }
 
+  async function updateClassSchedule(payload = {}) {
+    if (!operationsRepository.updateClassScheduleFuture) throw new Error('La edición de clases no está disponible');
+    const id = normalizePositiveInteger(payload.programacionId, 'Programación');
+    const effectiveFrom = normalizeDate(payload.desdeFecha, 'Fecha de aplicación');
+    const now = nowLocalParts();
+    if (effectiveFrom < now.fecha) throw new Error('Solo se puede editar la programación futura');
+    const professor = await resolveProfessor(payload);
+    const professorId = professor.profesorId || professor.id;
+    if (!professorId) throw new Error('Selecciona un profesor registrado');
+    const localId = normalizePositiveInteger(payload.localId || 2, 'Local');
+    const locations = await operationsRepository.listLocations();
+    if (!locations.some(location => Number(location.id) === localId)) throw new Error('Local no disponible');
+    const fechaFin = payload.fechaFin ? normalizeDate(payload.fechaFin, 'Fecha de fin') : null;
+    if (fechaFin && fechaFin < effectiveFrom) throw new Error('La fecha de fin no puede ser anterior al cambio');
+    const weekdays = normalizeWeekdays(payload.diasSemana);
+    const hora = normalizeTime(payload.hora);
+    const schedule = {
+      id,
+      nombre: requiredText(payload.nombre, 'Nombre'),
+      profesor: professor.profesorNombre || professor.nombre,
+      profesorId: professorId,
+      localId,
+      diasSemana: weekdays.join(','),
+      hora,
+      capacidad: normalizePositiveInteger(payload.capacidad || 12, 'Capacidad'),
+      duracionMinutos: normalizePositiveInteger(payload.duracionMinutos || 60, 'Duración'),
+      fechaFin,
+      notas: String(payload.notas || '').trim() || null,
+      effectiveFrom,
+      actualizadoTs: new Date().toISOString(),
+    };
+    schedule.occurrenceDates = generateOccurrenceDates({
+      ...schedule,
+      fechaInicio: effectiveFrom,
+    }, effectiveFrom, addDays(effectiveFrom, 70));
+    if (!schedule.occurrenceDates.length) throw new Error('La programación no genera clases con esos días y fechas');
+    return operationsRepository.updateClassScheduleFuture(schedule);
+  }
+
   function listClassEnrollments(classId) {
     return operationsRepository.listClassEnrollments(normalizePositiveInteger(classId, 'Clase'));
+  }
+
+  function setClassTrial(payload = {}) {
+    return operationsRepository.setClassTrial({
+      classId: normalizePositiveInteger(payload.claseId, 'Clase'),
+      esPrueba: Boolean(payload.esPrueba),
+    });
   }
 
   async function enrollMember({ classId, userCi } = {}) {
@@ -333,6 +379,29 @@ function createOperationsService({
     });
   }
 
+  async function setClassPerformanceRating(payload = {}) {
+    const score = normalizePositiveInteger(payload.puntuacion, 'Puntuacion');
+    if (score > 5) throw new Error('La puntuacion debe estar entre 1 y 5');
+    return operationsRepository.setClassPerformanceRating({
+      attendanceId: normalizePositiveInteger(payload.asistenciaId, 'Asistencia'),
+      score,
+      professorId: normalizePositiveInteger(payload.profesorId, 'Profesor'),
+      ratedTs: clock().toISOString(),
+    });
+  }
+
+  function correctClassAttendance(payload = {}) {
+    const now = nowLocalParts();
+    return operationsRepository.correctClassAttendance({
+      classId: normalizePositiveInteger(payload.claseId, 'Clase'),
+      userCi: normalizePositiveInteger(payload.usuarioCi, 'Socio'),
+      present: Boolean(payload.presente),
+      professorId: normalizePositiveInteger(payload.profesorId, 'Profesor'),
+      reason: requiredText(payload.motivo, 'Motivo'),
+      ...now,
+    });
+  }
+
   function listPendingSales() {
     return operationsRepository.listPendingSales({ estado: 'pendiente' });
   }
@@ -350,6 +419,7 @@ function createOperationsService({
       userRepository.findByCi(userCi),
     ]);
     if (!product) throw new Error('Producto no encontrado');
+    if (product.activo === 0 || product.activo === false) throw new Error('El producto no esta disponible');
     if (!user) throw new Error('Socio no encontrado');
     const professor = await resolveProfessor(payload);
     const now = nowLocalParts();
@@ -405,13 +475,22 @@ function createOperationsService({
     listLocations,
     listUpcomingClasses,
     createClass,
+    updateClassSchedule,
+    setClassTrial,
     listClassEnrollments,
     enrollMember,
+    removeEnrollment: ({ classId, userCi } = {}) => operationsRepository.removeEnrollment({
+      classId: normalizePositiveInteger(classId, 'Clase'),
+      userCi: normalizePositiveInteger(userCi, 'Socio'),
+      ...nowLocalParts(),
+    }),
     getCurrentClass,
     registerClassAttendance,
     listClassRecordsByDate,
     getClassRecordDetail,
     setClassHeldStatus,
+    setClassPerformanceRating,
+    correctClassAttendance,
     listPendingSales,
     getPendingSummaryByDate,
     createPendingSale,

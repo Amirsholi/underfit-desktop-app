@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ff5a1f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Under-Fit Socios</title>
+  <link rel="manifest" href="/socios/manifest.webmanifest">
+  <link rel="icon" href="/socios/icon.svg">
+  <link rel="apple-touch-icon" href="/socios/icon.svg">
+  <link rel="stylesheet" href="/socios/styles.css">
+</head>
+<body>
+  <header class="brand"><img src="/socios/icon.svg" alt=""><span>UNDER - <b>FIT</b></span></header>
+  <main id="app" aria-live="polite">
+    <section class="card auth-card">
+      <p class="eyebrow">SOCIOS</p>
+      <h1>Tu entrenamiento, siempre a mano.</h1>
+      <form id="login-form">
+        <label>Cédula<input name="identityNumber" inputmode="numeric" autocomplete="username" required></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Ingresar</button>
+      </form>
+      <button class="link-button" id="first-use" type="button">Primera vez: crear contraseña</button>
+      <p class="message" id="auth-message"></p>
+    </section>
+  </main>
+  <template id="home-template">
+    <section>
+      <div class="welcome"><p class="eyebrow">HOLA</p><h1 data-name></h1><p data-membership></p></div>
+      <nav class="tabs" aria-label="Secciones">
+        <button data-view="routine" class="active">Rutina</button>
+        <button data-view="classes">Clases</button>
+        <button data-view="history">Historial</button>
+        <button data-view="account">Cuenta</button>
+      </nav>
+      <div id="content" class="content"></div>
+    </section>
+  </template>
+  <script src="/socios/app.js" defer></script>
+</body>
+</html>

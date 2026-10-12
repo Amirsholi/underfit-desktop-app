@@ -1,0 +1,33 @@
+/* Shared desktop list scale, matching the tablet's readable routine sheets. */
+body.admin-page .users-page .users-table td { height:112px; padding:18px 22px; font-size:16px; }
+body.admin-page .users-page .user-list-identity strong { font-size:22px; line-height:1.3; }
+body.admin-page .users-page .user-list-identity small { font-size:14px; }
+body.admin-page .users-page .user-list-avatar,
+body.admin-page .users-page .users-table tbody tr:first-child .user-list-avatar { width:52px; height:52px; flex-basis:52px; font-size:15px; }
+body.admin-page .users-page .user-expiration-date { font-size:16px; width:100px; }
+body.admin-page .users-page .user-membership-state,
+body.admin-page .users-page .user-last-access { font-size:16px; }
+body.admin-page .users-page .users-table th { height:48px; font-size:13px; }
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) .training-data-table tbody tr { height:auto; min-height:148px; max-height:none; }
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) .training-data-table td { padding-block:22px; font-size:16px; }
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) .training-row-identity strong,
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) .training-plan-cell strong { font-size:22px; line-height:1.3; }
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) :is(.training-row-identity,.training-plan-cell,.training-plan-summary,.training-date-summary,.training-use-summary) small { font-size:14px; line-height:1.5; }
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) .training-week-preview strong { font-size:16px; }
+.training-week-preview { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; width:100%; }
+.training-week-preview > span { min-width:0; }
+.training-week-preview b { font-size:16px; }
+.training-day-exercises { font-size:14px; line-height:1.5; color:#a4acb6; overflow-wrap:anywhere; }
+body.admin-page .training-approved-page:not(.is-editor):not(.is-exercises) .training-member-avatar { width:52px; height:52px; flex-basis:52px; font-size:15px; }
+body.admin-page .product-page .product-fixed-table { border:0; background:transparent; box-shadow:none; }
+body.admin-page .product-page .table-scroll-products { background:transparent; border:0; padding:2px 6px 14px 2px; }
+.product-catalog-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; align-content:start; }
+.product-catalog-item { min-width:0; min-height:196px; padding:22px; display:flex; flex-direction:column; align-items:flex-start; gap:12px; text-align:left; font:inherit; color:#eef1f4; background:#0d1116; border:1px solid #343b44; border-radius:6px; cursor:pointer; }
+.product-catalog-item:hover { background:#151a20; border-color:#626b77; }
+.product-catalog-item.is-selected { border-color:#ff6819; box-shadow:inset 3px 0 #ff6819; }
+.product-catalog-item:focus-visible { outline:2px solid #ff6819; outline-offset:2px; }
+.product-catalog-name { font-size:22px; line-height:1.3; overflow-wrap:anywhere; }
+.product-catalog-price { font-size:26px; font-weight:700; margin-top:auto; }
+.product-catalog-stock { color:#a4acb6; font-size:15px; }
+.product-catalog-item .product-availability { font-size:14px; }
+@media(max-width:900px) { .product-catalog-grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); } }

@@ -3,6 +3,7 @@
   src: url('../Plate Gt Two Four MT Std Bd.ttf') format('truetype');
   font-weight: 700;
 }
+.tablet-ratings-body{display:grid;grid-template-columns:260px 1fr;gap:18px;padding:22px;overflow:auto}.tablet-rating-roster{display:grid;gap:10px;align-content:start}.tablet-rating-roster article{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid rgba(156,165,181,.18);border-radius:12px;padding:14px}.tablet-rating-roster article>span:first-child{display:grid;gap:4px}.tablet-rating-roster small{color:#8f96a2}.tablet-stars{display:flex}.tablet-stars button{border:0;background:transparent;color:#555c68;font-size:28px;padding:4px;cursor:pointer}.tablet-stars button.is-active{color:#ff681f}@media(max-width:850px){.tablet-ratings-body{grid-template-columns:1fr}}
 
 :root {
   --tablet-bg: #07090d;

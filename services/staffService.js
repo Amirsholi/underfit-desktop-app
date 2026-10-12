@@ -53,8 +53,8 @@ function createStaffService({ staffRepository }) {
   }
 
   async function createProfessor(payload = {}) {
-    const pin = normalizePin(payload.pin);
-    const credentials = hashPin(pin);
+    const pin = normalizePin(payload.pin, { optional: true });
+    const credentials = pin ? hashPin(pin) : { pinHash: '', pinSalt: '' };
     const now = new Date().toISOString();
     const professor = await staffRepository.createProfessor({
       nombre: normalizeName(payload.nombre),

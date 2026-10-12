@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
+const { findDockerExecutable } = require('./services/dockerRuntime');
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -26,7 +28,7 @@ function copyIfExists(sourcePath, targetPath) {
 
 function pruneOldBackups(backupDir, keepCount = 12) {
   const files = fs.readdirSync(backupDir)
-    .filter(name => name.startsWith('gym-'))
+    .filter(name => name.startsWith('gym-') && !name.endsWith('-media'))
     .map(name => {
       const fullPath = path.join(backupDir, name);
       return {
@@ -39,11 +41,85 @@ function pruneOldBackups(backupDir, keepCount = 12) {
 
   files.slice(keepCount).forEach(file => {
     fs.rmSync(file.fullPath, { force: true });
+    const mediaPath = path.join(
+      backupDir,
+      `${path.basename(file.name, path.extname(file.name))}-media`
+    );
+    fs.rmSync(mediaPath, { recursive: true, force: true });
   });
 }
 
 function getBackupDirectory(dbPath) {
   return path.join(path.dirname(dbPath), 'backups');
+}
+
+function createPostgresDump({ dbPath, prefix }) {
+  const backupDir = getBackupDirectory(dbPath);
+  ensureDir(backupDir);
+  const composeFile = process.env.UNDERFIT_COMPOSE_FILE
+    || path.join(__dirname, 'infrastructure', 'compose', 'compose.yaml');
+  const result = spawnSync(
+    findDockerExecutable(),
+    [
+      'compose', '-f', composeFile, 'exec', '-T', 'postgres',
+      'pg_dump', '-U', 'underfit', '-d', 'underfit', '--format=custom',
+    ],
+    { encoding: null, maxBuffer: 1024 * 1024 * 256, windowsHide: true }
+  );
+  if (result.error || result.status !== 0) {
+    const detail = result.stderr ? result.stderr.toString('utf8').trim() : result.error?.message;
+    return { created: false, reason: 'postgres_dump_failed', detail: detail || null };
+  }
+  const targetPath = path.join(backupDir, `${prefix}.dump`);
+  fs.writeFileSync(targetPath, result.stdout);
+  const sourceMediaPath = process.env.UNDERFIT_MEDIA_PATH;
+  const mediaPath = path.join(backupDir, `${prefix}-media`);
+  if (sourceMediaPath && fs.existsSync(sourceMediaPath)) {
+    fs.cpSync(sourceMediaPath, mediaPath, { recursive: true, force: true });
+  }
+  pruneOldBackups(backupDir);
+  return {
+    created: true,
+    path: targetPath,
+    mediaPath: fs.existsSync(mediaPath) ? mediaPath : null,
+    format: 'postgres-custom',
+  };
+}
+
+function createManualPostgresBackup(dbPath) {
+  const now = new Date();
+  const timestamp = [
+    now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate()), '-',
+    pad(now.getHours()), pad(now.getMinutes()), pad(now.getSeconds()),
+  ].join('');
+  return createPostgresDump({ dbPath, prefix: `gym-manual-${timestamp}` });
+}
+
+function ensureWeeklyPostgresBackup(dbPath) {
+  const backupDir = getBackupDirectory(dbPath);
+  ensureDir(backupDir);
+  const targetPath = path.join(backupDir, `gym-${getWeekKey()}.dump`);
+  if (fs.existsSync(targetPath)) {
+    return { created: false, reason: 'already_exists', path: targetPath };
+  }
+  return createPostgresDump({
+    dbPath,
+    prefix: path.basename(targetPath, '.dump'),
+  });
+}
+
+function ensureDailyPostgresBackup(dbPath, date = new Date()) {
+  const backupDir = getBackupDirectory(dbPath);
+  ensureDir(backupDir);
+  const dateKey = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const targetPath = path.join(backupDir, `gym-daily-${dateKey}.dump`);
+  if (fs.existsSync(targetPath)) {
+    return { created: false, reason: 'already_exists', path: targetPath };
+  }
+  return createPostgresDump({
+    dbPath,
+    prefix: path.basename(targetPath, '.dump'),
+  });
 }
 
 function createManualBackup(dbPath) {
@@ -106,4 +182,7 @@ module.exports = {
   ensureWeeklyBackup,
   createManualBackup,
   getBackupDirectory,
+  createManualPostgresBackup,
+  ensureWeeklyPostgresBackup,
+  ensureDailyPostgresBackup,
 };

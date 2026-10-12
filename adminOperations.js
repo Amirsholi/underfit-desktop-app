@@ -1,35 +1,37 @@
+function pendingCashIsReady(summary, date) {
+  return Boolean(summary?.sesionAbierta && summary.sesionAbierta.fecha === date);
+}
+
 function createAdminOperationsController({ shared }) {
   const classesList = document.getElementById('classes-list');
   const classesEmpty = document.getElementById('classes-empty');
-  const classesTodayCount = document.getElementById('classes-today-count');
+  const classesWeekCount = document.getElementById('classes-week-count');
   const classesEnrolledCount = document.getElementById('classes-enrolled-count');
   const classesProfessorsCount = document.getElementById('classes-professors-count');
-  const classDetailTitle = document.getElementById('class-detail-title');
-  const classDetailMeta = document.getElementById('class-detail-meta');
-  const classDetailEmpty = document.getElementById('class-detail-empty');
-  const classEnrollmentList = document.getElementById('class-enrollment-list');
   const classEnrollOpen = document.getElementById('class-enroll-open');
-  const classEnrollSummary = document.getElementById('class-enroll-summary');
-  const classEnrollMember = document.getElementById('class-enroll-member');
-  const classEnrollSearch = document.getElementById('class-enroll-search');
-  const classEnrollResults = document.getElementById('class-enroll-results');
-  const classEnrollSave = document.getElementById('class-enroll-save');
   const classesRefresh = document.getElementById('classes-refresh');
+  const classesWeekLabel = document.getElementById('classes-week-label');
+  const classesDaySummary = document.getElementById('classes-day-summary');
+  const classesSelectedDate = document.getElementById('classes-selected-date');
+  const classesDayPicker = document.getElementById('classes-day-picker');
+  const classesWeekPrev = document.getElementById('classes-week-prev');
+  const classesWeekNext = document.getElementById('classes-week-next');
+  const classesWeekToday = document.getElementById('classes-week-today');
+  const classesOpenProfessors = document.getElementById('classes-open-professors');
   const modalNewClass = document.getElementById('modal-nueva-clase');
-  const modalEnrollClass = document.getElementById('modal-inscribir-clase');
   const classSave = document.getElementById('class-save');
   const classCoach = document.getElementById('class-coach');
   const classLocal = document.getElementById('class-local');
-  const classEnrollHelp = document.getElementById('class-enroll-help');
+  const classEditOpen = document.getElementById('class-edit-open');
+  const classEditModal = document.getElementById('modal-editar-clase');
+  const classEditSave = document.getElementById('class-edit-save');
+  const classEditCoach = document.getElementById('class-edit-coach');
+  const classEditLocal = document.getElementById('class-edit-local');
   const professorsList = document.getElementById('professors-list');
   const professorsEmpty = document.getElementById('professors-empty');
   const professorsCount = document.getElementById('professors-count');
   const professorModal = document.getElementById('modal-profesor');
-  const professorId = document.getElementById('professor-id');
   const professorName = document.getElementById('professor-name');
-  const professorPin = document.getElementById('professor-pin');
-  const professorPinHelp = document.getElementById('professor-pin-help');
-  const professorActive = document.getElementById('professor-active');
   const professorSave = document.getElementById('professor-save');
   const openTabletButton = document.getElementById('classes-open-tablet');
 
@@ -50,17 +52,60 @@ function createAdminOperationsController({ shared }) {
   const pendingCollectSummary = document.getElementById('pending-collect-summary');
   const pendingCollectNote = document.getElementById('pending-collect-note');
   const pendingCollectSave = document.getElementById('pending-collect-save');
+  const pendingSearch = document.getElementById('pending-search');
+  const pendingResultsSummary = document.getElementById('pending-results-summary');
+  const pendingListPanel = document.getElementById('pending-list-panel');
+  const pendingPaymentPanel = document.getElementById('pending-payment-panel');
+  const pendingBack = document.getElementById('pending-collect-back');
+  const pendingError = document.getElementById('pending-collect-error');
+  const pendingRetry = document.getElementById('pending-retry');
+  const pendingCashButton = document.getElementById('dashboard-cobrar');
+  const pendingCashNotice = document.getElementById('pending-cash-notice');
+  const pendingReviewCash = document.getElementById('pending-review-cash');
 
   let classes = [];
   let professors = [];
   let locations = [];
   let selectedClass = null;
   let enrollments = new Map();
-  let enrollmentUsers = [];
   let stock = [];
   let selectedStockProductId = null;
   let pendingSales = [];
   let pendingSaleSelected = null;
+  let pendingLoaded = false;
+  let pendingLoadError = false;
+  let pendingSaving = false;
+  let pendingCashReady = false;
+  let pendingCashCheck = 0;
+  let selectedClassDate = today();
+  let currentWeekStart = startOfWeek(selectedClassDate);
+  let agendaScroll = 0;
+  let classesRequestId = 0;
+  let classesLoadQueue = Promise.resolve();
+  const classDetail = window.createAdminClassDetailController({
+    shared,
+    showScreen: showClassesScreen,
+    onEnrollmentChanged: () => loadClasses(),
+    onBack: classId => {
+      showClassesScreen('agenda');
+      renderClasses();
+      classesList.scrollTop = agendaScroll;
+      classesList.querySelector(`[data-open-class="${Number(classId)}"]`)?.focus({ preventScroll: true });
+    },
+    onUpdated: detail => {
+      const row = classes.find(item => Number(item.id) === Number(detail.id));
+      if (row) Object.assign(row, {
+        estado: detail.estado,
+        esPrueba: detail.esPrueba,
+        inscriptos: detail.inscriptos ?? row.inscriptos,
+        canEditSchedule: detail.canEditSchedule,
+        diasSemana: detail.diasSemana,
+        fechaInicio: detail.fechaInicio,
+        fechaFin: detail.fechaFin,
+      });
+      if (selectedClass?.id === detail.id) selectedClass = { ...selectedClass, ...detail };
+    },
+  });
 
   function today() {
     const date = new Date();
@@ -74,6 +119,21 @@ function createAdminOperationsController({ shared }) {
     return date.toISOString().slice(0, 10);
   }
 
+  function startOfWeek(value) {
+    const date = new Date(`${value}T12:00:00`);
+    const offset = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - offset);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function minutesBetween(start, end) {
+    const toMinutes = value => {
+      const [hours, minutes] = String(value || '').split(':').map(Number);
+      return (hours * 60) + minutes;
+    };
+    return toMinutes(end) - toMinutes(start);
+  }
+
   function money(value) {
     return new Intl.NumberFormat('es-UY', {
       style: 'currency',
@@ -81,6 +141,12 @@ function createAdminOperationsController({ shared }) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(Number(value || 0));
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+    })[character]);
   }
 
   function shortDate(value) {
@@ -124,8 +190,8 @@ function createAdminOperationsController({ shared }) {
 
   function demoProfessors() {
     return [
-      { id: 1, nombre: 'Santiago', activo: true, pinConfigurado: true },
-      { id: 2, nombre: 'Valentina', activo: true, pinConfigurado: true },
+      { id: 1, nombre: 'Santiago', activo: true, pinConfigurado: false },
+      { id: 2, nombre: 'Valentina', activo: true, pinConfigurado: false },
     ];
   }
 
@@ -190,14 +256,14 @@ function createAdminOperationsController({ shared }) {
   function renderProfessors() {
     if (!professorsList || !professorsEmpty || !professorsCount) return;
     professorsList.innerHTML = '';
-    professorsEmpty.style.display = professors.length ? 'none' : 'grid';
     const activeCount = professors.filter(item => item.activo === true || Number(item.activo) === 1).length;
-    professorsCount.textContent = `${activeCount} ${activeCount === 1 ? 'activo' : 'activos'}`;
+    const visible = professors.filter(item => item.activo === true || Number(item.activo) === 1);
+    professorsEmpty.style.display = visible.length ? 'none' : 'grid';
+    professorsCount.textContent = `${activeCount} ${activeCount === 1 ? 'profesor' : 'profesores'}`;
     if (classesProfessorsCount) classesProfessorsCount.textContent = String(activeCount);
-    professors.forEach(item => {
-      const active = item.activo === true || Number(item.activo) === 1;
+    visible.forEach(item => {
       const row = document.createElement('article');
-      row.className = `professor-row${active ? '' : ' is-inactive'}`;
+      row.className = 'professor-row';
       const identity = document.createElement('div');
       identity.className = 'professor-identity';
       const initials = item.nombre.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
@@ -205,80 +271,67 @@ function createAdminOperationsController({ shared }) {
       const copy = document.createElement('span');
       const name = document.createElement('strong');
       name.textContent = item.nombre;
-      const detail = document.createElement('small');
-      detail.textContent = item.pinConfigurado ? 'PIN configurado' : 'PIN pendiente';
-      copy.append(name, detail);
+      copy.append(name);
       identity.appendChild(copy);
-      const status = document.createElement('span');
-      status.className = `professor-status${active ? ' is-active' : ''}`;
-      status.textContent = active ? 'Activo' : 'Inactivo';
-      const edit = document.createElement('button');
-      edit.type = 'button';
-      edit.className = 'table-action-button';
-      edit.dataset.editProfessor = String(item.id);
-      edit.textContent = 'Editar';
-      row.append(identity, status, edit);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'professor-remove-button';
+      remove.dataset.removeProfessor = String(item.id);
+      remove.textContent = 'Eliminar';
+      row.append(identity, remove);
       professorsList.appendChild(row);
     });
   }
 
-  function setProfessorModalTitle(text) {
-    const refinedTitle = professorModal?.querySelector('.modal-title-copy > span');
-    const plainTitle = professorModal?.querySelector('.app-modal-header > h3');
-    if (refinedTitle) refinedTitle.textContent = text;
-    else if (plainTitle) plainTitle.textContent = text;
-  }
-
-  function openNewProfessor() {
-    professorId.value = '';
-    professorName.value = '';
-    professorPin.value = '';
-    professorActive.checked = true;
-    professorActive.disabled = true;
-    professorPinHelp.textContent = 'Se usará solamente para identificar al profesor al iniciar su turno.';
-    setProfessorModalTitle('Agregar profesor');
-  }
-
-  function openEditProfessor(id) {
+  async function removeProfessor(id) {
     const professor = professors.find(item => Number(item.id) === Number(id));
     if (!professor) return;
-    professorId.value = String(professor.id);
-    professorName.value = professor.nombre;
-    professorPin.value = '';
-    professorActive.checked = professor.activo === true || Number(professor.activo) === 1;
-    professorActive.disabled = false;
-    professorPinHelp.textContent = 'Dejá el PIN vacío para conservar el actual.';
-    setProfessorModalTitle('Editar profesor');
+    const confirmed = await shared.confirmarAccion(`¿Eliminar a ${professor.nombre} de la lista de profesores?`);
+    if (!confirmed) return;
+    try {
+      if (window.api) await window.api.actualizarProfesor(professor.id, { nombre: professor.nombre, activo: false });
+      else professor.activo = false;
+      shared.mostrarNotificacion('Profesor eliminado', 'success');
+      await loadProfessors();
+    } catch (error) {
+      shared.mostrarNotificacion(error?.message || 'No se pudo eliminar el profesor', 'error');
+    }
+  }
+
+  function openProfessorManager() {
+    professorName.value = '';
     professorModal.style.display = 'flex';
+    requestAnimationFrame(() => professorName.focus());
   }
 
   async function saveProfessor() {
-    const id = Number(professorId.value || 0);
-    const pin = professorPin.value.trim();
     const payload = {
       nombre: professorName.value.trim(),
-      activo: professorActive.checked,
+      activo: true,
     };
-    if (pin) payload.pin = pin;
-    if (!payload.nombre || (!id && !/^\d{4}$/.test(pin)) || (pin && !/^\d{4}$/.test(pin))) {
-      shared.mostrarNotificacion('Ingresá un nombre y un PIN de exactamente 4 números', 'warning');
+    if (!payload.nombre) {
+      shared.mostrarNotificacion('Ingresá el nombre del profesor', 'warning');
+      professorName.focus();
       return;
     }
+    const originalLabel = professorSave.textContent;
+    professorSave.disabled = true;
+    professorSave.textContent = 'Guardando…';
     try {
       if (window.api) {
-        if (id) await window.api.actualizarProfesor(id, payload);
-        else await window.api.crearProfesor(payload);
-      } else if (id) {
-        const current = professors.find(item => Number(item.id) === id);
-        Object.assign(current, payload, { pinConfigurado: true });
+        await window.api.crearProfesor(payload);
       } else {
-        professors.push({ id: Date.now(), ...payload, activo: true, pinConfigurado: true });
+        professors.push({ id: Date.now(), ...payload, activo: true, pinConfigurado: false });
       }
-      professorModal.style.display = 'none';
-      shared.mostrarNotificacion(id ? 'Profesor actualizado' : 'Profesor agregado', 'success');
+      professorName.value = '';
+      shared.mostrarNotificacion('Profesor agregado', 'success');
       await loadProfessors();
+      professorName.focus();
     } catch (error) {
       shared.mostrarNotificacion(error?.message || 'No se pudo guardar el profesor', 'error');
+    } finally {
+      professorSave.disabled = false;
+      professorSave.textContent = originalLabel;
     }
   }
 
@@ -299,95 +352,124 @@ function createAdminOperationsController({ shared }) {
     ];
   }
 
-  async function loadClasses() {
-    try {
-      if (window.api) classes = await window.api.obtenerClasesProximas(today());
-      else if (!classes.length) classes = demoClasses();
-    } catch (error) {
-      console.error('No se pudieron cargar las clases:', error);
-      classes = [];
-      shared.mostrarNotificacion('No se pudieron cargar las clases', 'error');
-    }
-    renderClasses();
+  function loadClasses(fromDate = currentWeekStart) {
+    // Initial load, sidebar navigation and week controls may overlap. The local
+    // query also generates occurrences in a transaction, so never run it twice.
+    const date = typeof fromDate === 'string' ? fromDate : currentWeekStart;
+    const ticket = ++classesRequestId;
+    classesLoadQueue = classesLoadQueue.then(async () => {
+      if (ticket !== classesRequestId) return;
+      try {
+        const next = window.api ? await window.api.obtenerClasesProximas(date) : classes.length ? classes : demoClasses();
+        if (ticket !== classesRequestId) return;
+        classes = next;
+      } catch (error) {
+        if (ticket !== classesRequestId) return;
+        console.error('No se pudieron cargar las clases:', error);
+        shared.mostrarNotificacion('No se pudieron cargar las clases', 'error');
+      }
+      if (ticket === classesRequestId) renderClasses();
+    });
+    return classesLoadQueue;
   }
 
   function renderClasses() {
     if (!classesList || !classesEmpty) return;
     const upcomingClasses = [...classes]
       .sort((a, b) => `${a.fecha}T${a.hora || '00:00'}`.localeCompare(`${b.fecha}T${b.hora || '00:00'}`));
+    const weekEnd = addDays(currentWeekStart, 6);
+    const weekClasses = upcomingClasses.filter(item => item.fecha >= currentWeekStart && item.fecha <= weekEnd);
+    renderWeekPicker(weekClasses);
+    const visibleClasses = weekClasses.filter(item => item.fecha === selectedClassDate);
     classesList.innerHTML = '';
-    classesEmpty.style.display = upcomingClasses.length ? 'none' : 'grid';
-    classesTodayCount.textContent = String(upcomingClasses.filter(item => item.fecha === today()).length);
-    const groups = new Map();
-    upcomingClasses.forEach(item => {
-      const key = item.programacionId ? `schedule-${item.programacionId}` : `class-${item.id}`;
-      if (!groups.has(key)) groups.set(key, item);
-    });
-    const groupRows = [...groups.values()];
-    classesEnrolledCount.textContent = String(groupRows.reduce((sum, item) => sum + Number(item.inscriptos || 0), 0));
+    classesList.hidden = !visibleClasses.length;
+    classesEmpty.style.display = visibleClasses.length ? 'none' : 'grid';
+    classesWeekCount.textContent = String(weekClasses.length);
+    classesWeekCount.nextSibling.textContent = ` ${weekClasses.length === 1 ? 'clase' : 'clases'} esta semana`;
+    const enrolledCount = visibleClasses.reduce((sum, item) => sum + Number(item.inscriptos || 0), 0);
+    classesEnrolledCount.textContent = String(enrolledCount);
+    classesEnrolledCount.nextSibling.textContent = ` ${enrolledCount === 1 ? 'inscripción' : 'inscripciones'} del día`;
+    classesSelectedDate.textContent = new Intl.DateTimeFormat('es-UY', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${selectedClassDate}T12:00:00`));
+    classesDaySummary.textContent = `${visibleClasses.length} ${visibleClasses.length === 1 ? 'clase' : 'clases'}`;
 
-    upcomingClasses.forEach(item => {
-      const date = shortDate(item.fecha);
+    const now = new Date();
+    const displayState = item => {
+      const start = new Date(`${item.fecha}T${String(item.hora || '00:00').slice(0, 5)}:00`);
+      const end = new Date(start.getTime() + Number(item.duracionMinutos || 60) * 60000);
+      if (item.estado === 'cancelada') return { key: 'cancelled', label: 'No se dio' };
+      if (item.estado === 'dictada' || now >= end) return { key: 'finished', label: 'Finalizada' };
+      if (now >= start) return { key: 'current', label: 'En curso' };
+      return { key: 'scheduled', label: 'Programada' };
+    };
+    const nextId = visibleClasses.find(item => displayState(item).key === 'scheduled')?.id;
+    visibleClasses.forEach(item => {
       const available = Math.max(0, Number(item.capacidad || 0) - Number(item.inscriptos || 0));
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = `class-row${selectedClass?.id === item.id ? ' is-selected' : ''}`;
+      const row = document.createElement('article');
+      const display = displayState(item);
+      row.className = `class-row agenda-class-card ${display.key}${item.id === nextId ? ' is-next' : ''}`;
       row.dataset.classId = String(item.id);
+      const startTime = String(item.hora || '').slice(0, 5);
       row.innerHTML = `
-        <span class="class-date-badge"><strong>${date.day}</strong><span>${date.month}</span></span>
-        <span class="class-row-title"><strong>${item.nombre}</strong><span class="class-row-meta"><i class="fa-regular fa-clock"></i> ${item.hora} · ${item.duracionMinutos || 60} min${item.diasSemana ? ` · ${formatWeekdays(item.diasSemana)}` : ''}</span></span>
-        <span class="class-row-title"><strong>${item.profesor}</strong><span class="class-row-meta">${item.localNombre || 'Profesor'}</span></span>
-        <span class="class-capacity"><strong>${item.inscriptos || 0}/${item.capacidad}</strong><br>${available} cupos</span>
-        <i class="fa-solid fa-chevron-right"></i>
+        <button class="agenda-class-open" type="button" data-open-class="${Number(item.id)}" aria-label="Abrir ${escapeHtml(item.nombre)}, ${escapeHtml(startTime)}">
+          <span class="agenda-class-time"><strong>${escapeHtml(startTime)}</strong><small>${Number(item.duracionMinutos || 60)} min</small></span>
+          <span class="agenda-class-identity"><strong>${escapeHtml(item.nombre)}</strong><small>${escapeHtml(item.profesor || 'Profesor sin asignar')}${item.esPrueba ? ' · Prueba' : ''}</small></span>
+          <span class="agenda-class-info"><span>${item.id === nextId ? 'Próxima clase' : display.label}</span><small>${Number(item.inscriptos || 0)} / ${Number(item.capacidad || 0)} alumnos${available === 0 ? ' · Completo' : ''}</small></span>
+          <span class="agenda-class-arrow" aria-hidden="true">›</span>
+        </button>
+        ${item.estado === 'programada' && item.programacionId && item.canEditSchedule === true ? `<button type="button" class="agenda-class-edit" data-edit-agenda-class="${Number(item.id)}" aria-label="Editar ${escapeHtml(item.nombre)}">Editar</button>` : '<span class="agenda-class-action-space" aria-hidden="true"></span>'}
       `;
-      row.addEventListener('click', () => selectClass(item.id));
       classesList.appendChild(row);
     });
   }
 
-  async function selectClass(classId) {
-    selectedClass = classes.find(item => Number(item.id) === Number(classId)) || null;
-    renderClasses();
-    if (!selectedClass) return;
-    classDetailTitle.textContent = selectedClass.nombre;
-    const recurrence = selectedClass.diasSemana ? ` · ${formatWeekdays(selectedClass.diasSemana)}` : '';
-    classDetailMeta.textContent = `${formatDateTime(selectedClass.fecha, selectedClass.hora)} · ${selectedClass.profesor} · ${selectedClass.localNombre || 'Local 2'}${recurrence}`;
-    classEnrollOpen.innerHTML = selectedClass.programacionId
-      ? '<i class="fa-solid fa-user-plus"></i>Inscribir al grupo'
-      : '<i class="fa-solid fa-user-plus"></i>Inscribir socio';
-    classEnrollOpen.disabled = Number(selectedClass.inscriptos || 0) >= Number(selectedClass.capacidad || 0);
-    classDetailEmpty.style.display = 'none';
-    try {
-      const list = window.api
-        ? await window.api.obtenerInscripcionesClase(selectedClass.id)
-        : (enrollments.get(Number(selectedClass.id)) || [
-            { usuarioCi: 49876543, usuarioNombre: 'Martina Silva' },
-            { usuarioCi: 43219876, usuarioNombre: 'Bruno Rodriguez' },
-            { usuarioCi: 51234567, usuarioNombre: 'Lucas Pereira' },
-            { usuarioCi: 56781234, usuarioNombre: 'Diego Martínez' },
-            { usuarioCi: 37654321, usuarioNombre: 'Camila Fernández' },
-            { usuarioCi: 40127896, usuarioNombre: 'Valentina Suárez' },
-            { usuarioCi: 48723901, usuarioNombre: 'Federico Núñez' },
-            { usuarioCi: 39281745, usuarioNombre: 'Lucía Ramos' },
-          ]).slice(0, Number(selectedClass.inscriptos || 0));
-      renderEnrollments(list);
-    } catch (error) {
-      renderEnrollments([]);
+  function renderWeekPicker(weekClasses) {
+    const start = new Date(`${currentWeekStart}T12:00:00`);
+    const end = new Date(`${addDays(currentWeekStart, 6)}T12:00:00`);
+    const formatDayMonth = date => new Intl.DateTimeFormat('es-UY', { day: 'numeric', month: 'long' }).format(date);
+    classesWeekLabel.textContent = `${formatDayMonth(start)} – ${formatDayMonth(end)}`;
+    classesWeekToday.disabled = selectedClassDate === today();
+    classesDayPicker.innerHTML = '';
+    for (let index = 0; index < 7; index += 1) {
+      const dateValue = addDays(currentWeekStart, index);
+      const date = new Date(`${dateValue}T12:00:00`);
+      const count = weekClasses.filter(item => item.fecha === dateValue).length;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.classDate = dateValue;
+      button.className = dateValue === selectedClassDate ? 'is-active' : '';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(dateValue === selectedClassDate));
+      button.setAttribute('aria-controls', 'classes-list');
+      button.tabIndex = dateValue === selectedClassDate ? 0 : -1;
+      button.id = `classes-day-${dateValue}`;
+      button.setAttribute('aria-label', `${new Intl.DateTimeFormat('es-UY', { weekday: 'long', day: 'numeric', month: 'long' }).format(date)}, ${count} ${count === 1 ? 'clase' : 'clases'}${dateValue === today() ? ', hoy' : ''}`);
+      if (dateValue === today()) button.setAttribute('aria-current', 'date');
+      button.innerHTML = `<span>${weekdayLabels[date.getDay()]}</span><strong>${date.getDate()}</strong><small>${count} ${count === 1 ? 'clase' : 'clases'}${dateValue === today() ? ' · Hoy' : ''}</small>`;
+      classesDayPicker.appendChild(button);
     }
   }
 
-  function renderEnrollments(items) {
-    classEnrollmentList.innerHTML = '';
-    if (!items.length) {
-      classEnrollmentList.innerHTML = '<div class="surface-empty compact"><i class="fa-solid fa-user-plus"></i><span>Todavía no hay alumnos inscriptos.</span></div>';
-      return;
+  async function setClassTrial(classId, checked) {
+    const item = classes.find(current => Number(current.id) === Number(classId));
+    if (!item) return;
+    const previous = Boolean(item.esPrueba);
+    item.esPrueba = checked;
+    renderClasses();
+    try {
+      if (window.api?.marcarClasePrueba) await window.api.marcarClasePrueba({ claseId: item.id, esPrueba: checked });
+      shared.mostrarNotificacion(checked ? 'Clase marcada como prueba' : 'Clase de prueba desmarcada', 'success');
+    } catch (error) {
+      item.esPrueba = previous;
+      renderClasses();
+      shared.mostrarNotificacion(error?.message || 'No se pudo cambiar la clase', 'error');
     }
-    items.forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'class-enrollment-item';
-      row.innerHTML = `<i class="fa-solid fa-circle-check"></i><span><strong>${item.usuarioNombre}</strong><small>CI ${item.usuarioCi}</small></span>`;
-      classEnrollmentList.appendChild(row);
-    });
+  }
+
+  async function selectClass(classId) {
+    selectedClass = classes.find(item => Number(item.id) === Number(classId)) || null;
+    if (!selectedClass) return;
+    if (document.querySelector('[data-classes-screen="agenda"].is-active')) agendaScroll = classesList.scrollTop;
+    await classDetail.show(selectedClass);
   }
 
   async function saveClass() {
@@ -404,13 +486,16 @@ function createAdminOperationsController({ shared }) {
       fechaFin: document.getElementById('class-end-date').value || null,
       hora: document.getElementById('class-time').value,
       capacidad: Number(document.getElementById('class-capacity').value || 0),
-      duracionMinutos: Number(document.getElementById('class-duration').value || 60),
+      duracionMinutos: minutesBetween(document.getElementById('class-time').value, document.getElementById('class-end-time').value),
       notas: document.getElementById('class-notes').value.trim(),
     };
-    if (!payload.nombre || !payload.profesorId || !payload.localId || !payload.fechaInicio || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0) {
+    if (!payload.nombre || !payload.profesorId || !payload.localId || !payload.fechaInicio || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0 || payload.duracionMinutos <= 0) {
       shared.mostrarNotificacion('Completá nombre, local, profesor, días, horario y cupos', 'warning');
       return;
     }
+    const originalLabel = classSave.textContent;
+    classSave.disabled = true;
+    classSave.textContent = 'Creando…';
     try {
       if (window.api) {
         await window.api.crearClase(payload);
@@ -432,84 +517,125 @@ function createAdminOperationsController({ shared }) {
       await loadClasses();
     } catch (error) {
       shared.mostrarNotificacion(error?.message || 'No se pudo programar la clase', 'error');
+    } finally {
+      classSave.disabled = false;
+      classSave.textContent = originalLabel;
     }
   }
 
-  async function openEnrollment() {
-    if (!selectedClass) return;
-    classEnrollSummary.innerHTML = `<span>${selectedClass.programacionId ? 'Grupo seleccionado' : 'Clase seleccionada'}</span><strong>${selectedClass.nombre}</strong><span>${formatDateTime(selectedClass.fecha, selectedClass.hora)} · ${selectedClass.profesor}${selectedClass.diasSemana ? ` · ${formatWeekdays(selectedClass.diasSemana)}` : ''}</span>`;
-    if (classEnrollHelp) classEnrollHelp.textContent = selectedClass.programacionId
-      ? 'El socio quedará inscripto en todas las próximas fechas de esta programación.'
-      : 'La inscripción corresponde solamente a esta fecha.';
-    classEnrollMember.value = '';
-    classEnrollSearch.value = '';
-    classEnrollResults.innerHTML = '';
-    try {
-      enrollmentUsers = window.api ? await window.api.obtenerUsuarios() : [
-        { ci: 49876543, nombre: 'Martina Silva', fecha_vencimiento: '2026-08-11' },
-        { ci: 43219876, nombre: 'Bruno Rodriguez', fecha_vencimiento: '2026-08-20' },
-        { ci: 51234567, nombre: 'Lucas Pereira', fecha_vencimiento: '2026-08-30' },
-        { ci: 56781234, nombre: 'Diego Martinez', fecha_vencimiento: '2026-10-16' },
-      ];
-      renderEnrollmentSearch('');
-      modalEnrollClass.style.display = 'flex';
-      setTimeout(() => classEnrollSearch.focus(), 50);
-    } catch (error) {
-      shared.mostrarNotificacion('No se pudieron cargar los socios', 'error');
-    }
+  function setTimeFromDuration(startInput, endInput, duration) {
+    const start = String(startInput.value || '').slice(0, 5);
+    if (!start) { endInput.value = ''; return; }
+    const [hours, minutes] = start.split(':').map(Number);
+    const total = (hours * 60) + minutes + Number(duration || 60);
+    endInput.value = `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
   }
 
-  function renderEnrollmentSearch(filter = '') {
-    const query = filter.trim().toLocaleLowerCase('es');
-    const visible = shared.ordenarSociosPorVencimiento(enrollmentUsers)
-      .filter(user => !query || String(user.ci).includes(query) || String(user.nombre || '').toLocaleLowerCase('es').includes(query))
-      .slice(0, 8);
-    classEnrollResults.innerHTML = '';
-    visible.forEach(user => {
-      const active = shared.esMembresiaActiva(user.fecha_vencimiento);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.enrollMember = String(user.ci);
-      button.className = Number(classEnrollMember.value) === Number(user.ci) ? 'is-selected' : '';
-      const identity = document.createElement('span');
-      const name = document.createElement('strong');
-      const detail = document.createElement('small');
-      name.textContent = user.nombre;
-      detail.textContent = `CI ${user.ci}`;
-      identity.append(name, detail);
-      const status = document.createElement('span');
-      status.className = `member-search-status${active ? ' is-active' : ''}`;
-      status.textContent = active ? 'Activo' : 'Vencido';
-      button.append(identity, status);
-      classEnrollResults.appendChild(button);
+  function populateClassEditSelectors() {
+    classEditCoach.innerHTML = '<option value="">Seleccionar profesor</option>';
+    professors.filter(item => item.activo !== false && Number(item.activo) !== 0).forEach(item => {
+      const option = document.createElement('option');
+      option.value = String(item.id); option.textContent = item.nombre;
+      classEditCoach.appendChild(option);
     });
-    if (!visible.length) classEnrollResults.innerHTML = '<div class="modal-search-empty">No se encontraron socios.</div>';
+    classEditLocal.innerHTML = '<option value="">Seleccionar local</option>';
+    locations.forEach(item => {
+      const option = document.createElement('option');
+      option.value = String(item.id); option.textContent = item.nombre;
+      classEditLocal.appendChild(option);
+    });
   }
 
-  async function saveEnrollment() {
-    const userCi = Number(classEnrollMember.value || 0);
-    if (!selectedClass || !userCi) {
-      shared.mostrarNotificacion('Seleccioná un socio', 'warning');
+  function openClassEdit() {
+    const item = selectedClass;
+    if (!item || item.estado !== 'programada' || !item.programacionId || item.canEditSchedule !== true) return;
+    populateClassEditSelectors();
+    document.getElementById('class-edit-name').value = item.nombre || '';
+    classEditCoach.value = String(item.profesorProgramadoId || item.profesorId || '');
+    classEditLocal.value = String(item.localId || '');
+    document.getElementById('class-edit-time').value = String(item.hora || '').slice(0, 5);
+    setTimeFromDuration(document.getElementById('class-edit-time'), document.getElementById('class-edit-end-time'), item.duracionMinutos);
+    document.getElementById('class-edit-capacity').value = String(item.capacidad || 12);
+    document.getElementById('class-edit-end-date').value = item.fechaFin || '';
+    document.getElementById('class-edit-end-date').min = item.fecha;
+    const selectedDays = String(item.diasSemana || '').split(',').map(Number);
+    document.querySelectorAll('input[name="class-edit-weekday"]').forEach(input => {
+      input.checked = selectedDays.includes(Number(input.value));
+    });
+    const date = new Intl.DateTimeFormat('es-UY', { weekday: 'long', day: 'numeric', month: 'long' })
+      .format(new Date(`${item.fecha}T12:00:00`));
+    document.getElementById('class-edit-scope').textContent = `Los cambios se aplicarán desde el ${date}. El historial anterior no se modifica.`;
+    classEditModal.dataset.scheduleId = String(item.programacionId);
+    classEditModal.dataset.effectiveFrom = item.fecha;
+    classEditModal.style.display = 'flex';
+    document.getElementById('class-edit-name').focus();
+  }
+
+  async function saveClassEdit() {
+    const selectedProfessor = professors.find(item => String(item.id) === classEditCoach.value);
+    const diasSemana = [...document.querySelectorAll('input[name="class-edit-weekday"]:checked')]
+      .map(input => Number(input.value));
+    const payload = {
+      programacionId: Number(classEditModal.dataset.scheduleId || 0),
+      desdeFecha: classEditModal.dataset.effectiveFrom,
+      nombre: document.getElementById('class-edit-name').value.trim(),
+      profesorId: Number(classEditCoach.value || 0),
+      profesor: selectedProfessor?.nombre || '',
+      localId: Number(classEditLocal.value || 0),
+      diasSemana,
+      hora: document.getElementById('class-edit-time').value,
+      duracionMinutos: minutesBetween(document.getElementById('class-edit-time').value, document.getElementById('class-edit-end-time').value),
+      capacidad: Number(document.getElementById('class-edit-capacity').value || 0),
+      fechaFin: document.getElementById('class-edit-end-date').value || null,
+      notas: selectedClass?.notas || '',
+    };
+    if (!payload.programacionId || !payload.nombre || !payload.profesorId || !payload.localId || !payload.desdeFecha || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0 || payload.duracionMinutos <= 0) {
+      shared.mostrarNotificacion('Completá nombre, local, profesor, días, horario y cupo', 'warning');
       return;
     }
+    classEditSave.disabled = true;
+    classEditSave.textContent = 'Guardando…';
     try {
-      if (window.api) {
-        await window.api.inscribirSocioClase({ classId: selectedClass.id, userCi });
-      } else {
-        const userName = enrollmentUsers.find(user => Number(user.ci) === userCi)?.nombre || String(userCi);
-        const list = enrollments.get(Number(selectedClass.id)) || [];
-        if (!list.some(item => Number(item.usuarioCi) === userCi)) list.push({ usuarioCi: userCi, usuarioNombre: userName });
-        enrollments.set(Number(selectedClass.id), list);
-        selectedClass.inscriptos = Number(selectedClass.inscriptos || 0) + 1;
-      }
-      modalEnrollClass.style.display = 'none';
-      shared.mostrarNotificacion(selectedClass.programacionId ? 'Socio inscripto al grupo' : 'Socio inscripto', 'success');
+      if (!window.api?.actualizarProgramacionClase) throw new Error('La edición de clases no está disponible');
+      await window.api.actualizarProgramacionClase(payload);
+      classEditModal.style.display = 'none';
+      shared.mostrarNotificacion('Programación actualizada. El historial anterior se conservó.', 'success');
+      showClassesScreen('agenda');
+      selectedClass = null;
+      selectedClassDate = payload.desdeFecha;
+      currentWeekStart = startOfWeek(selectedClassDate);
       await loadClasses();
-      await selectClass(selectedClass.id);
     } catch (error) {
-      shared.mostrarNotificacion(error?.message || 'No se pudo inscribir al socio', 'warning');
+      shared.mostrarNotificacion(error?.message || 'No se pudo editar la clase', 'error');
+    } finally {
+      classEditSave.disabled = false;
+      classEditSave.textContent = 'Guardar cambios';
     }
   }
+
+  const classEnrollment = window.createAdminClassEnrollmentController({
+    loadUsers: () => window.api ? window.api.obtenerUsuarios() : Promise.resolve([
+      { ci: 49876543, nombre: 'Martina Silva' }, { ci: 43219876, nombre: 'Bruno Rodríguez' },
+      { ci: 51234567, nombre: 'Lucas Pereira' }, { ci: 56781234, nombre: 'Diego Martínez' },
+    ]),
+    loadEnrollments: id => window.api ? window.api.obtenerInscripcionesClase(id) : Promise.resolve(enrollments.get(Number(id)) || []),
+    formatSchedule: item => `${item.profesorProgramado || item.profesor || 'Sin profesor'} · ${item.diasSemana ? `${formatWeekdays(item.diasSemana)} · ${String(item.hora).slice(0, 5)}` : formatDateTime(item.fecha, item.hora)}`,
+    save: async ({ classId, userCi }) => {
+      if (window.api) return window.api.inscribirSocioClase({ classId, userCi });
+      const users = [{ ci: 49876543, nombre: 'Martina Silva' }, { ci: 43219876, nombre: 'Bruno Rodríguez' }, { ci: 51234567, nombre: 'Lucas Pereira' }, { ci: 56781234, nombre: 'Diego Martínez' }];
+      const list = enrollments.get(Number(classId)) || [];
+      if (list.some(item => Number(item.usuarioCi) === userCi)) throw new Error('El socio ya está en el grupo.');
+      list.push({ usuarioCi: userCi, usuarioNombre: users.find(user => user.ci === userCi)?.nombre || String(userCi) });
+      enrollments.set(Number(classId), list);
+      const item = classes.find(row => Number(row.id) === Number(classId));
+      if (item) item.inscriptos = list.length;
+    },
+    onSaved: async id => {
+      shared.mostrarNotificacion('Alumno agregado', 'success');
+      await loadClasses();
+      await selectClass(id);
+    },
+  });
 
   async function loadStock() {
     try {
@@ -603,9 +729,11 @@ function createAdminOperationsController({ shared }) {
 
   async function loadPending() {
     try {
-      pendingSales = window.api ? await window.api.obtenerVentasPendientes() : demoPending();
+      pendingSales = window.api ? await window.api.obtenerVentasPendientes() : pendingLoaded ? pendingSales : demoPending();
+      pendingLoaded = true;
+      pendingLoadError = false;
     } catch (error) {
-      pendingSales = [];
+      pendingLoadError = true;
     }
     renderPending();
   }
@@ -613,62 +741,176 @@ function createAdminOperationsController({ shared }) {
   function renderPending() {
     if (!pendingBody) return;
     const empty = document.querySelector('.pending-empty-state');
+    pendingRetry.hidden = !pendingLoadError;
+    if (pendingLoadError) {
+      pendingBody.replaceChildren();
+      empty.style.display = 'grid';
+      empty.querySelector('strong').textContent = 'No se pudieron cargar los pendientes';
+      empty.querySelector('span').textContent = 'Revisá la conexión y volvé a intentar.';
+      pendingResultsSummary.textContent = 'No se pudo actualizar la información.';
+      return;
+    }
+    const query = String(pendingSearch?.value || '').trim().toLocaleLowerCase('es');
+    const visible = pendingSales.filter(item => !query
+      || String(item.usuarioNombre || '').toLocaleLowerCase('es').includes(query)
+      || String(item.productoNombre || '').toLocaleLowerCase('es').includes(query));
     pendingBody.innerHTML = '';
-    empty.style.display = pendingSales.length ? 'none' : 'grid';
+    empty.style.display = visible.length ? 'none' : 'grid';
+    empty.querySelector('strong').textContent = query ? 'No hay coincidencias' : 'No hay cobros pendientes';
+    empty.querySelector('span').textContent = query ? 'Probá con otro nombre de socio o producto.' : 'Las entregas sin cobrar aparecerán aquí.';
     const total = pendingSales.reduce((sum, item) => sum + Number(item.total || 0), 0);
     pendingTotal.textContent = money(total);
+    if (pendingResultsSummary) pendingResultsSummary.textContent = `${visible.length} ${visible.length === 1 ? 'venta' : 'ventas'} · ${money(visible.reduce((sum, item) => sum + Number(item.total || 0), 0))} pendientes`;
     pendingNavCount.textContent = String(pendingSales.length);
     pendingNavCount.hidden = pendingSales.length === 0;
+    pendingCashButton.setAttribute('aria-label', `Cobros pendientes, ${pendingSales.length}`);
     pendingHomeCount.textContent = String(pendingSales.length);
+    pendingHomeCount.closest('article')?.classList.toggle('has-pending', pendingSales.length > 0);
     pendingCashTotal.textContent = money(total);
     pendingCashCount.textContent = `${pendingSales.length} ${pendingSales.length === 1 ? 'venta' : 'ventas'}`;
-    pendingSales.forEach(item => {
+    visible.forEach(item => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${formatDateTime(item.fecha, item.hora)}</td>
-        <td><strong>${item.usuarioNombre}</strong></td>
-        <td>${item.productoNombre}${Number(item.cantidad || 1) > 1 ? ` × ${item.cantidad}` : ''}</td>
-        <td><span class="pending-registered"><strong>${item.profesor}</strong><small>${item.localNombre || `Local ${item.localId || 2}`}</small></span></td>
+        <td><span class="pending-member"><span aria-hidden="true">${escapeHtml(String(item.usuarioNombre || '?').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase())}</span><span><strong>${escapeHtml(item.usuarioNombre)}</strong><small>${Number(item.cantidad || 1)} × ${escapeHtml(item.productoNombre)}</small></span></span></td>
+        <td><span class="pending-registered"><span>${item.fecha === today() ? 'Hoy' : escapeHtml(item.fecha || 'Sin fecha')} · ${escapeHtml(String(item.hora || '').slice(0, 5))}</span><small>${escapeHtml(item.localNombre || `Local ${item.localId || 2}`)}${item.profesor ? ` · ${escapeHtml(item.profesor)}` : ''}</small></span></td>
         <td><strong>${money(item.total)}</strong></td>
-        <td><span class="pending-status-pill">Pendiente</span></td>
-        <td><button class="table-action-button primary" type="button" data-collect-pending="${item.id}">Cobrar</button></td>
+        <td><button class="pending-collect-button" type="button" data-collect-pending="${escapeHtml(item.id)}" aria-label="Cobrar a ${escapeHtml(item.usuarioNombre)} por ${escapeHtml(item.productoNombre)}">Cobrar</button></td>
       `;
       pendingBody.appendChild(tr);
     });
   }
 
+  function showPendingList() {
+    pendingCashCheck += 1;
+    pendingCashReady = false;
+    pendingSaleSelected = null;
+    pendingCollectModal.classList.remove('is-confirming');
+    pendingListPanel.hidden = false;
+    pendingPaymentPanel.hidden = true;
+    pendingBack.hidden = true;
+    pendingCollectSave.hidden = true;
+    document.getElementById('pending-modal-title').textContent = 'Cobros pendientes';
+    pendingError.hidden = true;
+    pendingCashNotice.hidden = true;
+    pendingReviewCash.hidden = true;
+    pendingSearch.focus();
+  }
+
+  async function openPendingModal() {
+    pendingSearch.value = '';
+    pendingCollectModal.style.display = 'flex';
+    showPendingList();
+    await loadPending();
+  }
+
   function openPendingCollection(id) {
-    pendingSaleSelected = pendingSales.find(item => Number(item.id) === Number(id)) || null;
+    pendingSaleSelected = pendingSales.find(item => String(item.id) === String(id)) || null;
     if (!pendingSaleSelected) return;
-    pendingCollectSummary.innerHTML = `<span>Venta de ${pendingSaleSelected.productoNombre}</span><strong>${money(pendingSaleSelected.total)}</strong><span>${pendingSaleSelected.usuarioNombre} · ${pendingSaleSelected.localNombre || `Local ${pendingSaleSelected.localId || 2}`} · registrado por ${pendingSaleSelected.profesor}</span>`;
+    const sale = pendingSaleSelected;
+    pendingCollectSummary.innerHTML = `<div class="pending-payer"><strong>${escapeHtml(sale.usuarioNombre)}</strong><span>${Number(sale.cantidad || 1)} × ${escapeHtml(sale.productoNombre)}</span><small>${escapeHtml(sale.localNombre || `Local ${sale.localId || 2}`)} · ${sale.fecha === today() ? 'Hoy' : escapeHtml(sale.fecha || '')} ${escapeHtml(String(sale.hora || '').slice(0, 5))}</small></div><div class="pending-payment-amount"><span>Total a cobrar</span><strong>${money(sale.total)}</strong></div>`;
+    pendingCollectModal.classList.add('is-confirming');
     pendingCollectNote.value = '';
     document.querySelectorAll('input[name="pending-payment-method"]').forEach(input => { input.checked = input.value === 'efectivo'; });
-    pendingCollectModal.style.display = 'flex';
+    pendingListPanel.hidden = true;
+    pendingPaymentPanel.hidden = false;
+    pendingBack.hidden = false;
+    pendingCollectSave.hidden = false;
+    pendingCollectSave.textContent = `Cobrar ${money(sale.total)}`;
+    pendingError.hidden = true;
+    document.getElementById('pending-modal-title').textContent = 'Registrar cobro';
+    pendingPaymentPanel.querySelector('input[type="radio"]:checked').focus();
+    verifyPendingCash();
+  }
+
+  async function verifyPendingCash() {
+    const check = ++pendingCashCheck;
+    const date = today();
+    pendingCashReady = false;
+    pendingCollectSave.disabled = true;
+    pendingCashNotice.hidden = false;
+    pendingCashNotice.textContent = 'Comprobando la caja de hoy…';
+    pendingReviewCash.hidden = true;
+    try {
+      const summary = window.api
+        ? await window.api.obtenerResumenCajaDia(date)
+        : { sesionAbierta: { fecha: date } };
+      if (check !== pendingCashCheck) return false;
+      pendingCashReady = pendingCashIsReady(summary, date);
+      pendingCashNotice.textContent = pendingCashReady ? '' : 'No hay una caja abierta para hoy. Revisá Caja para continuar.';
+      pendingCashNotice.hidden = pendingCashReady;
+      pendingReviewCash.hidden = pendingCashReady;
+    } catch (_) {
+      if (check !== pendingCashCheck) return false;
+      pendingCashNotice.textContent = 'No se pudo comprobar la caja de hoy. Revisá la conexión antes de cobrar.';
+      pendingReviewCash.hidden = false;
+    }
+    pendingCollectSave.disabled = !pendingCashReady || pendingSaving;
+    return pendingCashReady;
   }
 
   async function savePendingCollection() {
-    if (!pendingSaleSelected) return;
+    if (!pendingSaleSelected || pendingSaving) return;
+    const saleId = pendingSaleSelected.id;
     const formaPago = document.querySelector('input[name="pending-payment-method"]:checked')?.value || 'efectivo';
     try {
+      pendingSaving = true;
+      pendingCollectSave.textContent = 'Registrando…';
+      pendingCollectModal.querySelectorAll('button').forEach(button => { button.disabled = true; });
+      pendingError.hidden = true;
+      if (!await verifyPendingCash()) return;
       if (window.api) {
-        await window.api.cobrarVentaPendiente({ id: pendingSaleSelected.id, formaPago, observacion: pendingCollectNote.value.trim() });
-      } else {
-        pendingSales = pendingSales.filter(item => Number(item.id) !== Number(pendingSaleSelected.id));
+        await window.api.cobrarVentaPendiente({ id: saleId, formaPago, observacion: pendingCollectNote.value.trim() });
       }
-      pendingCollectModal.style.display = 'none';
+      pendingSales = pendingSales.filter(item => String(item.id) !== String(saleId));
       shared.mostrarNotificacion('Cobro ingresado a caja', 'success');
-      if (window.api) await loadPending(); else renderPending();
+      renderPending();
       document.dispatchEvent(new CustomEvent('cash:updated'));
+      showPendingList();
+      if (window.api) await loadPending();
     } catch (error) {
-      shared.mostrarNotificacion(error?.message || 'No se pudo registrar el cobro', 'warning');
+      const message = String(error?.message || '').replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '');
+      if (/caja|cash.*session/i.test(message)) await verifyPendingCash();
+      pendingError.textContent = pendingCashReady ? (message || 'No se pudo registrar el cobro. Volvé a intentar.') : 'El cobro no se registró. Revisá la caja antes de continuar.';
+      pendingError.hidden = false;
+    } finally {
+      pendingSaving = false;
+      pendingCollectSave.textContent = pendingSaleSelected ? `Cobrar ${money(pendingSaleSelected.total)}` : 'Registrar cobro';
+      pendingCollectModal.querySelectorAll('button').forEach(button => { button.disabled = false; });
+      pendingCollectSave.disabled = !pendingCashReady;
     }
   }
 
-  function initializeNewClassDefaults() {
+  function initializeNewClassDefaults({ reset = false } = {}) {
+    const nameInput = document.getElementById('class-name');
     const dateInput = document.getElementById('class-start-date');
     const timeInput = document.getElementById('class-time');
-    if (dateInput && !dateInput.value) dateInput.value = today();
-    if (timeInput && !timeInput.value) timeInput.value = '18:00';
+    const endTimeInput = document.getElementById('class-end-time');
+    const endDateInput = document.getElementById('class-end-date');
+    const capacityInput = document.getElementById('class-capacity');
+    if (reset && nameInput) nameInput.value = '';
+    if (dateInput && (reset || !dateInput.value)) dateInput.value = today();
+    if (dateInput) dateInput.min = today();
+    if (timeInput && (reset || !timeInput.value)) timeInput.value = '18:00';
+    if (endTimeInput && (reset || !endTimeInput.value)) endTimeInput.value = '19:00';
+    if (capacityInput && reset) capacityInput.value = '12';
+    if (endDateInput) {
+      if (reset) endDateInput.value = '';
+      endDateInput.min = dateInput?.value || today();
+    }
+    if (reset) {
+      document.querySelectorAll('input[name="class-weekday"]').forEach(input => {
+        input.checked = ['1', '3', '5'].includes(input.value);
+      });
+    }
+  }
+
+  function openNewClass() {
+    initializeNewClassDefaults({ reset: true });
+    document.getElementById('class-name')?.focus();
+  }
+
+  function showClassesScreen(name) {
+    document.querySelectorAll('[data-classes-screen]').forEach(screen => screen.classList.toggle('is-active', screen.dataset.classesScreen === name));
   }
 
   async function refreshAll() {
@@ -677,30 +919,118 @@ function createAdminOperationsController({ shared }) {
   }
 
   function init() {
+    if (window.api && window.adminSync) {
+      const sync = window.adminSync;
+      sync.watch({
+        enabled: () => sync.active('classes'),
+        read: async () => {
+          await classesLoadQueue;
+          const date = currentWeekStart;
+          const [rows, teachers] = await Promise.all([window.api.obtenerClasesProximas(date), window.api.obtenerProfesores(true)]);
+          return { date, rows, teachers };
+        },
+        apply: ({ date, rows, teachers }) => {
+          if (date !== currentWeekStart) return;
+          classes = rows; professors = teachers;
+          renderClasses(); renderProfessors(); populateProfessorSelect();
+        },
+      });
+      sync.watch({
+        enabled: () => sync.visible(pendingBody) || sync.active('home') || sync.visible(pendingCashButton),
+        read: () => window.api.obtenerVentasPendientes(),
+        apply: rows => { pendingSales = rows; pendingLoaded = true; pendingLoadError = false; renderPending(); },
+      });
+      sync.watch({
+        enabled: () => sync.visible(stockBody),
+        read: () => window.api.obtenerStockLocales(),
+        apply: rows => { stock = rows; renderStock(); },
+      });
+    }
+    const refreshClock = () => {
+      if (document.querySelector('[data-admin-view="classes"].is-active')) renderClasses();
+    };
+    const clockTimer = window.setInterval(refreshClock, 30000);
+    window.addEventListener('focus', refreshClock);
+    window.addEventListener('beforeunload', () => window.clearInterval(clockTimer), { once: true });
     initializeNewClassDefaults();
-    document.querySelector('[data-open-modal="modal-profesor"]')?.addEventListener('click', openNewProfessor);
+    document.querySelectorAll('[data-open-modal="modal-nueva-clase"]').forEach(button => button.addEventListener('click', openNewClass));
+    classesOpenProfessors?.addEventListener('click', openProfessorManager);
     professorSave?.addEventListener('click', saveProfessor);
+    professorName?.addEventListener('keydown', event => {
+      if (event.key === 'Enter') saveProfessor();
+    });
     professorsList?.addEventListener('click', event => {
-      const button = event.target.closest('[data-edit-professor]');
-      if (button) openEditProfessor(button.dataset.editProfessor);
+      const button = event.target.closest('[data-remove-professor]');
+      if (button) removeProfessor(button.dataset.removeProfessor);
     });
     classSave?.addEventListener('click', saveClass);
-    classEnrollOpen?.addEventListener('click', openEnrollment);
-    classEnrollSave?.addEventListener('click', saveEnrollment);
-    classEnrollSearch?.addEventListener('input', () => {
-      classEnrollMember.value = '';
-      renderEnrollmentSearch(classEnrollSearch.value);
+    document.getElementById('class-time')?.addEventListener('change', event => {
+      setTimeFromDuration(event.currentTarget, document.getElementById('class-end-time'), 60);
     });
-    classEnrollResults?.addEventListener('click', event => {
-      const button = event.target.closest('[data-enroll-member]');
-      if (!button) return;
-      const user = enrollmentUsers.find(item => Number(item.ci) === Number(button.dataset.enrollMember));
-      if (!user) return;
-      classEnrollMember.value = String(user.ci);
-      classEnrollSearch.value = `${user.nombre} · ${user.ci}`;
-      renderEnrollmentSearch(user.nombre);
+    document.getElementById('class-start-date')?.addEventListener('change', event => {
+      const endDateInput = document.getElementById('class-end-date');
+      endDateInput.min = event.currentTarget.value || today();
+      if (endDateInput.value && endDateInput.value < endDateInput.min) endDateInput.value = '';
     });
+    classEditOpen?.addEventListener('click', openClassEdit);
+    classEditSave?.addEventListener('click', saveClassEdit);
+    document.getElementById('class-edit-time')?.addEventListener('change', event => {
+      setTimeFromDuration(event.currentTarget, document.getElementById('class-edit-end-time'), selectedClass?.duracionMinutos || 60);
+    });
+    classEnrollOpen?.addEventListener('click', () => classEnrollment.open(selectedClass));
     classesRefresh?.addEventListener('click', loadClasses);
+    classesDayPicker?.addEventListener('click', event => {
+      const button = event.target.closest('[data-class-date]');
+      if (!button) return;
+      selectedClassDate = button.dataset.classDate;
+      selectedClass = null;
+      renderClasses();
+      document.getElementById(`classes-day-${selectedClassDate}`)?.focus({ preventScroll: true });
+    });
+    classesDayPicker?.addEventListener('keydown', event => {
+      const tabs = [...classesDayPicker.querySelectorAll('[data-class-date]')];
+      const index = tabs.indexOf(event.target);
+      if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? 6 : (index + (event.key === 'ArrowRight' ? 1 : -1) + 7) % 7;
+      tabs[next].click();
+    });
+    classesWeekToday?.addEventListener('click', async () => {
+      selectedClassDate = today();
+      currentWeekStart = startOfWeek(selectedClassDate);
+      selectedClass = null;
+      await loadClasses();
+    });
+    classesWeekPrev?.addEventListener('click', async () => {
+      currentWeekStart = addDays(currentWeekStart, -7);
+      selectedClassDate = currentWeekStart;
+      selectedClass = null;
+      await loadClasses();
+    });
+    classesWeekNext?.addEventListener('click', async () => {
+      currentWeekStart = addDays(currentWeekStart, 7);
+      selectedClassDate = currentWeekStart;
+      selectedClass = null;
+      await loadClasses();
+    });
+    classesList?.addEventListener('click', event => {
+      const edit = event.target.closest('[data-edit-agenda-class]');
+      if (edit) {
+        selectedClass = classes.find(item => Number(item.id) === Number(edit.dataset.editAgendaClass)) || null;
+        openClassEdit();
+        return;
+      }
+      const trial = event.target.closest('[data-class-trial]');
+      if (trial) {
+        setClassTrial(trial.dataset.classTrial, trial.checked);
+        return;
+      }
+      // Clicking the checkbox label must only change the trial flag, not open the class.
+      if (event.target.closest('.class-trial-toggle')) return;
+      const open = event.target.closest('[data-open-class]');
+      const row = event.target.closest('.class-row[data-class-id]');
+      if (open || row) selectClass(open?.dataset.openClass || row.dataset.classId);
+    });
     openTabletButton?.addEventListener('click', async () => {
       if (window.api?.abrirPantallaTablet) await window.api.abrirPantallaTablet();
       else window.open('tablet.html', 'underfit-tablet-preview', 'width=1100,height=780');
@@ -717,10 +1047,50 @@ function createAdminOperationsController({ shared }) {
       if (button) openPendingCollection(button.dataset.collectPending);
     });
     pendingCollectSave?.addEventListener('click', savePendingCollection);
+    pendingSearch?.addEventListener('input', renderPending);
+    pendingBack?.addEventListener('click', showPendingList);
+    pendingRetry?.addEventListener('click', loadPending);
+    pendingReviewCash?.addEventListener('click', () => {
+      pendingCashCheck += 1;
+      pendingCollectModal.style.display = 'none';
+      document.getElementById('dashboard-fecha').value = today();
+      document.querySelector('.workspace-sidebar [data-admin-section="cash"]').click();
+    });
+    document.querySelectorAll('[data-open-pending]').forEach(button => {
+      button.addEventListener('click', openPendingModal);
+      if (button.tagName !== 'BUTTON') button.addEventListener('keydown', event => {
+        if (['Enter', ' '].includes(event.key)) { event.preventDefault(); button.click(); }
+      });
+    });
+    pendingCollectModal.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !pendingSaving) {
+        event.preventDefault();
+        pendingCollectModal.style.display = 'none';
+        pendingCashButton.focus();
+      }
+      if (event.key === 'Tab') {
+        const controls = [...pendingCollectModal.querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el => el.getClientRects().length);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    });
+    pendingCollectModal.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => pendingCashButton.focus()));
+    document.addEventListener('keydown', event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && pendingCollectModal.style.display === 'flex' && !pendingListPanel.hidden) {
+        event.preventDefault();
+        pendingSearch?.focus();
+      }
+    });
     document.addEventListener('admin-section:show', event => {
-      if (event.detail?.section === 'classes') Promise.all([loadProfessors(), loadLocations(), loadClasses()]);
+      classDetail.hide();
+      if (event.detail?.section === 'classes') {
+        // Profesores y detalle son subrutas: al volver desde la barra lateral la
+        // agenda siempre debe ser el punto de entrada de Clases.
+        showClassesScreen('agenda');
+        Promise.all([loadProfessors(), loadLocations(), loadClasses()]);
+      }
       if (event.detail?.section === 'locations') loadStock();
-      if (event.detail?.section === 'pending') loadPending();
     });
     document.addEventListener('admin-dashboard:show', loadPending);
     return refreshAll();

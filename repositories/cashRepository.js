@@ -139,13 +139,14 @@ function createCashRepository(db) {
     referencia_id = null,
     correccion_de_id = null,
     motivo_correccion = null,
+    responsable = null,
   }) {
     const result = await run(
       `INSERT INTO caja_movimientos (
         caja_sesion_id, fecha, hora, ts, tipo_ingreso, forma_pago, monto, monto_recibido, cambio,
         descripcion, observacion, usuario_ci, usuario_nombre, producto_id,
-        producto_nombre, cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        producto_nombre, cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion, responsable
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         caja_sesion_id,
         fecha,
@@ -167,6 +168,7 @@ function createCashRepository(db) {
         referencia_id,
         correccion_de_id,
         motivo_correccion,
+        responsable,
       ]
     );
 
@@ -177,7 +179,7 @@ function createCashRepository(db) {
     return all(
       `SELECT id, caja_sesion_id, fecha, hora, ts, tipo_ingreso, forma_pago, monto, monto_recibido, cambio,
               descripcion, observacion, usuario_ci, usuario_nombre, producto_id, producto_nombre,
-              cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion
+              cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion, responsable
        FROM caja_movimientos
        WHERE fecha = ?
        ORDER BY hora DESC, id DESC`,
@@ -189,7 +191,7 @@ function createCashRepository(db) {
     return all(
       `SELECT id, caja_sesion_id, fecha, hora, ts, tipo_ingreso, forma_pago, monto, monto_recibido, cambio,
               descripcion, observacion, usuario_ci, usuario_nombre, producto_id, producto_nombre,
-              cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion
+              cantidad, referencia_tabla, referencia_id, correccion_de_id, motivo_correccion, responsable
        FROM caja_movimientos
        WHERE caja_sesion_id = ?
        ORDER BY hora ASC, id ASC`,

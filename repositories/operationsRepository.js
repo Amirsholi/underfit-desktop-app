@@ -59,7 +59,7 @@ function createOperationsRepository(db) {
   async function listStockByLocation() {
     await syncLocationOneStock();
     return all(`
-      SELECT p.id AS productoId, p.nombre, p.precio,
+      SELECT p.id AS productoId, p.nombre, p.precio, p.activo,
              COALESCE(s1.cantidad, p.stock, 0) AS local1,
              COALESCE(s2.cantidad, 0) AS local2,
              COALESCE(s1.cantidad, p.stock, 0) + COALESCE(s2.cantidad, 0) AS total,
@@ -172,14 +172,92 @@ function createOperationsRepository(db) {
     });
   }
 
+  async function updateClassScheduleFuture(data) {
+    return inTransaction(async () => {
+      const current = await get(`
+        SELECT id, fecha_inicio AS fechaInicio, estado
+        FROM programaciones_clase
+        WHERE id = ?
+      `, [data.id]);
+      if (!current || current.estado !== 'activa') throw new Error('Programación no disponible');
+
+      const enrollmentCount = await get(`
+        SELECT COUNT(*) AS total
+        FROM inscripciones_programacion_clase
+        WHERE programacion_id = ? AND estado = 'inscripto'
+      `, [data.id]);
+      if (Number(enrollmentCount?.total || 0) > Number(data.capacidad)) {
+        throw new Error(`El grupo ya tiene ${Number(enrollmentCount.total)} alumnos; aumentá el cupo o quitá alumnos antes de guardar`);
+      }
+
+      const editable = await all(`
+        SELECT c.id, c.fecha, COALESCE(c.es_prueba, 0) AS esPrueba
+        FROM clases c
+        WHERE c.programacion_id = ? AND c.fecha >= ? AND c.estado = 'programada'
+        ORDER BY c.fecha, c.hora, c.id
+      `, [data.id, data.effectiveFrom]);
+      const editableIds = editable.map(item => Number(item.id));
+      if (editableIds.length) {
+        const attendance = await get(`
+          SELECT COUNT(*) AS total
+          FROM asistencias_clase
+          WHERE clase_id IN (${editableIds.map(() => '?').join(',')})
+        `, editableIds);
+        if (Number(attendance?.total || 0) > 0) {
+          throw new Error('Hay asistencias registradas en una clase futura; revisalas antes de editar la programación');
+        }
+      }
+
+      const trialByDate = new Map(editable.map(item => [item.fecha, Number(item.esPrueba || 0)]));
+      for (const classId of editableIds) {
+        await run(`DELETE FROM inscripciones_clase WHERE clase_id = ?`, [classId]);
+        await run(`DELETE FROM clases WHERE id = ?`, [classId]);
+      }
+
+      await run(`
+        UPDATE programaciones_clase
+        SET nombre = ?, local_id = ?, profesor_id = ?, profesor_nombre = ?,
+            dias_semana = ?, hora = ?, duracion_minutos = ?, capacidad = ?,
+            fecha_inicio = ?, fecha_fin = ?, notas = ?, actualizado_ts = ?
+        WHERE id = ? AND estado = 'activa'
+      `, [data.nombre, data.localId, data.profesorId, data.profesor, data.diasSemana,
+        data.hora, data.duracionMinutos, data.capacidad, data.effectiveFrom, data.fechaFin,
+        data.notas, data.actualizadoTs, data.id]);
+
+      let created = 0;
+      for (const date of data.occurrenceDates) {
+        const result = await run(`
+          INSERT OR IGNORE INTO clases (
+            nombre, fecha, hora, duracion_minutos, capacidad, profesor, profesor_id,
+            local_id, notas, estado, creado_ts, programacion_id, es_prueba
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'programada', ?, ?, ?)
+        `, [data.nombre, date, data.hora, data.duracionMinutos, data.capacidad,
+          data.profesor, data.profesorId, data.localId, data.notas, data.actualizadoTs,
+          data.id, trialByDate.get(date) || 0]);
+        created += Number(result.changes || 0);
+      }
+
+      return {
+        id: data.id,
+        ...data,
+        fechaInicio: data.effectiveFrom,
+        estado: 'activa',
+        replaced: editableIds.length,
+        created,
+      };
+    });
+  }
+
   function listClasses({ fromDate, limit = 50 }) {
     return all(`
       SELECT c.id, c.nombre, c.fecha, c.hora, c.duracion_minutos AS duracionMinutos,
              c.capacidad, c.profesor, c.profesor_id AS profesorId, c.local_id AS localId,
              l.nombre AS localNombre, c.notas, c.estado, c.programacion_id AS programacionId,
-             pc.dias_semana AS diasSemana,
+             COALESCE(c.es_prueba, 0) AS esPrueba,
+             pc.dias_semana AS diasSemana, pc.fecha_inicio AS fechaInicio,
+             pc.fecha_fin AS fechaFin,
              CASE
-               WHEN c.programacion_id IS NOT NULL THEN (
+               WHEN c.programacion_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM inscripciones_clase snapshot WHERE snapshot.clase_id = c.id) THEN (
                  SELECT COUNT(*) FROM inscripciones_programacion_clase ip
                  WHERE ip.programacion_id = c.programacion_id AND ip.estado = 'inscripto'
                )
@@ -191,7 +269,7 @@ function createOperationsRepository(db) {
       FROM clases c
       LEFT JOIN programaciones_clase pc ON pc.id = c.programacion_id
       LEFT JOIN locales l ON l.id = c.local_id
-      WHERE c.fecha >= ? AND c.estado IN ('programada', 'en_curso')
+      WHERE c.fecha >= ?
       ORDER BY c.fecha ASC, c.hora ASC, c.id ASC
       LIMIT ?
     `, [fromDate, limit]);
@@ -207,10 +285,17 @@ function createOperationsRepository(db) {
     return get(`SELECT * FROM clases WHERE id = ?`, [result.lastID]);
   }
 
+  async function setClassTrial({ classId, esPrueba }) {
+    const result = await run(`UPDATE clases SET es_prueba = ? WHERE id = ?`, [esPrueba ? 1 : 0, classId]);
+    if (!result.changes) throw new Error('Clase no encontrada');
+    return { classId, esPrueba: Boolean(esPrueba) };
+  }
+
   async function listClassEnrollments(classId) {
     const classRow = await get(`SELECT id, programacion_id AS programacionId FROM clases WHERE id = ?`, [classId]);
     if (!classRow) return [];
-    if (classRow.programacionId) {
+    const snapshot = await get(`SELECT id FROM inscripciones_clase WHERE clase_id = ? LIMIT 1`, [classId]);
+    if (classRow.programacionId && !snapshot) {
       return all(`
         SELECT id, programacion_id AS programacionId, usuario_ci AS usuarioCi,
                usuario_nombre AS usuarioNombre, estado, creado_ts AS creadoTs
@@ -244,18 +329,53 @@ function createOperationsRepository(db) {
           const result = await run(`
             INSERT INTO inscripciones_programacion_clase (programacion_id, usuario_ci, usuario_nombre, estado, creado_ts)
             VALUES (?, ?, ?, 'inscripto', ?)
+            ON CONFLICT(programacion_id, usuario_ci) DO UPDATE SET
+              usuario_nombre = excluded.usuario_nombre, estado = 'inscripto', creado_ts = excluded.creado_ts
+            WHERE inscripciones_programacion_clase.estado <> 'inscripto'
           `, [classRow.programacionId, userCi, userName, createdTs]);
-          return { id: result.lastID, classId, programacionId: classRow.programacionId, userCi, userName };
+          const enrollment = await get(`SELECT id FROM inscripciones_programacion_clase WHERE programacion_id = ? AND usuario_ci = ?`, [classRow.programacionId, userCi]);
+          return { id: enrollment.id, classId, programacionId: classRow.programacionId, userCi, userName };
         }
         const result = await run(`
             INSERT INTO inscripciones_clase (clase_id, usuario_ci, usuario_nombre, estado, creado_ts)
-            VALUES (?, ?, ?, 'inscripto', ?)
+          VALUES (?, ?, ?, 'inscripto', ?)
+          ON CONFLICT(clase_id, usuario_ci) DO UPDATE SET
+            usuario_nombre = excluded.usuario_nombre, estado = 'inscripto', creado_ts = excluded.creado_ts
+          WHERE inscripciones_clase.estado <> 'inscripto'
           `, [classId, userCi, userName, createdTs]);
-        return { id: result.lastID, classId, programacionId: null, userCi, userName };
+        const enrollment = await get(`SELECT id FROM inscripciones_clase WHERE clase_id = ? AND usuario_ci = ?`, [classId, userCi]);
+        return { id: enrollment.id, classId, programacionId: null, userCi, userName };
       } catch (error) {
         if (String(error?.message || '').includes('UNIQUE')) throw new Error('El socio ya está inscripto en esta clase');
         throw error;
       }
+    });
+  }
+
+  async function removeEnrollment({ classId, userCi, fecha, hora }) {
+    return inTransaction(async () => {
+      const item = await get(`SELECT id, estado, fecha, hora, programacion_id AS programacionId FROM clases WHERE id = ?`, [classId]);
+      if (!item || item.estado !== 'programada' || `${item.fecha} ${item.hora}` <= `${fecha} ${hora}`) {
+        throw new Error('Solo se pueden quitar alumnos desde una clase que todavía no comenzó.');
+      }
+      if (item.programacionId) {
+        const enrolled = await get(`SELECT id FROM inscripciones_programacion_clase WHERE programacion_id = ? AND usuario_ci = ? AND estado = 'inscripto'`, [item.programacionId, userCi]);
+        if (!enrolled) throw new Error('El alumno ya no está inscripto en el grupo.');
+        // Freeze complete historical rosters, including absences. Never touch attendance or scores.
+        const past = await all(`SELECT c.id FROM clases c WHERE c.programacion_id = ?
+          AND (c.fecha < ? OR (c.fecha = ? AND c.hora <= ?) OR c.estado IN ('dictada', 'en_curso', 'cancelada'))
+          AND NOT EXISTS (SELECT 1 FROM inscripciones_clase snapshot WHERE snapshot.clase_id = c.id)`, [item.programacionId, fecha, fecha, hora]);
+        for (const occurrence of past) {
+          await run(`INSERT INTO inscripciones_clase (clase_id, usuario_ci, usuario_nombre, estado, creado_ts)
+            SELECT ?, usuario_ci, usuario_nombre, 'inscripto', creado_ts FROM inscripciones_programacion_clase
+            WHERE programacion_id = ? AND estado = 'inscripto'`, [occurrence.id, item.programacionId]);
+        }
+        await run(`UPDATE inscripciones_programacion_clase SET estado = 'retirado' WHERE id = ?`, [enrolled.id]);
+      } else {
+        const result = await run(`UPDATE inscripciones_clase SET estado = 'retirado' WHERE clase_id = ? AND usuario_ci = ? AND estado = 'inscripto'`, [classId, userCi]);
+        if (!result.changes) throw new Error('El alumno ya no está inscripto en la clase.');
+      }
+      return { classId, userCi, programacionId: item.programacionId || null };
     });
   }
 
@@ -396,8 +516,8 @@ function createOperationsRepository(db) {
              c.profesor AS profesorProgramado,
              c.profesor_id AS profesorProgramadoId,
              c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
-             c.programacion_id AS programacionId,
-             CASE WHEN c.programacion_id IS NOT NULL THEN (
+             c.programacion_id AS programacionId, COALESCE(c.es_prueba, 0) AS esPrueba,
+             CASE WHEN c.programacion_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM inscripciones_clase snapshot WHERE snapshot.clase_id = c.id) THEN (
                SELECT COUNT(*) FROM inscripciones_programacion_clase ip
                WHERE ip.programacion_id = c.programacion_id AND ip.estado = 'inscripto'
              ) ELSE (
@@ -421,24 +541,22 @@ function createOperationsRepository(db) {
              c.profesor AS profesorProgramado,
              c.profesor_id AS profesorProgramadoId,
              c.estado, c.inicio_real_ts AS inicioRealTs, c.fin_real_ts AS finRealTs,
-             c.programacion_id AS programacionId
+             c.programacion_id AS programacionId, COALESCE(c.es_prueba, 0) AS esPrueba,
+             pc.dias_semana AS diasSemana, pc.fecha_inicio AS fechaInicio,
+             pc.fecha_fin AS fechaFin
       FROM clases c
       LEFT JOIN locales l ON l.id = c.local_id
+      LEFT JOIN programaciones_clase pc ON pc.id = c.programacion_id
       WHERE c.id = ?
     `, [classId]);
     if (!classRow) return null;
 
-    const enrolledSql = classRow.programacionId
-      ? `SELECT usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre
-         FROM inscripciones_programacion_clase
-         WHERE programacion_id = ? AND estado = 'inscripto'`
-      : `SELECT usuario_ci AS usuarioCi, usuario_nombre AS usuarioNombre
-         FROM inscripciones_clase
-         WHERE clase_id = ? AND estado = 'inscripto'`;
-    const enrolled = await all(enrolledSql, [classRow.programacionId || classId]);
+    const enrolled = await listClassEnrollments(classId);
     const attendances = await all(`
-      SELECT ac.id, ac.usuario_ci AS usuarioCi, u.nombre AS usuarioNombre,
-             ac.hora, ac.dispositivo_id AS dispositivoId
+      SELECT ac.id AS asistenciaId, ac.usuario_ci AS usuarioCi, u.nombre AS usuarioNombre,
+             ac.hora, ac.dispositivo_id AS dispositivoId, ac.puntuacion,
+             ac.puntuado_por_profesor_id AS puntuadoPorProfesorId,
+             ac.puntuado_ts AS puntuadoTs
       FROM asistencias_clase ac
       LEFT JOIN usuarios u ON u.ci = ac.usuario_ci
       WHERE ac.clase_id = ? AND COALESCE(ac.anulado, 0) = 0
@@ -453,6 +571,10 @@ function createOperationsRepository(db) {
         presente: Boolean(attendance),
         horaIngreso: attendance?.hora || null,
         dispositivoId: attendance?.dispositivoId || null,
+        asistenciaId: attendance?.asistenciaId || null,
+        puntuacion: attendance?.puntuacion || null,
+        puntuadoPorProfesorId: attendance?.puntuadoPorProfesorId || null,
+        puntuadoTs: attendance?.puntuadoTs || null,
       };
     });
     for (const attendance of attendanceByUser.values()) {
@@ -463,11 +585,63 @@ function createOperationsRepository(db) {
         noInscripto: true,
         horaIngreso: attendance.hora,
         dispositivoId: attendance.dispositivoId,
+        asistenciaId: attendance.asistenciaId,
+        puntuacion: attendance.puntuacion || null,
+        puntuadoPorProfesorId: attendance.puntuadoPorProfesorId || null,
+        puntuadoTs: attendance.puntuadoTs || null,
       });
     }
     students.sort((a, b) => Number(b.presente) - Number(a.presente)
       || String(a.usuarioNombre).localeCompare(String(b.usuarioNombre), 'es'));
-    return { ...classRow, students };
+    return {
+      ...classRow,
+      inscriptos: enrolled.length,
+      canRemoveEnrollment: true,
+      canEditSchedule: Boolean(classRow.programacionId),
+      students,
+    };
+  }
+
+  async function setClassPerformanceRating({ attendanceId, score, professorId, ratedTs }) {
+    const result = await run(`
+      UPDATE asistencias_clase
+      SET puntuacion = ?, puntuado_por_profesor_id = ?, puntuado_ts = ?
+      WHERE id = ? AND COALESCE(anulado, 0) = 0
+        AND EXISTS (SELECT 1 FROM clases c WHERE c.id = asistencias_clase.clase_id AND COALESCE(c.es_prueba, 0) = 1)
+    `, [score, professorId, ratedTs, attendanceId]);
+    if (!result.changes) throw new Error('Solo las asistencias de una clase de prueba se califican');
+    return { asistenciaId: attendanceId, puntuacion: score, profesorId: professorId, puntuadoTs: ratedTs };
+  }
+
+  async function correctClassAttendance(data) {
+    return inTransaction(async () => {
+      const current = await get(`
+        SELECT ac.id, ac.ingreso_id AS ingresoId
+        FROM asistencias_clase ac
+        WHERE ac.clase_id = ? AND ac.usuario_ci = ? AND COALESCE(ac.anulado, 0) = 0
+      `, [data.classId, data.userCi]);
+      if (!data.present) {
+        if (!current) throw new Error('La asistencia ya figura como ausente');
+        await run(`UPDATE asistencias_clase SET anulado = 1, anulado_ts = ?, motivo_anulacion = ? WHERE id = ?`, [data.ts, data.reason, current.id]);
+        if (current.ingresoId) await run(`UPDATE ingresos SET anulado = 1, anulado_ts = ?, motivo_anulacion = ? WHERE id = ?`, [data.ts, data.reason, current.ingresoId]);
+        return { claseId: data.classId, usuarioCi: data.userCi, presente: false, asistenciaId: current.id, ingresoId: current.ingresoId };
+      }
+      if (current) throw new Error('La asistencia ya figura como presente');
+      const classRow = await get(`SELECT id, nombre, fecha, local_id AS localId, programacion_id AS programacionId FROM clases WHERE id = ?`, [data.classId]);
+      if (!classRow) throw new Error('Clase no encontrada');
+      const entry = await run(`
+        INSERT INTO ingresos (ci, fecha, hora, ts, fuente, observacion, local_id, dispositivo_id, clase_id)
+        VALUES (?, ?, ?, ?, 'correccion_admin', ?, ?, 'administracion', ?)
+      `, [data.userCi, classRow.fecha, data.hora, data.ts, data.reason, classRow.localId, data.classId]);
+      const attendance = await run(`
+        INSERT INTO asistencias_clase (
+          clase_id, programacion_id, usuario_ci, ingreso_id, local_id, profesor_id,
+          profesor_sesion_id, dispositivo_id, fecha, hora, ts, estado
+        ) VALUES (?, ?, ?, ?, ?, ?, 0, 'administracion', ?, ?, ?, 'presente')
+      `, [data.classId, classRow.programacionId, data.userCi, entry.lastID, classRow.localId,
+        data.professorId, classRow.fecha, data.hora, data.ts]);
+      return { claseId: data.classId, usuarioCi: data.userCi, presente: true, asistenciaId: attendance.lastID, ingresoId: entry.lastID };
+    });
   }
 
   function listPendingSales({ estado = 'pendiente', fecha = null } = {}) {
@@ -522,22 +696,6 @@ function createOperationsRepository(db) {
   async function createPendingSale(data) {
     return inTransaction(async () => {
       const localId = Number(data.localId || 2);
-      if (localId === 1) {
-        const product = await get(`SELECT stock FROM productos WHERE id = ?`, [data.productoId]);
-        if (!product || Number(product.stock) < data.cantidad) throw new Error('Stock insuficiente en el local de la tablet');
-        const nextStock = Number(product.stock) - data.cantidad;
-        await run(`UPDATE productos SET stock = ? WHERE id = ?`, [nextStock, data.productoId]);
-        await run(`
-          INSERT INTO stock_local (local_id, producto_id, cantidad, actualizado_ts)
-          VALUES (1, ?, ?, ?)
-          ON CONFLICT(local_id, producto_id) DO UPDATE
-          SET cantidad = excluded.cantidad, actualizado_ts = excluded.actualizado_ts
-        `, [data.productoId, nextStock, data.ts]);
-      } else {
-        const stock = await get(`SELECT cantidad FROM stock_local WHERE local_id = ? AND producto_id = ?`, [localId, data.productoId]);
-        if (!stock || Number(stock.cantidad) < data.cantidad) throw new Error('Stock insuficiente en el local de la tablet');
-        await run(`UPDATE stock_local SET cantidad = cantidad - ?, actualizado_ts = ? WHERE local_id = ? AND producto_id = ?`, [data.cantidad, data.ts, localId, data.productoId]);
-      }
       const result = await run(`
         INSERT INTO ventas_pendientes (
           local_id, producto_id, producto_nombre, usuario_ci, usuario_nombre, cantidad, total,
@@ -557,10 +715,13 @@ function createOperationsRepository(db) {
     listActiveClassSchedules,
     addScheduleOccurrences,
     createClassSchedule,
+    updateClassScheduleFuture,
     listClasses,
     createClass,
+    setClassTrial,
     listClassEnrollments,
     enrollMember,
+    removeEnrollment,
     listClassCandidates,
     findNextClass,
     listClassLifecycleCandidates,
@@ -569,6 +730,8 @@ function createOperationsRepository(db) {
     setClassHeldStatus,
     listClassRecordsByDate,
     getClassRecordDetail,
+    setClassPerformanceRating,
+    correctClassAttendance,
     listPendingSales,
     getPendingSummaryByDate,
     findPendingSaleById,

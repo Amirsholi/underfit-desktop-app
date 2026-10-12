@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <rect width="320" height="200" fill="#101216"/><path d="M58 150h204M92 148v28M228 148v28" stroke="#30343b" stroke-width="6"/>
+  <g fill="none" stroke="#f2f3f5" stroke-width="8" stroke-linecap="round"><circle cx="110" cy="128" r="12" fill="#f2f3f5" stroke="none"/><path d="M125 134h72M145 134l-15-36M181 134l15-36"/><path d="M104 91h116" stroke="#ff681f"><animate attributeName="d" values="M104 91h116;M104 57h116;M104 91h116" dur="1.8s" repeatCount="indefinite"/></path></g>
+  <text x="18" y="28" fill="#8d949f" font-family="sans-serif" font-size="12">PRESS</text>
+</svg>

@@ -12,33 +12,33 @@ function createAdminProductsController({ shared }) {
 
   const inputNuevoNombre = document.getElementById('producto-nuevo-nombre');
   const inputNuevoPrecio = document.getElementById('producto-nuevo-precio');
-  const inputNuevoStock = document.getElementById('producto-nuevo-stock');
+  const inputNuevoActivo = document.getElementById('producto-nuevo-activo');
   const guardarProductoBtn = document.getElementById('guardar-producto');
+  const productNewLocationCopy = document.getElementById('product-new-location-copy');
 
   const inputEditarNombre = document.getElementById('producto-editar-nombre');
   const inputEditarPrecio = document.getElementById('producto-editar-precio');
-  const inputEditarStock = document.getElementById('producto-editar-stock');
-  const inputEditarSumarStock = document.getElementById('producto-editar-sumar-stock');
+  const inputEditarActivo = document.getElementById('producto-editar-activo');
   const guardarEdicionBtn = document.getElementById('guardar-producto-edicion');
   const eliminarProductoBtn = document.getElementById('eliminar-producto');
 
   const inputVentaNombre = document.getElementById('producto-venta-nombre');
   const inputVentaCantidad = document.getElementById('producto-venta-cantidad');
-  const inputVentaMonto = document.getElementById('producto-venta-monto');
   const ventaTotalPreview = document.getElementById('producto-venta-total-preview');
-  const inputVentaObservacion = document.getElementById('producto-venta-observacion');
   const guardarVentaBtn = document.getElementById('guardar-venta-producto');
   const sellSelectedButton = document.getElementById('product-sell-selected');
   const editSelectedButton = document.getElementById('product-edit-selected');
   const selectedProductCopy = document.querySelector('#product-local1-selection strong');
-  const locationTabs = Array.from(document.querySelectorAll('[data-product-location]'));
-  const locationPanels = Array.from(document.querySelectorAll('[data-product-location-panel]'));
+  const productSearch = document.getElementById('product-search');
+  const productLocationButtons = Array.from(document.querySelectorAll('[data-product-location]'));
+  const productsTotalCount = document.getElementById('products-total-count');
+  const productsAvailableCount = document.getElementById('products-available-count');
 
   let productos = [];
   let productoSeleccionadoId = null;
   let productoVentaId = null;
   let productoVentaPrecio = 0;
-  let productoVentaStock = 0;
+  let productLocation = 'local1';
 
   function hoyYYYYMMDD() {
     const d = new Date();
@@ -58,37 +58,65 @@ function createAdminProductsController({ shared }) {
   function limpiarFormularioNuevo() {
     inputNuevoNombre.value = '';
     inputNuevoPrecio.value = '';
-    inputNuevoStock.value = '';
+    if (inputNuevoActivo) inputNuevoActivo.checked = true;
+    const locationLabel = productLocation === 'local2' ? 'Local 2' : 'Local 1';
+    if (productNewLocationCopy) productNewLocationCopy.textContent = locationLabel;
+    if (guardarProductoBtn) guardarProductoBtn.textContent = `Guardar en ${locationLabel}`;
+  }
+
+  async function asignarProductoCreado(producto, location) {
+    if (location !== 'local2' || !producto?.id || !window.api?.transferirStockLocal) return;
+    const info = window.api.obtenerInfoSistema ? await window.api.obtenerInfoSistema() : null;
+    if (info?.dataMode === 'api') return;
+    const stock = window.api.obtenerStockLocales ? await window.api.obtenerStockLocales() : [];
+    const disponibilidad = (Array.isArray(stock) ? stock : []).find(item => Number(item.productoId) === Number(producto.id));
+    const cantidadInicial = Math.max(1, Number(disponibilidad?.local1 || 0));
+    await window.api.transferirStockLocal({
+      productoId: Number(producto.id),
+      cantidad: cantidadInicial,
+      responsable: 'Recepción',
+    });
   }
 
   function limpiarFormularioVenta() {
-    inputVentaNombre.value = '';
+    inputVentaNombre.textContent = 'Producto';
     if (inputVentaCantidad) inputVentaCantidad.value = '1';
-    inputVentaMonto.value = '';
     if (ventaTotalPreview) ventaTotalPreview.textContent = formatearMoneda(0);
-    inputVentaObservacion.value = '';
     document.querySelectorAll('input[name="producto-venta-forma-pago"]').forEach(input => {
       input.checked = input.value === 'efectivo';
     });
   }
 
-  function obtenerPagoVenta() {
+  function obtenerPagoVenta(total) {
     return {
-      monto: Number(inputVentaMonto.value || 0),
+      monto: total,
       formaPago: document.querySelector('input[name="producto-venta-forma-pago"]:checked')?.value || 'efectivo',
-      observacion: inputVentaObservacion.value.trim(),
+      observacion: null,
     };
   }
 
   async function cargarProductos() {
-    productos = window.api ? await window.api.obtenerProductos() : [
-      { id: 1, nombre: 'Agua mineral 1.5 L', precio: 95, stock: 18 },
-      { id: 2, nombre: 'Agua mineral 600 ml', precio: 60, stock: 38 },
-      { id: 3, nombre: 'Agua saborizada 500 ml', precio: 85, stock: 22 },
-      { id: 4, nombre: 'Barrita de cereal chocolate', precio: 70, stock: 28 },
-      { id: 5, nombre: 'Barrita de cereal frutos rojos', precio: 70, stock: 24 },
-      { id: 6, nombre: 'Bebida isotonica 500 ml', precio: 120, stock: 16 },
-    ];
+    if (window.api) {
+      const [catalogo, stock] = await Promise.all([
+        window.api.obtenerProductos(),
+        window.api.obtenerStockLocales ? window.api.obtenerStockLocales() : Promise.resolve([]),
+      ]);
+      const stockPorProducto = new Map((Array.isArray(stock) ? stock : []).map(item => [Number(item.productoId), item]));
+      productos = (Array.isArray(catalogo) ? catalogo : []).map(producto => {
+        const disponibilidad = stockPorProducto.get(Number(producto.id));
+        return {
+          ...producto,
+          local1: Number(disponibilidad?.local1 ?? (Number(producto.activo) !== 0 ? 1 : 0)),
+          local2: Number(disponibilidad?.local2 ?? 0),
+          asignadoLocal2: Number(disponibilidad?.asignadoLocal2 ?? (Number(disponibilidad?.local2) > 0 ? 1 : 0)),
+        };
+      });
+    } else {
+      productos = [
+        { id: 1, nombre: 'Agua mineral 1.5 L', precio: 95, activo: true, local1: 18, local2: 6, asignadoLocal2: 1 },
+        { id: 2, nombre: 'Agua mineral 600 ml', precio: 60, activo: true, local1: 38, local2: 0, asignadoLocal2: 1 },
+      ];
+    }
     if (!productos.some(item => Number(item.id) === Number(productoSeleccionadoId))) productoSeleccionadoId = null;
     renderizarProductos();
   }
@@ -96,26 +124,52 @@ function createAdminProductsController({ shared }) {
   function updateSelectedProduct() {
     const selected = productos.find(item => Number(item.id) === Number(productoSeleccionadoId));
     if (selectedProductCopy) selectedProductCopy.textContent = selected?.nombre || 'Ninguno';
-    if (sellSelectedButton) sellSelectedButton.disabled = !selected;
+    if (sellSelectedButton) {
+      sellSelectedButton.disabled = !selected || Number(selected.activo) === 0 || Number(selected?.[productLocation]) <= 0 || productLocation !== 'local1';
+      sellSelectedButton.title = productLocation === 'local2' ? 'Las ventas del Local 2 se registran desde la tablet' : '';
+    }
     if (editSelectedButton) editSelectedButton.disabled = !selected;
     cuerpoProductos.querySelectorAll('[data-product-row]').forEach(row => {
       row.classList.toggle('is-selected', Number(row.dataset.productRow) === Number(productoSeleccionadoId));
+      row.setAttribute('aria-pressed', String(Number(row.dataset.productRow) === Number(productoSeleccionadoId)));
     });
   }
 
   function renderizarProductos() {
-    cuerpoProductos.innerHTML = '';
-    sinProductos.style.display = productos.length === 0 ? 'block' : 'none';
+    const query = productSearch?.value.trim().toLocaleLowerCase('es') || '';
+    const productosDelLocal = productos.filter(producto => productLocation === 'local1'
+      ? Number(producto?.local1) > 0
+      : Number(producto?.asignadoLocal2) === 1);
+    const visibles = productosDelLocal.filter(producto => {
+      const matchesSearch = !query || String(producto?.nombre || '').toLocaleLowerCase('es').includes(query);
+      return matchesSearch;
+    });
 
-    productos.forEach(producto => {
-      const tr = document.createElement('tr');
+    if (!visibles.some(item => Number(item.id) === Number(productoSeleccionadoId))) productoSeleccionadoId = null;
+    if (productsTotalCount) productsTotalCount.textContent = String(productosDelLocal.length);
+    if (productsAvailableCount) {
+      productsAvailableCount.textContent = String(productosDelLocal.filter(producto => Number(producto?.activo) !== 0 && Number(producto?.[productLocation]) > 0).length);
+    }
+    cuerpoProductos.innerHTML = '';
+    sinProductos.textContent = productos.length === 0
+      ? 'Todavía no hay productos cargados.'
+      : 'No encontramos productos con ese criterio.';
+    sinProductos.style.display = visibles.length === 0 ? 'block' : 'none';
+
+    visibles.forEach(producto => {
+      const disponible = Number(producto.activo) !== 0 && Number(producto?.[productLocation]) > 0;
+      const tr = document.createElement('button');
+      tr.type = 'button';
+      tr.className = 'product-catalog-item';
       tr.dataset.productRow = String(producto.id);
       tr.tabIndex = 0;
       tr.innerHTML = `
-        <td>${producto.nombre}</td>
-        <td>${producto.precio}</td>
-        <td>${producto.stock}</td>
+        <strong class="product-catalog-name"></strong>
+        <span class="product-catalog-price">${formatearMoneda(producto.precio)}</span>
+        <span class="product-catalog-stock">${Number(producto?.[productLocation]) || 0} unidades · ${productLocation === 'local1' ? 'Local 1' : 'Local 2'}</span>
+        <span class="product-availability ${disponible ? 'is-available' : 'is-unavailable'}"><i></i>${disponible ? 'Disponible' : 'No disponible'}</span>
       `;
+      tr.querySelector('.product-catalog-name').textContent = producto.nombre;
       tr.addEventListener('click', () => {
         productoSeleccionadoId = producto.id;
         updateSelectedProduct();
@@ -164,8 +218,7 @@ function createAdminProductsController({ shared }) {
     productoSeleccionadoId = producto.id;
     inputEditarNombre.value = producto.nombre;
     inputEditarPrecio.value = producto.precio;
-    inputEditarStock.value = producto.stock;
-    inputEditarSumarStock.value = '';
+    if (inputEditarActivo) inputEditarActivo.checked = Number(producto.activo) !== 0;
     modalEditarProducto.style.display = 'flex';
     updateSelectedProduct();
   }
@@ -176,9 +229,12 @@ function createAdminProductsController({ shared }) {
 
     productoVentaId = producto.id;
     productoVentaPrecio = Number(producto.precio || 0);
-    productoVentaStock = Number(producto.stock || 0);
+    if (Number(producto.activo) === 0) {
+      shared.mostrarNotificacion('El producto no esta disponible', 'warning');
+      return;
+    }
     limpiarFormularioVenta();
-    inputVentaNombre.value = producto.nombre;
+    inputVentaNombre.textContent = producto.nombre;
     actualizarTotalVenta();
     modalVenderProducto.style.display = 'flex';
   }
@@ -187,7 +243,6 @@ function createAdminProductsController({ shared }) {
     const cantidad = Math.max(1, Number.parseInt(inputVentaCantidad?.value || '1', 10));
     if (inputVentaCantidad) inputVentaCantidad.value = String(cantidad);
     const total = productoVentaPrecio * cantidad;
-    inputVentaMonto.value = String(total);
     if (ventaTotalPreview) ventaTotalPreview.textContent = formatearMoneda(total);
   }
 
@@ -195,26 +250,18 @@ function createAdminProductsController({ shared }) {
     if (!productoVentaId) return;
 
     const cantidad = Math.max(1, Number.parseInt(inputVentaCantidad?.value || '1', 10));
-    if (cantidad > productoVentaStock) {
-      shared.mostrarNotificacion('No hay stock suficiente', 'warning');
-      return;
-    }
-
-    const pago = obtenerPagoVenta();
-    if (Number.isNaN(pago.monto) || pago.monto <= 0) {
-      shared.mostrarNotificacion('Ingresa un monto valido', 'warning');
-      return;
-    }
+    const total = productoVentaPrecio * cantidad;
+    const pago = obtenerPagoVenta(total);
 
     try {
       await window.api.venderProducto({ id: Number(productoVentaId), quantity: cantidad, payment: pago });
       modalVenderProducto.style.display = 'none';
       shared.mostrarNotificacion('Venta registrada', 'success');
+      document.dispatchEvent(new CustomEvent('cash:updated'));
+      document.dispatchEvent(new CustomEvent('stock:updated'));
       await cargarProductos();
       await renderizarVentasDashboard();
       await actualizarWidgetVentasHoy();
-      document.dispatchEvent(new CustomEvent('cash:updated'));
-      document.dispatchEvent(new CustomEvent('stock:updated'));
     } catch (error) {
       console.error(error);
       shared.mostrarNotificacion(
@@ -227,34 +274,38 @@ function createAdminProductsController({ shared }) {
   async function crearProducto() {
     const nombre = inputNuevoNombre.value.trim();
     const precio = Number(inputNuevoPrecio.value);
-    const stock = Number(inputNuevoStock.value);
+    const targetLocation = productLocation;
 
-    if (!nombre || Number.isNaN(precio) || Number.isNaN(stock) || precio < 0 || stock < 0) {
-      shared.mostrarNotificacion('Completa nombre, precio y stock', 'warning');
+    if (!nombre || Number.isNaN(precio) || precio < 0) {
+      shared.mostrarNotificacion('Completa nombre y precio', 'warning');
       return;
     }
 
+    let productoCreado = null;
     try {
-      await window.api.crearProducto({ nombre, precio, stock });
+      productoCreado = await window.api.crearProducto({ nombre, precio, activo: inputNuevoActivo?.checked !== false });
+      await asignarProductoCreado(productoCreado, targetLocation);
+      productoSeleccionadoId = Number(productoCreado?.id) || null;
       limpiarFormularioNuevo();
       modalNuevoProducto.style.display = 'none';
-      shared.mostrarNotificacion('Producto agregado', 'success');
+      shared.mostrarNotificacion(`Producto agregado a ${targetLocation === 'local2' ? 'Local 2' : 'Local 1'}`, 'success');
       await cargarProductos();
       await actualizarWidgetVentasHoy();
       document.dispatchEvent(new CustomEvent('stock:updated'));
     } catch (error) {
       console.error(error);
-      shared.mostrarNotificacion('No se pudo agregar el producto', 'error');
+      if (productoCreado?.id && targetLocation === 'local2') {
+        try { await window.api.eliminarProducto(productoCreado.id); } catch (_) {}
+      }
+      shared.mostrarNotificacion(`No se pudo agregar el producto a ${targetLocation === 'local2' ? 'Local 2' : 'Local 1'}`, 'error');
     }
   }
 
   async function guardarEdicionProducto() {
     const nombre = inputEditarNombre.value.trim();
     const precio = Number(inputEditarPrecio.value);
-    const stockBase = Number(inputEditarStock.value);
-    const sumaStock = Number(inputEditarSumarStock.value || 0);
 
-    if (!nombre || Number.isNaN(precio) || Number.isNaN(stockBase) || Number.isNaN(sumaStock) || precio < 0 || stockBase < 0 || sumaStock < 0) {
+    if (!nombre || Number.isNaN(precio) || precio < 0) {
       shared.mostrarNotificacion('Completa los datos del producto', 'warning');
       return;
     }
@@ -263,7 +314,7 @@ function createAdminProductsController({ shared }) {
       await window.api.actualizarProducto(productoSeleccionadoId, {
         nombre,
         precio,
-        stock: Math.max(0, stockBase + sumaStock),
+        activo: inputEditarActivo?.checked !== false,
       });
       modalEditarProducto.style.display = 'none';
       shared.mostrarNotificacion('Producto actualizado', 'success');
@@ -295,6 +346,20 @@ function createAdminProductsController({ shared }) {
   }
 
   async function init() {
+    window.adminSync?.watch({
+      enabled: () => Boolean(window.api && window.adminSync.active('products')),
+      read: () => Promise.all([window.api.obtenerProductos(), window.api.obtenerStockLocales()]),
+      apply: ([catalogo, stock]) => {
+        const stocks = new Map(stock.map(item => [Number(item.productoId), item]));
+        productos = catalogo.map(producto => {
+          const row = stocks.get(Number(producto.id));
+          return { ...producto, local1: Number(row?.local1 ?? 0), local2: Number(row?.local2 ?? 0),
+            asignadoLocal2: Number(row?.asignadoLocal2 ?? 0) };
+        });
+        if (!productos.some(item => Number(item.id) === Number(productoSeleccionadoId))) productoSeleccionadoId = null;
+        renderizarProductos();
+      },
+    });
     await cargarProductos();
     await renderizarVentasDashboard();
     await actualizarWidgetVentasHoy();
@@ -308,15 +373,14 @@ function createAdminProductsController({ shared }) {
     guardarVentaBtn?.addEventListener('click', venderProductoSeleccionado);
     sellSelectedButton?.addEventListener('click', () => abrirVentaProducto(productoSeleccionadoId));
     editSelectedButton?.addEventListener('click', () => abrirEdicionProducto(productoSeleccionadoId));
+    productSearch?.addEventListener('input', renderizarProductos);
+    productLocationButtons.forEach(button => button.addEventListener('click', () => {
+      productLocation = button.dataset.productLocation || 'local1';
+      productLocationButtons.forEach(option => option.classList.toggle('is-active', option === button));
+      renderizarProductos();
+    }));
     document.addEventListener('product:sell', event => abrirVentaProducto(event.detail?.id));
     document.addEventListener('stock:updated', cargarProductos);
-    locationTabs.forEach(button => button.addEventListener('click', () => {
-      const location = button.dataset.productLocation;
-      locationTabs.forEach(item => item.classList.toggle('is-active', item === button));
-      locationPanels.forEach(panel => panel.classList.toggle('is-active', panel.dataset.productLocationPanel === location));
-      if (location === 'local2') document.dispatchEvent(new CustomEvent('stock:show'));
-    }));
-
     document.addEventListener('admin-dashboard:show', async () => {
       await renderizarVentasDashboard();
       await actualizarWidgetVentasHoy();

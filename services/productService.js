@@ -18,11 +18,11 @@ function createProductService({ db, productRepository, productSaleRepository, ca
     };
   }
 
-  function normalizeProductInput({ nombre, precio, stock }) {
+  function normalizeProductInput({ nombre, precio, activo = true }) {
     const normalized = {
       nombre: String(nombre || '').trim(),
       precio: Number(precio),
-      stock: Number(stock),
+      activo: activo !== false && Number(activo) !== 0,
     };
 
     if (!normalized.nombre) {
@@ -31,10 +31,6 @@ function createProductService({ db, productRepository, productSaleRepository, ca
     if (!Number.isFinite(normalized.precio) || normalized.precio < 0) {
       throw new Error('Precio invalido');
     }
-    if (!Number.isFinite(normalized.stock) || normalized.stock < 0) {
-      throw new Error('Stock invalido');
-    }
-
     return normalized;
   }
 
@@ -80,9 +76,7 @@ function createProductService({ db, productRepository, productSaleRepository, ca
       if (!product) {
         throw new Error('Producto no encontrado');
       }
-      if (Number(product.stock) < quantity) {
-        throw new Error('No hay stock suficiente');
-      }
+      if (!product.activo) throw new Error('El producto no esta disponible');
 
       const saleTotal = Number(product.precio) * quantity;
 
@@ -90,13 +84,6 @@ function createProductService({ db, productRepository, productSaleRepository, ca
         payload?.payment || { monto: saleTotal, formaPago: 'efectivo', montoRecibido: saleTotal },
         saleTotal
       );
-
-      const newStock = Number(product.stock) - quantity;
-      await productRepository.update(productId, {
-        nombre: product.nombre,
-        precio: Number(product.precio),
-        stock: newStock,
-      });
 
       const now = nowLocalParts();
       const sale = await productSaleRepository.create({
@@ -129,10 +116,7 @@ function createProductService({ db, productRepository, productSaleRepository, ca
 
       return {
         success: true,
-        product: {
-          ...product,
-          stock: newStock,
-        },
+        product,
         sale,
         movimientoCaja,
       };

@@ -1,0 +1,71 @@
+/* One bounded modal in Caja: select an unpaid delivery, then confirm payment. */
+.pending-payment-modal [hidden], .cash-pending-count[hidden] { display: none !important; }
+.cash-ledger-page #dashboard-cobrar { border: 0; background: transparent; box-shadow: none; padding: 0 12px; color: #edf0f4; }
+.cash-ledger-page #dashboard-cobrar:hover { color: #ff8a46; background: transparent; filter: none; }
+.cash-ledger-page #dashboard-cobrar:focus-visible { outline: 2px solid #ff681f; outline-offset: 3px; }
+.cash-pending-count { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 50%; background: #ff681f; color: #0b0e13; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pending-payment-modal .pending-payment-card { width: min(900px, calc(100vw - 32px)); height: min(554px, calc(100dvh - 32px)); display: flex; flex-direction: column; }
+.pending-payment-modal.is-confirming .pending-payment-card { width: min(640px, calc(100vw - 32px)); height: auto; max-height: calc(100dvh - 32px); }
+.pending-payment-modal .app-modal-header, .pending-payment-modal .app-modal-footer { flex-shrink: 0; }
+.pending-payment-modal .pending-list-panel { display: grid; grid-template-rows: 52px minmax(0,1fr) 18px; gap: 18px; min-height: 0; flex: 1; }
+.pending-payment-modal .pending-payment-panel { display: grid; align-content: start; gap: 22px; flex: 1; min-height: 0; overflow: auto; }
+.pending-payment-modal .pending-balance { display: grid; gap: 6px; text-align: right; }
+.pending-payment-modal .pending-balance span { font-size: 12px; color: #aeb5be; white-space: nowrap; }
+.pending-payment-modal .pending-balance strong { font-size: 22px; color: #ff681f; line-height: 1.2; }
+.pending-payment-modal .pending-payment-summary { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid #343a43; }
+.pending-payer { display: grid; gap: 7px; }
+.pending-payer strong { font-size: 20px; line-height: 1.3; color: #f0f2f5; }
+.pending-payer span { font-size: 15px; color: #c5cbd3; line-height: 1.4; }
+.pending-payer small { font-size: 12px; color: #a8afb9; font-weight: 400; }
+.pending-payment-amount { display: grid; gap: 6px; text-align: right; }
+.pending-payment-amount span { font-size: 12px; color: #a8afb9; }
+.pending-payment-amount strong { font-size: 26px; color: #f0f2f5; line-height: 1.2; white-space: nowrap; }
+.pending-payment-modal .form-field { display: grid; gap: 8px; }
+.pending-payment-modal .form-field > label { margin: 0; font-size: 14px; }
+.pending-payment-modal .pending-optional { margin-left: 6px; font-size: 12px; font-weight: 400; }
+.pending-payment-modal #pending-collect-note { height: 48px; width: 100%; margin: 0; padding: 0 14px; border: 1px solid #343a43; border-radius: 8px; background: #0d1015; color: #edf0f4; font-size: 15px; }
+.pending-payment-modal #pending-collect-error { margin: 0; color: #ffaaa3; font-size: 14px; }
+.pending-payment-modal .pending-cash-notice { margin: 0; padding: 12px 14px; border-left: 2px solid #ff681f; color: #e5c9b6; background: #1b1613; font-size: 14px; line-height: 1.5; }
+.pending-payment-modal button:disabled { cursor: not-allowed; }
+.pending-payment-modal .app-modal-footer .app-button { height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.pending-payment-modal .modal-cancel-action { margin-right: auto; }
+.pending-payment-modal.is-confirming .modal-cancel-action { display: none; }
+.pending-payment-modal.is-confirming #pending-collect-back { margin-right: auto; }
+.pending-payment-modal button:disabled { opacity: .55; cursor: not-allowed; }
+.pending-ledger-toolbar { display: flex; align-items: center; gap: 20px; min-width: 0; }
+.pending-ledger-search { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; height: 52px; padding: 0 18px; margin: 0; border: 1px solid #343a43; border-radius: 8px; background: #0d1015; color: #929ca8; }
+.pending-ledger-search input { flex: 1; width: 100%; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; color: #edf0f4; font: 400 14px var(--uf-font-body); box-shadow: none; }
+.pending-ledger-search:focus-within { border-color: #ff681f; }
+.pending-ledger-search input:focus { outline: none; box-shadow: none; }
+.pending-ledger-search kbd { font: 400 10px var(--uf-font-body); white-space: nowrap; color: #929ca8; }
+.pending-ledger-toolbar > span { font-size: 13px; color: #aeb5be; white-space: nowrap; }
+.pending-ledger-content { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; position: relative; }
+.pending-ledger-scroll { min-height: 0; overflow: auto; background: rgba(9, 12, 16, .94); }
+.pending-ledger-table { width: 100%; border-collapse: collapse; table-layout: fixed; color: #edf0f4; font-family: var(--uf-font-body); }
+.pending-ledger-table th { position: sticky; top: 0; height: 48px; padding: 0 22px; background: #0f141a; color: #a8afb9; font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase; border-bottom: 1px solid #343a43; z-index: 1; }
+.pending-ledger-table td { height: 88px; padding: 14px 16px; border-bottom: 1px solid #2c323a; vertical-align: middle; font-size: 14px; }
+.pending-ledger-table tbody tr:hover { background: #10151b; }
+.pending-ledger-table th:nth-child(3), .pending-ledger-table td:nth-child(3), .pending-ledger-table td:last-child { text-align: right; }
+.pending-ledger-table .pending-member { display: flex; align-items: center; gap: 12px; }
+.pending-ledger-table .pending-member > span:first-child { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%; border: 1px solid #404751; color: #c5cbd3; background: #181d24; font-size: 11px; font-weight: 700; }
+.pending-ledger-table .pending-member > span:last-child,
+.pending-ledger-table .pending-product,
+.pending-ledger-table .pending-registered { display: grid; gap: 6px; min-width: 0; }
+.pending-ledger-table strong { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.pending-ledger-table small { font-size: 12px; line-height: 1.35; color: #a8afb9; }
+.pending-ledger-table .pending-collect-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; min-width: 84px; padding: 0 16px; border: 0; border-radius: 7px; color: #0b0e13; background: #ff681f; font: 700 13px var(--uf-font-body); cursor: pointer; }
+.pending-ledger-table .pending-collect-button:hover { background: #ff803d; }
+.pending-ledger-table .pending-collect-button:focus-visible { outline: 2px solid #ff681f; outline-offset: 2px; }
+.pending-ledger-note { font-size: 12px; line-height: 18px; color: #a8afb9; }
+.pending-ledger-content .pending-empty-state { position: absolute; inset: 48px 0 0; align-content: center; justify-items: center; gap: 8px; padding: 24px; background: #0b0e13; }
+.pending-payment-modal .pending-member > span:first-child { display: grid; }
+.pending-payment-modal .pending-ledger-table td, .pending-payment-modal .pending-ledger-table th { padding-left: 12px; padding-right: 12px; }
+.pending-payment-modal .pending-ledger-table strong { font-size: 15px; }
+.pending-payment-modal .pending-registered > span { font-size: 13px; color: #c5cbd3; }
+.pending-payment-modal .pending-registered small { font-weight: 400; }
+.pending-payment-modal .pending-collect-button { padding: 0 12px; }
+@media (max-width: 1100px) {
+  .pending-ledger-table th, .pending-ledger-table td { padding-left: 14px; padding-right: 14px; }
+  .pending-ledger-toolbar kbd { display: none; }
+  .pending-ledger-table .pending-collect-button { padding: 0 10px; }
+}
