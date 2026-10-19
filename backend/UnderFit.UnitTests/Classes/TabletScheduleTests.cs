@@ -13,6 +13,25 @@ public sealed class TabletScheduleTests
         "Profesor", 1, 2, null, Now.AddDays(-7));
 
     [Fact]
+    public void EndingSeriesKeepsEarlierDatesAndNeverRegeneratesLaterOnes()
+    {
+        var schedule = Schedule(new TimeOnly(16, 0));
+        schedule.EndBefore(new DateOnly(2026, 9, 23), Now);
+        Assert.Equal(new DateOnly(2026, 9, 22), schedule.EndsOn);
+        Assert.Contains(new DateOnly(2026, 9, 16), schedule.GenerateDates(new(2026, 9, 1), new(2027, 1, 1)));
+        Assert.Empty(schedule.GenerateDates(new(2026, 9, 23), new(2027, 1, 1)));
+    }
+
+    [Fact]
+    public void RemovingSeriesFromItsStartDisablesGeneration()
+    {
+        var schedule = Schedule(new TimeOnly(16, 0));
+        schedule.EndBefore(schedule.StartsOn, Now);
+        Assert.False(schedule.IsActive);
+        Assert.Empty(schedule.GenerateDates(schedule.StartsOn, schedule.StartsOn.AddDays(90)));
+    }
+
+    [Fact]
     public void EditingScheduleCannotRewritePastAttendanceClass()
     {
         var item = Occurrence(new TimeOnly(10, 0));

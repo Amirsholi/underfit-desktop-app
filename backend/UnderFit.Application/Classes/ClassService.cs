@@ -171,8 +171,10 @@ public sealed class ClassService(IUnderFitDataStore dataStore, TimeProvider time
         CreateClassScheduleRequest request,
         CancellationToken cancellationToken)
     {
+        var author = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(
+            dataStore, request.Professor, request.ProfessorId, timeProvider, cancellationToken);
         var schedule = new ClassSchedule(
-            request.Name, request.LocationId, request.ProfessorId, request.Professor,
+            request.Name, request.LocationId, author.Id, author.Name,
             request.Weekdays, request.Time, request.DurationMinutes, request.Capacity,
             request.StartsOn, request.EndsOn, request.Notes, timeProvider.GetUtcNow());
         dataStore.AddClassSchedule(schedule);
@@ -246,7 +248,23 @@ public sealed class ClassService(IUnderFitDataStore dataStore, TimeProvider time
         var item = await RequireClassAsync(classId, ct);
         if ((await dataStore.ListClassAttendancesAsync(classId, ct)).Count > 0)
             throw new UseCaseException("class.has_attendance", "Esta clase tiene asistencias. Conservá el historial y corregí las asistencias si corresponde.");
-        item.Delete();
+        var targets = item.ScheduleId is null
+            ? new[] { item }
+            : (await dataStore.ListClassesInRangeAsync(item.Date, DateOnly.MaxValue, ct))
+                .Where(x => x.ScheduleId == item.ScheduleId && x.Status != GymClassStatus.Deleted).ToArray();
+        foreach (var target in targets)
+        {
+            if ((await dataStore.ListClassAttendancesAsync(target.Id, ct)).Count > 0)
+                throw new UseCaseException("class.has_attendance", "Hay asistencias en esta clase o en una posterior. Elegí una fecha posterior para conservar ese historial.");
+        }
+        if (item.ScheduleId is not null)
+        {
+            var schedule = (await dataStore.ListActiveClassSchedulesAsync(ct))
+                .FirstOrDefault(x => x.Id == item.ScheduleId);
+            schedule?.EndBefore(item.Date, timeProvider.GetUtcNow());
+        }
+        foreach (var target in targets)
+            (await dataStore.FindClassAsync(target.Id, ct))!.Delete();
         await dataStore.SaveChangesAsync(ct);
         return new { deleted = true, classId };
     }

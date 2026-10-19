@@ -24,7 +24,8 @@ public sealed record ExerciseResponse(
 public sealed record AssignWorkoutPlanRequest(
     string Name,
     int ProfessorId,
-    IReadOnlyList<AssignWorkoutDayRequest> Days);
+    IReadOnlyList<AssignWorkoutDayRequest> Days,
+    string? ProfessorName = null);
 
 public sealed record AssignWorkoutDayRequest(
     int Position,
@@ -44,7 +45,8 @@ public sealed record AssignWorkoutExerciseRequest(
 public sealed record SaveWorkoutTemplateRequest(
     string Name,
     IReadOnlyList<AssignWorkoutDayRequest> Days,
-    int? ProfessorId = null);
+    int? ProfessorId = null,
+    string? ProfessorName = null);
 
 public sealed record WorkoutTemplateResponse(
     int Id,

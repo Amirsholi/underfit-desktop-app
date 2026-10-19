@@ -8,7 +8,7 @@ function createApiClassOperationsService({apiClient}){
    {id:2,codigo:'local-2',nombre:'Local 2',tipo:'salon',activo:1},
   ],
   transferStock:async()=>{throw new Error('Las transferencias de stock ya no se utilizan');},
-  listStock:async()=>(await apiClient.listProducts()).map(p=>({productoId:p.id,nombre:p.nombre,precio:p.precio,activo:p.activo,local1:p.activo?1:0,local2:p.activo?1:0,asignadoLocal2:p.activo?1:0})),
+  listStock:async()=>(await apiClient.listProducts()).map(p=>({productoId:p.id,nombre:p.nombre,precio:p.precio,activo:p.activo,local1:p.availableLocal1!==false?1:0,local2:p.availableLocal2!==false?1:0,asignadoLocal2:p.availableLocal2!==false?1:0})),
   listPendingSales:()=>apiClient.listPendingSales(),
   getPendingSummaryByDate:fecha=>apiClient.getPendingSalesSummary(fecha),
   createPendingSale:p=>apiClient.createPendingSale({productoId:Number(p.productoId),usuarioCi:String(p.usuarioCi),cantidad:Number(p.cantidad||1),profesorSesionId:Number(p.profesorSesionId),localId:p.localId?Number(p.localId):null,observacion:p.observacion||null,idempotencyKey:p.idempotencyKey||null}),

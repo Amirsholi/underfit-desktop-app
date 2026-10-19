@@ -21,6 +21,14 @@ function setup(queue = []) {
   return { live: root.TabletLive, client, calls, events, snapshot, disconnect: () => { failRead = true; } };
 }
 
+test('a routine accepts a typed professor absent from the old catalog', async () => {
+  const { live, calls } = setup();
+  await live.load('2026-09-23');
+  await live.routineData.save({ name: 'Rutina nueva', professor: 'Nombre nuevo', days: [], memberId: '0012' });
+  assert.equal(calls[0].body.plan.professorName, 'Nombre nuevo');
+  assert.equal(calls[0].body.plan.professorId, 0);
+});
+
 test('a delayed snapshot cannot undo attendance saved while that read was in flight', async () => {
   const { live, client, snapshot } = setup();
   await live.load('2026-09-23');

@@ -14,6 +14,7 @@ public sealed class InventoryService(IUnderFitDataStore dataStore, TimeProvider 
     public async Task<ProductResponse> CreateProductAsync(SaveProductRequest request, CancellationToken ct)
     {
         var product = new Product(request.Nombre, request.Precio, request.Activo);
+        product.SetLocations(request.AvailableLocal1, request.AvailableLocal2);
         dataStore.AddProduct(product);
         await dataStore.SaveChangesAsync(ct);
         return Map(product);
@@ -24,6 +25,7 @@ public sealed class InventoryService(IUnderFitDataStore dataStore, TimeProvider 
     {
         var product = await RequireProductAsync(id, ct);
         product.Update(request.Nombre, request.Precio, request.Activo);
+        product.SetLocations(request.AvailableLocal1, request.AvailableLocal2);
         await dataStore.SaveChangesAsync(ct);
         return new(true, 1, Map(product));
     }
@@ -163,7 +165,7 @@ public sealed class InventoryService(IUnderFitDataStore dataStore, TimeProvider 
         ?? throw new UseCaseException("product.not_found", "Producto no encontrado");
 
     private static ProductResponse Map(Product product) =>
-        new(product.Id, product.Name, product.Price, product.IsActive);
+        new(product.Id, product.Name, product.Price, product.IsActive, product.AvailableLocal1, product.AvailableLocal2);
 
     private DateTimeOffset ToLocal(DateTimeOffset value) =>
         TimeZoneInfo.ConvertTime(value, timeProvider.LocalTimeZone);

@@ -26,6 +26,24 @@ function createUnderFitApiClient({
     throw new Error('El runtime actual no ofrece fetch para conectar con UnderFit API');
   }
 
+  function resolveExerciseMedia(value) {
+    if (Array.isArray(value)) return value.map(resolveExerciseMedia);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
+      key === 'gifUrl' && typeof item === 'string' && item.startsWith('/media/')
+        ? new URL(item, normalizedBaseUrl).href : resolveExerciseMedia(item)]));
+  }
+
+  function exercisePayload(payload) {
+    let gifUrl = payload.gifUrl;
+    if (typeof gifUrl === 'string' && /^https?:\/\//i.test(gifUrl)) {
+      const url = new URL(gifUrl);
+      if (url.origin === new URL(normalizedBaseUrl).origin && url.pathname.startsWith('/media/'))
+        gifUrl = url.pathname + url.search;
+    }
+    return { ...payload, gifUrl };
+  }
+
   async function request(path, options = {}) {
     const { idempotent, idempotencyKey, ...fetchOptions } = options;
     const controller = new AbortController();
@@ -251,17 +269,19 @@ function createUnderFitApiClient({
         method: 'PUT',
         body: JSON.stringify(payload),
       }),
-    listExercises: (includeInactive = false) =>
-      request(`/api/v1/admin/training/exercises?includeInactive=${includeInactive === true}`),
+    listExercises: async (includeInactive = false) => {
+      const exercises = await request(`/api/v1/admin/training/exercises?includeInactive=${includeInactive === true}`);
+      return resolveExerciseMedia(exercises);
+    },
     createExercise: payload =>
       request('/api/v1/admin/training/exercises', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(exercisePayload(payload)),
       }),
     updateExercise: (id, payload) =>
       request(`/api/v1/admin/training/exercises/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(exercisePayload(payload)),
       }),
     assignWorkoutPlan: (identityNumber, payload) =>
       request(`/api/v1/admin/members/${encodeURIComponent(identityNumber)}/workout-plan`, {
@@ -271,7 +291,7 @@ function createUnderFitApiClient({
     listWorkoutTemplates: () =>
       request('/api/v1/admin/training/templates'),
     listMemberWorkoutPlans: () =>
-      request('/api/v1/admin/training/member-plans'),
+      request('/api/v1/admin/training/member-plans').then(resolveExerciseMedia),
     saveWorkoutTemplate: payload =>
       request('/api/v1/admin/training/templates', {
         method: 'POST',

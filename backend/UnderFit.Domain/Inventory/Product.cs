@@ -15,6 +15,14 @@ public sealed class Product
     public string Name { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
     public bool IsActive { get; private set; }
+    public bool AvailableLocal1 { get; private set; } = true;
+    public bool AvailableLocal2 { get; private set; } = true;
+
+    public void SetLocations(bool? local1, bool? local2)
+    {
+        if (local1.HasValue) AvailableLocal1 = local1.Value;
+        if (local2.HasValue) AvailableLocal2 = local2.Value;
+    }
 
     public void Update(string name, decimal price, bool isActive) => SetDetails(name, price, isActive);
 

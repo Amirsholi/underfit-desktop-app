@@ -135,54 +135,100 @@ function createAdminProductsController({ shared }) {
     });
   }
 
+  async function setProductLocation(producto, local, assigned) {
+    const field = local === 'local1' ? 'availableLocal1' : 'availableLocal2';
+    await window.api.actualizarProducto(producto.id, {
+      nombre: producto.nombre, precio: producto.precio, activo: producto.activo,
+      [field]: assigned,
+    });
+    await cargarProductos();
+    shared.mostrarNotificacion(assigned ? 'Producto agregado al local' : 'Producto retirado del local', 'success');
+    document.dispatchEvent(new CustomEvent('stock:updated'));
+  }
+
   function renderizarProductos() {
     const query = productSearch?.value.trim().toLocaleLowerCase('es') || '';
-    const productosDelLocal = productos.filter(producto => productLocation === 'local1'
-      ? Number(producto?.local1) > 0
-      : Number(producto?.asignadoLocal2) === 1);
-    const visibles = productosDelLocal.filter(producto => {
-      const matchesSearch = !query || String(producto?.nombre || '').toLocaleLowerCase('es').includes(query);
-      return matchesSearch;
-    });
-
-    if (!visibles.some(item => Number(item.id) === Number(productoSeleccionadoId))) productoSeleccionadoId = null;
-    if (productsTotalCount) productsTotalCount.textContent = String(productosDelLocal.length);
-    if (productsAvailableCount) {
-      productsAvailableCount.textContent = String(productosDelLocal.filter(producto => Number(producto?.activo) !== 0 && Number(producto?.[productLocation]) > 0).length);
+    if (productsTotalCount) productsTotalCount.textContent = String(productos.length);
+    if (productsAvailableCount) productsAvailableCount.textContent = String(productos.filter(x => x.activo && (Number(x.local1) > 0 || Number(x.local2) > 0)).length);
+    cuerpoProductos.replaceChildren();
+    sinProductos.style.display = 'none';
+    for (const [local, title] of [['local1', 'Local 1'], ['local2', 'Local 2']]) {
+      const section = document.createElement('section');
+      section.className = 'product-location-table';
+      const rows = productos.filter(x => Number(x[local]) > 0 && (!query || x.nombre.toLocaleLowerCase('es').includes(query)));
+      const header = document.createElement('header'); header.className = 'product-location-heading';
+      const identity = document.createElement('div'); identity.className = 'product-location-identity';
+      const heading = document.createElement('h3'); heading.textContent = title;
+      heading.id = 'product-heading-' + local; section.setAttribute('aria-labelledby', heading.id);
+      const count = document.createElement('span'); count.className = 'product-location-count'; count.textContent = `${rows.length} ${rows.length === 1 ? 'producto' : 'productos'}`;
+      identity.append(heading, count); header.append(identity);
+      const toolbar = document.createElement('div'); toolbar.className = 'product-location-actions';
+      toolbar.id = 'product-add-' + local; toolbar.hidden = true; toolbar.dataset.productAddPanel = local;
+      const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'app-button product-add-toggle';
+      toggle.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Agregar producto</span>';
+      toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-controls', toolbar.id);
+      toggle.setAttribute('aria-label', 'Agregar producto a ' + title);
+      toggle.onclick = () => { toolbar.hidden = !toolbar.hidden; toggle.setAttribute('aria-expanded', String(!toolbar.hidden)); if (!toolbar.hidden) select.focus(); };
+      header.append(toggle); section.append(header);
+      const select = document.createElement('select'); select.setAttribute('aria-label', 'Agregar producto existente a ' + title);
+      select.className = 'app-select';
+      const placeholder = new Option('Elegir producto existente', ''); select.add(placeholder);
+      productos.filter(x => !Number(x[local])).forEach(x => select.add(new Option(x.nombre, x.id)));
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'app-button'; add.textContent = 'Agregar'; add.disabled = true;
+      select.onchange = () => { add.disabled = !select.value; };
+      add.onclick = async () => {
+        const item = productos.find(x => String(x.id) === select.value); if (!item) return;
+        add.disabled = true;
+        try { await setProductLocation(item, local, true); }
+        catch (error) { shared.mostrarNotificacion(error.message, 'error'); add.disabled = false; }
+      };
+      const create = document.createElement('button'); create.type = 'button'; create.className = 'app-button product-create-action'; create.textContent = 'Crear nuevo producto';
+      create.onclick = () => { productLocation = local; limpiarFormularioNuevo(); modalNuevoProducto.style.display = 'flex'; inputNuevoNombre.focus(); };
+      toolbar.append(select, add, create); section.append(toolbar);
+      toolbar.addEventListener('keydown', event => { if (event.key === 'Escape') { toolbar.hidden = true; toggle.setAttribute('aria-expanded', 'false'); toggle.focus(); } });
+      const table = document.createElement('table'); table.setAttribute('aria-label', 'Productos de ' + title);
+      table.className = 'data-table product-location-data';
+      table.innerHTML = '<thead><tr><th scope="col">Producto</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>';
+      const body = document.createElement('tbody');
+      for (const item of rows) {
+        const row = document.createElement('tr');
+        for (const value of [item.nombre, formatearMoneda(item.precio), item.activo ? 'Disponible' : 'No disponible']) {
+          const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
+        }
+        row.cells[0].className = 'product-name-cell'; row.cells[1].className = 'product-price-cell';
+        row.cells[2].className = 'product-state-cell' + (item.activo ? ' is-available' : '');
+        const actions = document.createElement('td');
+        const actionGroup = document.createElement('div'); actionGroup.className = 'product-row-actions';
+        for (const [label, action] of [
+          ['Vender', () => abrirVentaProducto(item.id)],
+          ['Editar', () => abrirEdicionProducto(item.id)],
+          ['Quitar del local', async button => {
+            if (!await shared.confirmarAccion('¿Quitar ' + item.nombre + ' de ' + title + '? Sus ventas anteriores se conservan.')) return;
+            button.disabled = true;
+            try { await setProductLocation(item, local, false); }
+            catch (error) { shared.mostrarNotificacion(error.message, 'error'); button.disabled = false; }
+          }],
+        ]) {
+          const button = document.createElement('button'); button.type = 'button';
+          button.className = label === 'Vender' ? 'product-row-sell' : 'product-row-icon';
+          const icon = document.createElement('i'); icon.setAttribute('aria-hidden', 'true');
+          icon.className = 'fa-solid ' + (label === 'Vender' ? 'fa-cart-shopping' : label === 'Editar' ? 'fa-pen' : 'fa-trash-can');
+          const text = document.createElement('span'); text.textContent = label;
+          if (label !== 'Vender') text.className = 'sr-only';
+          button.append(icon, text); button.title = label;
+          if (label === 'Quitar del local') button.classList.add('is-remove');
+          button.setAttribute('aria-label', label + ': ' + item.nombre + ', ' + title);
+          if (label === 'Vender') button.disabled = !item.activo;
+          button.onclick = () => { productLocation = local; productoSeleccionadoId = item.id; action(button); };
+          actionGroup.append(button);
+        }
+        actions.append(actionGroup);
+        row.append(actions); body.append(row);
+      }
+      if (!rows.length) { const row = body.insertRow(); const cell = row.insertCell(); cell.colSpan = 4; cell.className = 'product-location-empty'; cell.textContent = query ? 'No hay productos que coincidan con la búsqueda.' : 'Todavía no hay productos en este local.'; }
+      const scroll = document.createElement('div'); scroll.className = 'product-location-scroll';
+      table.append(body); scroll.append(table); section.append(scroll); cuerpoProductos.append(section);
     }
-    cuerpoProductos.innerHTML = '';
-    sinProductos.textContent = productos.length === 0
-      ? 'Todavía no hay productos cargados.'
-      : 'No encontramos productos con ese criterio.';
-    sinProductos.style.display = visibles.length === 0 ? 'block' : 'none';
-
-    visibles.forEach(producto => {
-      const disponible = Number(producto.activo) !== 0 && Number(producto?.[productLocation]) > 0;
-      const tr = document.createElement('button');
-      tr.type = 'button';
-      tr.className = 'product-catalog-item';
-      tr.dataset.productRow = String(producto.id);
-      tr.tabIndex = 0;
-      tr.innerHTML = `
-        <strong class="product-catalog-name"></strong>
-        <span class="product-catalog-price">${formatearMoneda(producto.precio)}</span>
-        <span class="product-catalog-stock">${Number(producto?.[productLocation]) || 0} unidades · ${productLocation === 'local1' ? 'Local 1' : 'Local 2'}</span>
-        <span class="product-availability ${disponible ? 'is-available' : 'is-unavailable'}"><i></i>${disponible ? 'Disponible' : 'No disponible'}</span>
-      `;
-      tr.querySelector('.product-catalog-name').textContent = producto.nombre;
-      tr.addEventListener('click', () => {
-        productoSeleccionadoId = producto.id;
-        updateSelectedProduct();
-      });
-      tr.addEventListener('keydown', event => {
-        if (!['Enter', ' '].includes(event.key)) return;
-        event.preventDefault();
-        productoSeleccionadoId = producto.id;
-        updateSelectedProduct();
-      });
-      cuerpoProductos.appendChild(tr);
-    });
-    updateSelectedProduct();
   }
 
   async function renderizarVentasDashboard(fecha = dashboardFecha?.value || hoyYYYYMMDD()) {
@@ -220,6 +266,7 @@ function createAdminProductsController({ shared }) {
     inputEditarPrecio.value = producto.precio;
     if (inputEditarActivo) inputEditarActivo.checked = Number(producto.activo) !== 0;
     modalEditarProducto.style.display = 'flex';
+    if (eliminarProductoBtn) eliminarProductoBtn.textContent = 'Quitar del local';
     updateSelectedProduct();
   }
 
@@ -283,7 +330,7 @@ function createAdminProductsController({ shared }) {
 
     let productoCreado = null;
     try {
-      productoCreado = await window.api.crearProducto({ nombre, precio, activo: inputNuevoActivo?.checked !== false });
+      productoCreado = await window.api.crearProducto({ nombre, precio, activo: inputNuevoActivo?.checked !== false, availableLocal1: targetLocation === 'local1', availableLocal2: targetLocation === 'local2' });
       await asignarProductoCreado(productoCreado, targetLocation);
       productoSeleccionadoId = Number(productoCreado?.id) || null;
       limpiarFormularioNuevo();
@@ -294,10 +341,9 @@ function createAdminProductsController({ shared }) {
       document.dispatchEvent(new CustomEvent('stock:updated'));
     } catch (error) {
       console.error(error);
-      if (productoCreado?.id && targetLocation === 'local2') {
-        try { await window.api.eliminarProducto(productoCreado.id); } catch (_) {}
-      }
-      shared.mostrarNotificacion(`No se pudo agregar el producto a ${targetLocation === 'local2' ? 'Local 2' : 'Local 1'}`, 'error');
+      shared.mostrarNotificacion(productoCreado?.id
+        ? 'El producto se creó, pero no se pudo actualizar la lista. Actualizá la pantalla antes de volver a crearlo.'
+        : `No se pudo agregar el producto a ${targetLocation === 'local2' ? 'Local 2' : 'Local 1'}`, 'error');
     }
   }
 
@@ -330,11 +376,11 @@ function createAdminProductsController({ shared }) {
     if (!productoSeleccionadoId) return;
 
     const confirmado = await shared.confirmAction({
-      message: 'Eliminar este producto?',
+      message: '¿Quitar este producto de ' + (productLocation === 'local1' ? 'Local 1' : 'Local 2') + '? Las ventas anteriores se conservan.',
       onConfirm: async () => {
-        await window.api.eliminarProducto(productoSeleccionadoId);
+        await setProductLocation(productos.find(x => Number(x.id) === Number(productoSeleccionadoId)), productLocation, false);
         modalEditarProducto.style.display = 'none';
-        shared.mostrarNotificacion('Producto eliminado', 'success');
+        shared.mostrarNotificacion('Producto retirado del local', 'success');
         await cargarProductos();
         document.dispatchEvent(new CustomEvent('stock:updated'));
       },
@@ -347,7 +393,7 @@ function createAdminProductsController({ shared }) {
 
   async function init() {
     window.adminSync?.watch({
-      enabled: () => Boolean(window.api && window.adminSync.active('products')),
+      enabled: () => Boolean(window.api && window.adminSync.active('products') && !cuerpoProductos.querySelector('[data-product-add-panel]:not([hidden])')),
       read: () => Promise.all([window.api.obtenerProductos(), window.api.obtenerStockLocales()]),
       apply: ([catalogo, stock]) => {
         const stocks = new Map(stock.map(item => [Number(item.productoId), item]));

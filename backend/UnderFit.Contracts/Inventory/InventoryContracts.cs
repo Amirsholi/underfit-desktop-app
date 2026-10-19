@@ -1,7 +1,7 @@
 namespace UnderFit.Contracts.Inventory;
 
-public sealed record SaveProductRequest(string Nombre, decimal Precio, bool Activo = true);
-public sealed record ProductResponse(int Id, string Nombre, decimal Precio, bool Activo);
+public sealed record SaveProductRequest(string Nombre, decimal Precio, bool Activo = true, bool? AvailableLocal1 = null, bool? AvailableLocal2 = null);
+public sealed record ProductResponse(int Id, string Nombre, decimal Precio, bool Activo, bool AvailableLocal1 = true, bool AvailableLocal2 = true);
 public sealed record UpdateProductResponse(bool Success, int Changes, ProductResponse Product);
 public sealed record DeleteProductResponse(bool Success, int Changes);
 public sealed record ProductPaymentRequest(

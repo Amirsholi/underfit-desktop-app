@@ -40,7 +40,11 @@ async function main() {
   if (dump) exec(['pg_restore', '-U', 'underfit', '--role', target, '-d', target, '--exit-on-error', '--no-owner', '--no-privileges'], dump);
   const expectedMembers = empty ? 0 : Number(query(source, 'SELECT count(*) FROM members'));
   const tables = ['members', 'entries', 'membership_renewals', 'cash_sessions', 'cash_movements', 'product_sales', 'products'];
-  const fingerprint = db => tables.map(table => query(db, `SELECT md5(COALESCE(string_agg(row_to_json(t)::text, E'\\n' ORDER BY row_to_json(t)::text),'')) FROM ${table} t`));
+  // Compare historical values independently of the newly added availability columns.
+  const fingerprint = db => tables.map(table => {
+    const row = table === 'products' ? "(to_jsonb(t) - 'AvailableLocal1' - 'AvailableLocal2')::text" : 'to_jsonb(t)::text';
+    return query(db, `SELECT md5(COALESCE(string_agg(${row}, E'\\n' ORDER BY ${row}),'')) FROM ${table} t`);
+  });
   const before = empty ? null : fingerprint(source);
   const listener = net.createServer();
   await new Promise((resolve, reject) => { listener.once('error', reject); listener.listen(0, '127.0.0.1', resolve); });
@@ -90,6 +94,8 @@ async function main() {
     } else {
       assert.deepEqual(fingerprint(source), before, 'Cambió la migración original.');
       assert.deepEqual(fingerprint(target), before, 'El arranque alteró los registros importados.');
+      const hadAvailability = query(source, "SELECT count(*) FROM information_schema.columns WHERE table_name='products' AND column_name='AvailableLocal1'") !== '0';
+      if (!hadAvailability) assert.equal(query(target, 'SELECT count(*) FROM products WHERE "AvailableLocal1" <> "IsActive" OR "AvailableLocal2" <> "IsActive"'), '0', 'Availability must preserve active state.');
     }
     report.membersVerified = expectedMembers;
     report.dataUnchanged = true;

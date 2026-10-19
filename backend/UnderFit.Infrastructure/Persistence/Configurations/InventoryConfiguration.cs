@@ -13,5 +13,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(x => x.Id).UseIdentityByDefaultColumn();
         builder.Property(x => x.Name).HasMaxLength(160);
         builder.Property(x => x.Price).HasPrecision(12, 2);
+        builder.Property(x => x.AvailableLocal1).HasDefaultValue(true);
+        builder.Property(x => x.AvailableLocal2).HasDefaultValue(true);
     }
 }

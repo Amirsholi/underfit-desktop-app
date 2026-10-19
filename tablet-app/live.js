@@ -65,13 +65,13 @@
   const routineData = {
     templates, assignments,
     async save(draft) {
-      const days = daysToApi(draft.days), responsible = professorId(draft.professor);
+      const days = daysToApi(draft.days), responsible = draft.professor.trim();
       if (draft.memberId) {
         const result = await mutation(`/members/${encodeURIComponent(draft.memberId)}/plan`,
-          { plan: { name: draft.name, professorId: responsible, days }, expectedPlanId: draft.id || null }, { method: 'PUT' });
+          { plan: { name: draft.name, professorId: 0, professorName: responsible, days }, expectedPlanId: draft.id || null }, { method: 'PUT' });
         return { ...draft, id: result.id };
       }
-      const template = { name: draft.name, professorId: responsible, days };
+      const template = { name: draft.name, professorId: 0, professorName: responsible, days };
       const result = draft.id
         ? await mutation(`/templates/${draft.id}`, { template, expectedVersion: draft.version }, { method: 'PUT' })
         : await mutation('/templates', template);
@@ -85,7 +85,7 @@
   root.TabletLive = {
     store, exercises, routineData, client, load, ready: () => ready, professorId,
     async saveSchedule(values, existing) {
-      const schedule = { name: values.name, locationId: 2, professorId: professorId(values.professor),
+      const schedule = { name: values.name, locationId: 2, professorId: 0,
         professor: values.professor, weekdays: values.weekdays, time: values.time + ':00',
         durationMinutes: values.duration, capacity: values.capacity, startsOn: values.startDate,
         endsOn: values.endDate || null, notes: null };
@@ -115,7 +115,7 @@
     rating(cls, row, score) { return mutation(`/classes/${cls.id}/rating`, { identityNumber: row.memberId, score }, { method: 'PUT' }); },
     async deliver(cls, member, product, quantity, professor) {
       return client.send(`/classes/${cls.id}/deliveries`, { identityNumber: member.id, productId: product.id, quantity,
-        professorId: professorId(professor) }, { offline: true });
+        professorId: 0, professorName: professor }, { offline: true });
     },
     async saveExercise(exercise, values, file) {
       let media = values.media;

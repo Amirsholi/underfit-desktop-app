@@ -56,8 +56,8 @@ public sealed class TrainingService(IUnderFitDataStore dataStore, TimeProvider t
             throw new UseCaseException("workout_plan.days_required", "The plan needs at least one day.");
         var member = await dataStore.FindMemberByIdentityAsync(identityNumber, cancellationToken)
             ?? throw new UseCaseException("member.not_found", "Member not found.");
-        var professor = await dataStore.FindProfessorAsync(request.ProfessorId, cancellationToken)
-            ?? throw new UseCaseException("professor.not_found", "Professor not found.");
+        var professor = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(
+            dataStore, request.ProfessorName, request.ProfessorId, timeProvider, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var current = await dataStore.FindActiveWorkoutPlanAsync(member.Id, cancellationToken);
         var retainedExercises = current?.Days.SelectMany(day => day.Exercises)
@@ -142,6 +142,12 @@ public sealed class TrainingService(IUnderFitDataStore dataStore, TimeProvider t
             request.Name,
             JsonSerializer.Serialize(request.Days, JsonOptions),
             timeProvider.GetUtcNow());
+        if (request.ProfessorName is not null)
+        {
+            var author = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(
+                dataStore, request.ProfessorName, null, timeProvider, cancellationToken);
+            request = request with { ProfessorId = author.Id };
+        }
         if (request.ProfessorId is not null)
         {
             var professor = await dataStore.FindProfessorAsync(request.ProfessorId.Value, cancellationToken);

@@ -50,7 +50,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
                 weekdays = x.Weekdays.Split(',').Select(int.Parse), trial = x.IsTrial, version = x.UpdatedAtUtc }),
             members = await db.Members.AsNoTracking().OrderBy(x => x.Name).Select(x => new { id = x.IdentityNumber, ci = x.IdentityNumber, name = x.Name }).ToArrayAsync(ct),
             professors = await db.Professors.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name).Select(x => new { id = x.Id, name = x.Name }).ToArrayAsync(ct),
-            products = await db.Products.AsNoTracking().Where(x => x.IsActive).Select(x => new { id = x.Id, name = x.Name, price = x.Price }).ToArrayAsync(ct),
+            products = await db.Products.AsNoTracking().Where(x => x.IsActive && x.AvailableLocal2).Select(x => new { id = x.Id, name = x.Name, price = x.Price }).ToArrayAsync(ct),
             exercises = await training.ListExercisesAsync(false, ct),
             templates = templates.Where(x => x.IsActive).Select(x => new { x.Id, x.Name, x.Days, x.ProfessorId, version = TemplateVersion(rawTemplates[x.Id]) }),
             assignments,
@@ -110,8 +110,8 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
         var member = await db.FindMemberByIdentityAsync(request.IdentityNumber, ct)
             ?? throw new UseCaseException("member.not_found", "El socio ya no existe.");
         var product = await db.FindProductAsync(request.ProductId, ct);
-        var professor = await db.FindProfessorAsync(request.ProfessorId, ct);
-        if (product is null || !product.IsActive || professor is null || !professor.IsActive)
+        var professor = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(db, request.ProfessorName, request.ProfessorId, clock, ct);
+        if (product is null || !product.IsActive || !product.AvailableLocal2 || professor is null || !professor.IsActive)
             throw new UseCaseException("delivery.invalid", "El producto o profesor ya no está disponible.");
         var sale = new PendingProductSale(product, member.IdentityNumber, member.Name, request.Quantity,
             professor.Name, professor.Id, null, 2, $"Entrega de clase {id}", clock.GetUtcNow());
@@ -124,7 +124,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
         var input = request.Schedule;
         if (input.LocationId != 2 || input.DurationMinutes is < 15 or > 240 || input.Capacity is < 1 or > 100)
             throw new UseCaseException("schedule.invalid", "Revisá duración, cupo y salón.");
-        var professor = await db.FindProfessorAsync(input.ProfessorId, ct);
+        var professor = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(db, input.Professor, input.ProfessorId, clock, ct);
         if (professor is null || !professor.IsActive) throw new UseCaseException("staff.not_found", "El profesor ya no está disponible.");
         ClassSchedule schedule;
         if (id is null)
@@ -158,7 +158,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
     public async Task<object> CreateTemplateAsync(SaveWorkoutTemplateRequest request, CancellationToken ct)
     {
         await ValidateDays(request.Days, ct);
-        if (request.ProfessorId is null) throw new UseCaseException("staff.not_found", "Elegí un profesor activo.");
+        if (request.ProfessorId is null && request.ProfessorName is null) throw new UseCaseException("staff.not_found", "Escribí el nombre del profesor.");
         var result = await training.SaveTemplateAsync(request, ct);
         var template = await db.WorkoutTemplates.SingleAsync(x => x.Id == result.Id, ct);
         return new { id = template.Id, version = TemplateVersion(template) };
@@ -170,10 +170,9 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
             ?? throw new UseCaseException("template.not_found", "La plantilla ya no existe.");
         if (request.ExpectedVersion != TemplateVersion(template)) throw new UseCaseException("template.conflict", "La plantilla cambió. Volvé a abrirla.");
         await ValidateDays(request.Template.Days, ct);
-        if (request.Template.ProfessorId is null || !await db.Professors.AnyAsync(x => x.Id == request.Template.ProfessorId && x.IsActive, ct))
-            throw new UseCaseException("staff.not_found", "Elegí un profesor activo.");
+        var author = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(db, request.Template.ProfessorName, request.Template.ProfessorId, clock, ct);
         template.Update(request.Template.Name, JsonSerializer.Serialize(request.Template.Days, JsonOptions), true);
-        template.SetProfessor(request.Template.ProfessorId);
+        template.SetProfessor(author.Id);
         await db.SaveChangesAsync(ct); return new { id = template.Id, version = TemplateVersion(template) };
     }
 

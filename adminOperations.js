@@ -241,16 +241,6 @@ function createAdminOperationsController({ shared }) {
 
   function populateProfessorSelect() {
     if (!classCoach) return;
-    const selectedValue = classCoach.value;
-    const activeProfessors = professors.filter(item => item.activo === true || Number(item.activo) === 1);
-    classCoach.innerHTML = '<option value="">Seleccionar profesor</option>';
-    activeProfessors.forEach(item => {
-      const option = document.createElement('option');
-      option.value = String(item.id);
-      option.textContent = item.nombre;
-      classCoach.appendChild(option);
-    });
-    if ([...classCoach.options].some(option => option.value === selectedValue)) classCoach.value = selectedValue;
   }
 
   function renderProfessors() {
@@ -473,13 +463,12 @@ function createAdminOperationsController({ shared }) {
   }
 
   async function saveClass() {
-    const selectedProfessor = professors.find(item => String(item.id) === classCoach.value);
     const diasSemana = [...document.querySelectorAll('input[name="class-weekday"]:checked')]
       .map(input => Number(input.value));
     const payload = {
       nombre: document.getElementById('class-name').value.trim(),
-      profesorId: Number(classCoach.value || 0),
-      profesor: selectedProfessor?.nombre || '',
+      profesorId: 0,
+      profesor: classCoach.value.trim(),
       localId: Number(classLocal.value || 0),
       diasSemana,
       fechaInicio: document.getElementById('class-start-date').value,
@@ -489,7 +478,7 @@ function createAdminOperationsController({ shared }) {
       duracionMinutos: minutesBetween(document.getElementById('class-time').value, document.getElementById('class-end-time').value),
       notas: document.getElementById('class-notes').value.trim(),
     };
-    if (!payload.nombre || !payload.profesorId || !payload.localId || !payload.fechaInicio || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0 || payload.duracionMinutos <= 0) {
+    if (!payload.nombre || !payload.profesor || !payload.localId || !payload.fechaInicio || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0 || payload.duracionMinutos <= 0) {
       shared.mostrarNotificacion('Completá nombre, local, profesor, días, horario y cupos', 'warning');
       return;
     }
@@ -532,12 +521,6 @@ function createAdminOperationsController({ shared }) {
   }
 
   function populateClassEditSelectors() {
-    classEditCoach.innerHTML = '<option value="">Seleccionar profesor</option>';
-    professors.filter(item => item.activo !== false && Number(item.activo) !== 0).forEach(item => {
-      const option = document.createElement('option');
-      option.value = String(item.id); option.textContent = item.nombre;
-      classEditCoach.appendChild(option);
-    });
     classEditLocal.innerHTML = '<option value="">Seleccionar local</option>';
     locations.forEach(item => {
       const option = document.createElement('option');
@@ -551,7 +534,7 @@ function createAdminOperationsController({ shared }) {
     if (!item || item.estado !== 'programada' || !item.programacionId || item.canEditSchedule !== true) return;
     populateClassEditSelectors();
     document.getElementById('class-edit-name').value = item.nombre || '';
-    classEditCoach.value = String(item.profesorProgramadoId || item.profesorId || '');
+    classEditCoach.value = item.profesorProgramado || item.profesor || '';
     classEditLocal.value = String(item.localId || '');
     document.getElementById('class-edit-time').value = String(item.hora || '').slice(0, 5);
     setTimeFromDuration(document.getElementById('class-edit-time'), document.getElementById('class-edit-end-time'), item.duracionMinutos);
@@ -572,15 +555,14 @@ function createAdminOperationsController({ shared }) {
   }
 
   async function saveClassEdit() {
-    const selectedProfessor = professors.find(item => String(item.id) === classEditCoach.value);
     const diasSemana = [...document.querySelectorAll('input[name="class-edit-weekday"]:checked')]
       .map(input => Number(input.value));
     const payload = {
       programacionId: Number(classEditModal.dataset.scheduleId || 0),
       desdeFecha: classEditModal.dataset.effectiveFrom,
       nombre: document.getElementById('class-edit-name').value.trim(),
-      profesorId: Number(classEditCoach.value || 0),
-      profesor: selectedProfessor?.nombre || '',
+      profesorId: 0,
+      profesor: classEditCoach.value.trim(),
       localId: Number(classEditLocal.value || 0),
       diasSemana,
       hora: document.getElementById('class-edit-time').value,
@@ -589,7 +571,7 @@ function createAdminOperationsController({ shared }) {
       fechaFin: document.getElementById('class-edit-end-date').value || null,
       notas: selectedClass?.notas || '',
     };
-    if (!payload.programacionId || !payload.nombre || !payload.profesorId || !payload.localId || !payload.desdeFecha || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0 || payload.duracionMinutos <= 0) {
+    if (!payload.programacionId || !payload.nombre || !payload.profesor || !payload.localId || !payload.desdeFecha || !payload.hora || !payload.diasSemana.length || payload.capacidad <= 0 || payload.duracionMinutos <= 0) {
       shared.mostrarNotificacion('Completá nombre, local, profesor, días, horario y cupo', 'warning');
       return;
     }
@@ -914,7 +896,7 @@ function createAdminOperationsController({ shared }) {
   }
 
   async function refreshAll() {
-    await Promise.all([loadProfessors(), loadLocations()]);
+    await loadLocations();
     await Promise.all([loadClasses(), loadStock(), loadPending()]);
   }
 
@@ -926,7 +908,7 @@ function createAdminOperationsController({ shared }) {
         read: async () => {
           await classesLoadQueue;
           const date = currentWeekStart;
-          const [rows, teachers] = await Promise.all([window.api.obtenerClasesProximas(date), window.api.obtenerProfesores(true)]);
+          const rows = await window.api.obtenerClasesProximas(date); const teachers = [];
           return { date, rows, teachers };
         },
         apply: ({ date, rows, teachers }) => {
@@ -1088,7 +1070,7 @@ function createAdminOperationsController({ shared }) {
         // Profesores y detalle son subrutas: al volver desde la barra lateral la
         // agenda siempre debe ser el punto de entrada de Clases.
         showClassesScreen('agenda');
-        Promise.all([loadProfessors(), loadLocations(), loadClasses()]);
+        Promise.all([loadLocations(), loadClasses()]);
       }
       if (event.detail?.section === 'locations') loadStock();
     });

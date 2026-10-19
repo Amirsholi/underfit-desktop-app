@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dataModeCopy.textContent = postgres
           ? 'La aplicación de escritorio está conectada al servicio .NET y PostgreSQL.'
           : 'La aplicación continúa usando la base SQLite local.';
-        backupStatus.textContent = postgres ? 'Este botón respalda los archivos locales, no la base central PostgreSQL.' : 'Respaldo local de los datos de esta instalación.';
+        backupStatus.textContent = postgres ? 'Crea un respaldo de la base PostgreSQL de esta instalación.' : 'Respaldo local de los datos de esta instalación.';
         saveBusinessButton.disabled = false;
         updateEventFields();
       } catch (error) {

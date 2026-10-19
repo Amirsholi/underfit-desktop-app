@@ -210,7 +210,7 @@ function createAdminClassDetailController({ shared, showScreen, onBack, onUpdate
   byId('class-detail-refresh').addEventListener('click', () => selected && show(selected, { preserve: true }));
   byId('class-delete').addEventListener('click', async () => {
     const item = detail;
-    if (!item || !await shared.confirmarAccion(`¿Eliminar la clase ${item.nombre} del ${item.fecha}? ${item.programacionId ? 'Solo se elimina esta fecha; las demás clases del grupo se conservan.' : ''}`)) return;
+    if (!item || !await shared.confirmarAccion(`¿Eliminar la clase ${item.nombre} del ${item.fecha}? ${item.programacionId ? 'Se eliminarán también todas las fechas posteriores de esta serie. Las clases anteriores se conservan.' : ''}`)) return;
     const button = byId('class-delete'); button.disabled = true;
     try {
       await window.api.eliminarClase(item.id);

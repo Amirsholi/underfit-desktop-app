@@ -81,6 +81,6 @@ public static class TabletEndpoints
 public sealed record TabletAttendanceRequest(string IdentityNumber, bool Present, bool ExpectedPresent);
 public sealed record TabletRatingRequest(string IdentityNumber, int Score);
 public sealed record TabletScheduleRequest(CreateClassScheduleRequest Schedule, bool IsTrial, DateTimeOffset? ExpectedVersion);
-public sealed record TabletDeliveryRequest(string IdentityNumber, int ProductId, int Quantity, int ProfessorId);
+public sealed record TabletDeliveryRequest(string IdentityNumber, int ProductId, int Quantity, int ProfessorId, string? ProfessorName = null);
 public sealed record TabletTemplateRequest(SaveWorkoutTemplateRequest Template, string ExpectedVersion);
 public sealed record TabletPlanRequest(AssignWorkoutPlanRequest Plan, Guid? ExpectedPlanId);

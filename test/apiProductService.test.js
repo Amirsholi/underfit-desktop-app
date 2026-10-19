@@ -3,6 +3,15 @@ const assert = require('node:assert/strict');
 const { createApiProductService } = require('../services/apiProductService');
 const { createApiClassOperationsService } = require('../services/apiClassOperationsService');
 
+test('local availability is independent of product activation and keeps the other local', async () => {
+  let sent;
+  const service = createApiProductService({ apiClient: { updateProduct: async (id, payload) => { sent = payload; } } });
+  await service.updateProduct(4, { nombre: 'Agua', precio: 75, activo: true, availableLocal1: false, availableLocal2: true });
+  assert.equal(sent.availableLocal1, false);
+  assert.equal(sent.availableLocal2, true);
+  assert.equal(sent.activo, true);
+});
+
 test('api product service preserves product and sale payload contracts', async () => {
   const calls = [];
   const service = createApiProductService({

@@ -269,11 +269,11 @@
   function hydrateExerciseNames(exercises = []) {
     return exercises.map((item, index) => { const catalog = state.exercises.find(exercise => Number(exercise.id) === Number(item.exerciseId)); return { ...item, position: item.position || index + 1, exerciseName: catalog?.name || item.name || 'Ejercicio', muscleGroup: catalog?.muscleGroup || item.muscleGroup || '', gifUrl: catalog?.gifUrl || item.gifUrl || '' }; });
   }
-  function openEditor({ ci = '', name = '', days = [], professorId = '', mode = 'template' } = {}) {
+  function openEditor({ ci = '', name = '', days = [], professorName = '', mode = 'template' } = {}) {
     state.editorMode = mode;
     const form = byId('workout-form');
     if (form) form.dataset.editorMode = mode;
-    byId('workout-member').value = ci; byId('workout-name').value = name; byId('workout-template').value = ''; byId('workout-professor').value = professorId ? String(professorId) : '';
+    byId('workout-member').value = ci; byId('workout-name').value = name; byId('workout-template').value = ''; byId('workout-professor').value = professorName;
     state.days = prepareEditorDays(days); state.activeDayIndex = 0; state.currentExercises = hydrateExerciseNames(state.days[0].exercises || []);
     const member = state.users.find(user => String(user.ci) === String(ci));
     if (mode === 'member') setEditorTitle('Rutina de', member?.nombre || 'socio');
@@ -303,7 +303,7 @@
     if (state.editorMode === 'template') setEditorTitle('Crear', 'plantilla');
     renderCurrentExercises();
   }
-  function openMemberRoutine(ci) { const assigned = planFor(ci); openEditor({ ci, name: assigned?.plan?.name || 'Plan de entrenamiento', days: assigned?.plan?.days || [], professorId: assigned?.plan?.professorId || '', mode: 'member' }); }
+  function openMemberRoutine(ci) { const assigned = planFor(ci); openEditor({ ci, name: assigned?.plan?.name || 'Plan de entrenamiento', days: assigned?.plan?.days || [], professorName: assigned?.plan?.professorName || '', mode: 'member' }); }
   function showVideoPreview(url) {
     const preview = byId('exercise-video-preview');
     const video = preview?.querySelector('video');
@@ -348,7 +348,7 @@
     const incompleteDay = state.days.findIndex(day => !day.exercises?.length);
     if (incompleteDay >= 0) return notify(`Agregá al menos un ejercicio en Día ${incompleteDay + 1}.`, 'error');
     try {
-      await window.api.guardarPreRutina({ name: byId('workout-name').value.trim(), days: state.days });
+      await window.api.guardarPreRutina({ name: byId('workout-name').value.trim(), professorName: byId('workout-professor').value.trim(), days: state.days });
       state.templates = await window.api.obtenerPreRutinas();
       renderTemplates();
       if (byId('workout-template-help')) byId('workout-template-help').textContent = `${state.templates.length} plantillas disponibles`;
@@ -358,15 +358,11 @@
   }
 
   async function load() {
-    const [exercises, professors, templates, users, plans] = await Promise.allSettled([window.api.obtenerEjercicios(false), window.api.obtenerProfesores(false), window.api.obtenerPreRutinas(), window.api.obtenerUsuarios(), window.api.obtenerRutinasSocios ? window.api.obtenerRutinasSocios() : Promise.resolve([])]);
+    const [exercises, templates, users, plans] = await Promise.allSettled([window.api.obtenerEjercicios(false), window.api.obtenerPreRutinas(), window.api.obtenerUsuarios(), window.api.obtenerRutinasSocios ? window.api.obtenerRutinasSocios() : Promise.resolve([])]);
     state.exercises = exercises.status === 'fulfilled' && Array.isArray(exercises.value) ? exercises.value : [];
     state.templates = templates.status === 'fulfilled' && Array.isArray(templates.value) ? templates.value : [];
     state.users = users.status === 'fulfilled' && Array.isArray(users.value) ? users.value : [];
     state.memberPlans = plans.status === 'fulfilled' && Array.isArray(plans.value) ? plans.value : [];
-    const professorItems = professors.status === 'fulfilled' && Array.isArray(professors.value) ? professors.value : [];
-    const activeProfessors = professorItems.filter(item => item.activo);
-    byId('workout-professor').innerHTML = '<option value="">Seleccioná un profesor</option>' + activeProfessors.map(item => `<option value="${item.id}">${escapeHtml(item.nombre)}</option>`).join('');
-    if (byId('workout-professor-help')) byId('workout-professor-help').textContent = `${activeProfessors.length} disponibles`;
     if (byId('workout-template-help')) byId('workout-template-help').textContent = `${state.templates.length} plantillas disponibles`;
     renderTemplates(); renderMembers(); renderExercises(); renderMuscleFilters(); renderSearch(''); showTab('templates'); state.loaded = true;
   }
@@ -374,13 +370,9 @@
   const refreshLibrary = () => window.adminSync?.refresh();
   window.adminSync?.watch({
     enabled: () => Boolean(window.api && state.loaded && state.tab !== 'editor' && !exerciseSaving && window.adminSync.active('training')),
-    read: () => Promise.all([window.api.obtenerRutinasSocios(), window.api.obtenerPreRutinas(), window.api.obtenerEjercicios(false), window.api.obtenerUsuarios(), window.api.obtenerProfesores(false)]),
-    apply: ([plans, templates, exercises, users, professors]) => {
+    read: () => Promise.all([window.api.obtenerRutinasSocios(), window.api.obtenerPreRutinas(), window.api.obtenerEjercicios(false), window.api.obtenerUsuarios()]),
+    apply: ([plans, templates, exercises, users]) => {
       state.memberPlans = plans; state.templates = templates; state.exercises = exercises; state.users = users;
-      const active = professors.filter(item => item.activo);
-      const select = byId('workout-professor'), selected = select.value;
-      select.innerHTML = '<option value="">Seleccioná un profesor</option>' + active.map(item => '<option value="' + item.id + '">' + escapeHtml(item.nombre) + '</option>').join('');
-      select.value = selected;
       renderTemplates(); renderMembers(); renderExercises(); renderMuscleFilters();
     },
   });
@@ -505,8 +497,8 @@
     syncActiveDay();
     const incompleteDay = state.days.findIndex(day => !day.exercises?.length);
     if (incompleteDay >= 0) return notify(`Agregá al menos un ejercicio en Día ${incompleteDay + 1}.`, 'error');
-    if (!byId('workout-member').value.trim() || !byId('workout-professor').value) return notify('Seleccioná un socio y un profesor.', 'error');
-    try { await window.api.asignarRutinaSocio(byId('workout-member').value.trim(), { name: byId('workout-name').value.trim(), professorId: Number(byId('workout-professor').value), days: state.days }); state.memberPlans = window.api.obtenerRutinasSocios ? await window.api.obtenerRutinasSocios() : state.memberPlans; renderMembers(); document.dispatchEvent(new CustomEvent('training:member-saved')); leaveWorkoutEditor(); notify('Rutina guardada. El socio ya puede verla.'); } catch (error) { notify(error.message, 'error'); }
+    if (!byId('workout-member').value.trim() || !byId('workout-professor').value) return notify('Seleccioná un socio y escribí el nombre del profesor.', 'error');
+    try { await window.api.asignarRutinaSocio(byId('workout-member').value.trim(), { name: byId('workout-name').value.trim(), professorId: 0, professorName: byId('workout-professor').value.trim(), days: state.days }); state.memberPlans = window.api.obtenerRutinasSocios ? await window.api.obtenerRutinasSocios() : state.memberPlans; renderMembers(); document.dispatchEvent(new CustomEvent('training:member-saved')); leaveWorkoutEditor(); notify('Rutina guardada. El socio ya puede verla.'); } catch (error) { notify(error.message, 'error'); }
   });
 
   byId('exercise-create')?.addEventListener('click', () => openExerciseEditor());

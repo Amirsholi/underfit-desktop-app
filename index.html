@@ -181,7 +181,6 @@
                 <span class="is-available"><i></i><strong id="products-available-count">0</strong> disponibles</span>
               </div>
             </div>
-            <button class="app-button app-button-primary product-new-button" type="button" data-open-modal="modal-nuevo-producto"><i class="fa-solid fa-plus"></i>Nuevo producto</button>
           </div>
 
           <div class="product-toolbar">
@@ -189,7 +188,7 @@
               <i class="fa-solid fa-magnifying-glass"></i>
               <input id="product-search" placeholder="Buscar producto" autocomplete="off">
             </label>
-            <div class="product-filter-group" role="group" aria-label="Mostrar productos por local">
+            <div class="product-filter-group" hidden role="group" aria-label="Mostrar productos por local">
               <button class="is-active" type="button" data-product-location="local1">Local 1</button>
               <button type="button" data-product-location="local2">Local 2</button>
             </div>
@@ -198,13 +197,13 @@
           <section class="product-local-view is-active" data-product-location-panel="local1">
             <div class="table-card product-fixed-table">
               <div class="table-scroll table-scroll-products">
-                <div id="tabla-productos" aria-label="Productos del local">
-                  <div id="cuerpo-productos" class="product-catalog-grid" role="group" aria-label="Seleccionar producto"></div>
+                <div class="product-locations" aria-label="Productos por local">
+                  <div id="cuerpo-productos" class="product-location-tables"></div>
                 </div>
               </div>
               <div id="sin-productos" class="table-empty">Todavía no hay productos cargados.</div>
             </div>
-            <div class="page-action-dock product-action-dock">
+            <div class="page-action-dock product-action-dock" hidden>
               <div id="product-local1-selection" class="dock-selection"><span>Seleccionado</span><strong>Ninguno</strong></div>
               <button id="product-sell-selected" class="page-dock-action" type="button" disabled><i class="fa-solid fa-cart-shopping"></i><span>Vender</span></button>
               <button id="product-edit-selected" class="page-dock-action" type="button" disabled><i class="fa-solid fa-pen"></i><span>Editar</span></button>
@@ -224,7 +223,7 @@
                 </div>
               </div>
               <div class="classes-heading-actions">
-                <button id="classes-open-professors" class="app-button" type="button">Profesores</button>
+                <button id="classes-open-professors" hidden class="app-button" type="button">Profesores</button>
                 <button class="app-button app-button-primary" type="button" data-open-modal="modal-nueva-clase"><i class="fa-solid fa-plus" aria-hidden="true"></i>Nueva clase</button>
               </div>
             </div>
@@ -360,7 +359,7 @@
                   <header class="training-routine-header">
                     <input id="workout-member" type="hidden">
                     <label class="training-name-field"><span id="workout-name-label">Nombre de la plantilla</span><input id="workout-name" required placeholder="Ej. Fuerza inicial"></label>
-                    <label class="training-member-only training-professor-field">Profesor<select id="workout-professor"></select><small id="workout-professor-help">Cargando profesores…</small></label>
+                    <label class="training-professor-field">Profesor<input id="workout-professor" minlength="2" maxlength="80" placeholder="Nombre del profesor"></label>
                     <label class="training-template-field">Usar plantilla<select id="workout-template"><option value="">Empezar vacía</option></select><small id="workout-template-help">Cargando plantillas…</small></label>
                   </header>
                   <nav class="training-day-navigation" aria-label="Días de la rutina">
@@ -869,7 +868,7 @@
       </div>
       <div class="app-modal-body class-create-grid">
         <div class="form-field class-create-name"><label for="class-name">Clase</label><input id="class-name" type="text" autocomplete="off" placeholder="Ej: Funcional de mañana"></div>
-        <div class="form-field class-create-coach"><label for="class-coach">Profesor</label><select id="class-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
+        <div class="form-field class-create-coach"><label for="class-coach">Profesor</label><input id="class-coach" minlength="2" maxlength="80" placeholder="Nombre del profesor"></div>
         <div class="form-field class-create-local"><label for="class-local">Local</label><select id="class-local" class="app-select"><option value="">Seleccionar local</option></select></div>
         <div class="form-field class-create-weekdays"><label>Días</label><div class="weekday-picker" role="group" aria-label="Días de la semana"><label><input type="checkbox" name="class-weekday" value="1" checked><span>L</span></label><label><input type="checkbox" name="class-weekday" value="2"><span>M</span></label><label><input type="checkbox" name="class-weekday" value="3" checked><span>X</span></label><label><input type="checkbox" name="class-weekday" value="4"><span>J</span></label><label><input type="checkbox" name="class-weekday" value="5" checked><span>V</span></label><label><input type="checkbox" name="class-weekday" value="6"><span>S</span></label><label><input type="checkbox" name="class-weekday" value="0"><span>D</span></label></div></div>
         <div class="class-create-timing">
@@ -894,7 +893,7 @@
       </div>
       <div class="app-modal-body class-edit-grid">
         <div class="form-field class-edit-name"><label for="class-edit-name">Clase</label><input id="class-edit-name" type="text" autocomplete="off"></div>
-        <div class="form-field class-edit-coach"><label for="class-edit-coach">Profesor</label><select id="class-edit-coach" class="app-select"><option value="">Seleccionar profesor</option></select></div>
+        <div class="form-field class-edit-coach"><label for="class-edit-coach">Profesor</label><input id="class-edit-coach" minlength="2" maxlength="80" placeholder="Nombre del profesor"></div>
         <div class="form-field class-edit-local"><label for="class-edit-local">Local</label><select id="class-edit-local" class="app-select"><option value="">Seleccionar local</option></select></div>
         <div class="form-field class-edit-weekdays"><label>Días</label><div class="weekday-picker" role="group" aria-label="Días de la semana"><label><input type="checkbox" name="class-edit-weekday" value="1"><span>L</span></label><label><input type="checkbox" name="class-edit-weekday" value="2"><span>M</span></label><label><input type="checkbox" name="class-edit-weekday" value="3"><span>X</span></label><label><input type="checkbox" name="class-edit-weekday" value="4"><span>J</span></label><label><input type="checkbox" name="class-edit-weekday" value="5"><span>V</span></label><label><input type="checkbox" name="class-edit-weekday" value="6"><span>S</span></label><label><input type="checkbox" name="class-edit-weekday" value="0"><span>D</span></label></div></div>
         <div class="form-field"><label for="class-edit-time">Hora de inicio</label><input id="class-edit-time" type="time"></div>

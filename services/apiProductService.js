@@ -7,10 +7,10 @@ function localDate() {
 function createApiProductService({ apiClient }) {
   return {
     listProducts: () => apiClient.listProducts(),
-    createProduct: ({ nombre, precio, activo = true }) =>
-      apiClient.createProduct({ nombre, precio: Number(precio), activo: activo !== false }),
-    updateProduct: (id, { nombre, precio, activo = true }) =>
-      apiClient.updateProduct(Number(id), { nombre, precio: Number(precio), activo: activo !== false }),
+    createProduct: ({ nombre, precio, activo = true, availableLocal1, availableLocal2 }) =>
+      apiClient.createProduct({ nombre, precio: Number(precio), activo: activo !== false, ...(availableLocal1 === undefined ? {} : { availableLocal1 }), ...(availableLocal2 === undefined ? {} : { availableLocal2 }) }),
+    updateProduct: (id, { nombre, precio, activo = true, availableLocal1, availableLocal2 }) =>
+      apiClient.updateProduct(Number(id), { nombre, precio: Number(precio), activo: activo !== false, ...(availableLocal1 === undefined ? {} : { availableLocal1 }), ...(availableLocal2 === undefined ? {} : { availableLocal2 }) }),
     deleteProduct: id => apiClient.deleteProduct(Number(id)),
     sellOneProduct: payload => apiClient.sellProduct(Number(payload?.id ?? payload), {
       id: Number(payload?.id ?? payload),

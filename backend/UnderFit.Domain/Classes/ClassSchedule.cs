@@ -74,8 +74,17 @@ public sealed class ClassSchedule
         IsTrial = trial; UpdatedAtUtc = now;
     }
 
+    public void EndBefore(DateOnly date, DateTimeOffset now)
+    {
+        var last = date.AddDays(-1);
+        if (EndsOn is null || EndsOn > last) EndsOn = last;
+        if (date <= StartsOn) IsActive = false;
+        UpdatedAtUtc = now;
+    }
+
     public IReadOnlyList<DateOnly> GenerateDates(DateOnly from, DateOnly through)
     {
+        if (!IsActive) return Array.Empty<DateOnly>();
         var days = Weekdays.Split(',').Select(int.Parse).ToHashSet();
         var first = from > StartsOn ? from : StartsOn;
         var last = EndsOn is not null && EndsOn < through ? EndsOn.Value : through;

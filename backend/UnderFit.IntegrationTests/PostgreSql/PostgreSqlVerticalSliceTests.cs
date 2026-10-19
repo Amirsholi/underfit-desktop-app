@@ -28,6 +28,60 @@ public sealed class PostgreSqlVerticalSliceTests
         "Host=localhost;Port=5432;Database=underfit;Username=underfit;Password=underfit_dev";
 
     [Fact]
+    public async Task TypedAuthorAndSeriesRemoval_PreserveHistoryAndStopRegeneration()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDatabase();
+        await db.Database.MigrateAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
+        var service = new ClassService(db, clock);
+        var authorName = "Profesor " + Guid.NewGuid().ToString("N");
+        var created = await service.CreateScheduleAsync(new("Serie de prueba", 2, 0, authorName,
+            [1, 2, 3, 4, 5], new TimeOnly(17, 0), 60, 12, new DateOnly(2026, 10, 19), null, null), ct);
+        var occurrences = (await service.ListAsync(new(2026, 10, 19), ct)).Where(x => x.ScheduleId == created.Id).OrderBy(x => x.Date).ToArray();
+        Assert.True(occurrences.Length > 2);
+        Assert.Equal(authorName, occurrences[0].Professor);
+        await service.DeleteAsync(occurrences[1].Id, ct);
+        db.ChangeTracker.Clear();
+        var rows = await db.GymClasses.Where(x => x.ScheduleId == created.Id).OrderBy(x => x.Date).ToArrayAsync(ct);
+        Assert.NotEqual(UnderFit.Domain.Classes.GymClassStatus.Deleted, rows[0].Status);
+        Assert.All(rows.Skip(1), x => Assert.Equal(UnderFit.Domain.Classes.GymClassStatus.Deleted, x.Status));
+        Assert.DoesNotContain(await service.ListAsync(new(2027, 1, 1), ct), x => x.ScheduleId == created.Id);
+        var author = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(db, authorName.ToUpperInvariant(), null, clock, ct);
+        Assert.Equal(created.ProfessorId, author.Id);
+        var identity = Guid.NewGuid().ToString("N");
+        await new MemberService(db, clock).CreateAsync(CreateRequest(identity, "Rutina nombre escrito", MembershipPlan.Monthly, new DateOnly(2026, 10, 18)), ct);
+        var training = new UnderFit.Application.Training.TrainingService(db, clock);
+        var exercise = await training.CreateExerciseAsync(new("Ejercicio ensayo", "Espalda", null, "/media/exercises/test.mp4"), ct);
+        var plan = await training.AssignPlanAsync(identity, new("Rutina", 0,
+            [new(1, "Día 1", "Espalda", [new(exercise.Id, 1, 3, "10", null, null, null)])], "Responsable nuevo"), ct);
+        Assert.Equal("Responsable nuevo", plan.ProfessorName);
+        Assert.Equal(exercise.Id, plan.Days[0].Exercises[0].ExerciseId);
+    }
+
+    [Fact]
+    public async Task ProductLocations_AreIndependentAndSurviveReload()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDatabase();
+        await db.Database.MigrateAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var service = new InventoryService(db, TimeProvider.System);
+        var product = await service.CreateProductAsync(new("Agua ubicación", 75, true, false, true), ct);
+        db.ChangeTracker.Clear();
+        var saved = (await service.ListProductsAsync(ct)).Single(x => x.Id == product.Id);
+        Assert.False(saved.AvailableLocal1);
+        Assert.True(saved.AvailableLocal2);
+        await service.UpdateProductAsync(product.Id, new(saved.Nombre, 80, true), ct);
+        db.ChangeTracker.Clear();
+        saved = (await service.ListProductsAsync(ct)).Single(x => x.Id == product.Id);
+        Assert.False(saved.AvailableLocal1);
+        Assert.True(saved.AvailableLocal2);
+        Assert.Equal(80, saved.Precio);
+    }
+
+    [Fact]
     public async Task MobileAccountDeletionRequest_RevokesAccessAndPreservesMemberRecords()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
