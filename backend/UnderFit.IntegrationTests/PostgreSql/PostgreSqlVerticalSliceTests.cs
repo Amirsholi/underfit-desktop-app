@@ -706,6 +706,14 @@ public sealed class PostgreSqlVerticalSliceTests
         Assert.Single(sales);
         Assert.Contains(database.CashMovements, x =>
             x.Type == CashMovementType.ProductSale && x.Amount == 300m);
+        database.ChangeTracker.Clear();
+        var report = await new CashSessionService(database, new FixedTimeProvider(now))
+            .GetDailyReportAsync(new DateOnly(2026, 7, 28), ct);
+        var posted = Assert.Single(Assert.Single(report.Sessions).Movements);
+        Assert.Equal(product.Id, posted.ProductId);
+        Assert.Equal("Integration Water", posted.ProductName);
+        Assert.Equal(3, posted.ProductQuantity);
+        Assert.Equal(300m, posted.Amount);
         await transaction.RollbackAsync(ct);
     }
 

@@ -61,6 +61,20 @@ public sealed class CashMovement
     public Guid? CorrectionOfId { get; private set; }
     public string? CorrectionReason { get; private set; }
 
+    // Historical snapshot; deliberately independent of the editable product catalog.
+    public int? ProductId { get; private set; }
+    public string? ProductName { get; private set; }
+    public int? ProductQuantity { get; private set; }
+
+    public void SetProductSnapshot(int productId, string productName, int quantity)
+    {
+        if (Type != CashMovementType.ProductSale || productId <= 0 || quantity <= 0)
+            throw new DomainException("Invalid product snapshot.");
+        ProductId = productId;
+        ProductName = productName;
+        ProductQuantity = quantity;
+    }
+
     public static CashMovement MembershipRenewal(
         Guid cashSessionId,
         Guid memberId,

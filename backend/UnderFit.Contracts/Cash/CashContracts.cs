@@ -52,7 +52,10 @@ public sealed record CashMovementResponse(
     string? MemberName,
     DateTimeOffset OccurredAtUtc,
     Guid? CorrectionOfId,
-    string? CorrectionReason);
+    string? CorrectionReason,
+    int? ProductId = null,
+    string? ProductName = null,
+    int? ProductQuantity = null);
 
 public sealed record CashTotalResponse(string Key, decimal Total);
 

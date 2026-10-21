@@ -377,7 +377,10 @@ public sealed class CashSessionService(IUnderFitDataStore dataStore, TimeProvide
             movement.MemberName,
             movement.OccurredAtUtc,
             movement.CorrectionOfId,
-            movement.CorrectionReason);
+            movement.CorrectionReason,
+            movement.ProductId,
+            movement.ProductName,
+            movement.ProductQuantity);
 
     private static string MapMovementType(CashMovementType type) =>
         type switch

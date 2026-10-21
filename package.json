@@ -1,6 +1,6 @@
 {
   "name": "under-fit",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "App de escritorio para gestion de gimnasio",
   "main": "main.js",
   "scripts": {

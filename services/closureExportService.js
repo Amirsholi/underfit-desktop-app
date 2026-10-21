@@ -1,448 +1,66 @@
 const fs = require('fs');
 const path = require('path');
 const { BrowserWindow } = require('electron');
-
+const { summarizeMovements, cents } = require('./closureReportModel');
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = value => new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU', minimumFractionDigits: Number.isInteger(value / 100) ? 0 : 2, maximumFractionDigits: 2 }).format(value / 100);
+const time = (formatted, timestamp) => formatted || (timestamp && !Number.isNaN(new Date(timestamp).valueOf()) ? new Date(timestamp).toLocaleTimeString('es-UY', { timeZone: 'America/Montevideo', hour12: false }) : 'No informada');
+const dateLabel = date => /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date.split('-').reverse().join('/') : escapeHtml(date);
+function receiptsTable(model) {
+  const other = model.hasOther;
+  const head = `<thead><tr><th>Concepto</th><th>Cantidad</th><th class="cash">Efectivo</th><th class="transfer">Transferencia</th>${other ? '<th>Otros</th>' : ''}<th class="total">Total</th></tr></thead>`;
+  const amounts = row => `<td class="cash">${money(row.efectivo)}</td><td class="transfer">${money(row.transferencia)}</td>${other ? `<td>${money(row.otros)}</td>` : ''}<td class="total">${money(row.efectivo + row.transferencia + row.otros)}</td>`;
+  const rows = model.groups.map(g => `<tr><td>${escapeHtml(g.label)}</td><td>${g.knownQuantity ? '×' + g.quantity : 'N/D'}</td>${amounts(g)}</tr>`).join('');
+  return `<table class="receipts">${head}<tbody>${rows || `<tr><td colspan="${other ? 6 : 5}">Sin cobros registrados</td></tr>`}<tr class="grand"><td>Total cobrado</td><td></td>${amounts(model.receipts)}</tr></tbody></table>${model.groups.some(g => !g.knownQuantity) ? '<p class="note">N/D: cantidad no disponible.</p>' : ''}`;
+}
+function adjustmentsTable(model) {
+  if (!model.adjustments.length) return '';
+  const totals = { efectivo: 0, transferencia: 0, otros: 0 };
+  for (const row of model.adjustments) totals[row.method] += row.amount;
+  return `<h3>Salidas y correcciones</h3><table><thead><tr><th>Concepto / motivo</th><th>Efectivo</th><th>Transferencia</th>${model.hasOther ? '<th>Otros</th>' : ''}<th>Total</th></tr></thead><tbody>${model.adjustments.map(a => `<tr><td>${escapeHtml(a.label)} · ${escapeHtml(a.detail)}</td><td>${money(a.method === 'efectivo' ? a.amount : 0)}</td><td>${money(a.method === 'transferencia' ? a.amount : 0)}</td>${model.hasOther ? `<td>${money(a.method === 'otros' ? a.amount : 0)}</td>` : ''}<td>${money(a.amount)}</td></tr>`).join('')}<tr class="subtotal"><td>Total salidas y correcciones</td><td>${money(totals.efectivo)}</td><td>${money(totals.transferencia)}</td>${model.hasOther ? `<td>${money(totals.otros)}</td>` : ''}<td>${money(totals.efectivo + totals.transferencia + totals.otros)}</td></tr></tbody></table>`;
+}
+function balanceHtml(session, model) {
+  const initial = cents(session.monto_inicial_efectivo);
+  const calculated = initial + model.net.efectivo;
+  const expected = session.efectivoEsperado ?? session.efectivo_esperado;
+  const counted = session.efectivo_contado;
+  const difference = counted == null ? null : cents(counted) - (expected == null ? calculated : cents(expected));
+  return `<div class="balance"><h3>Control del efectivo</h3><p>Inicial <b>${money(initial)}</b> + cobros <b>${money(model.receipts.efectivo)}</b> + salidas y correcciones <b>${money(model.net.efectivo - model.receipts.efectivo)}</b></p><div class="final-balance"><span>Efectivo final calculado</span><strong>${money(calculated)}</strong></div>${expected != null && cents(expected) !== calculated ? `<p>Saldo guardado al cierre: <b>${money(cents(expected))}</b> · Diferencia con los movimientos: <b>${money(cents(expected) - calculated)}</b></p>` : ''}${counted != null ? `<p>Contado registrado: <b>${money(cents(counted))}</b> · ${difference === 0 ? 'Sin diferencia' : difference > 0 ? 'Sobrante: ' + money(difference) : 'Faltante: ' + money(-difference)}</p>` : ''}</div>`;
+}
 function createClosureExportService({ cashService, getDbPath }) {
   function getClosuresDirectory() {
-    const dbPath = getDbPath();
-    const baseDir = path.dirname(dbPath);
-    const closuresDir = path.join(baseDir, 'cierres');
-    fs.mkdirSync(closuresDir, { recursive: true });
-    return closuresDir;
+    const directory = path.join(path.dirname(getDbPath()), 'cierres');
+    fs.mkdirSync(directory, { recursive: true });
+    return directory;
   }
-
-  function getPdfPath(fecha) {
-    return path.join(getClosuresDirectory(), `cierre-caja-${fecha}.pdf`);
-  }
-
-  function formatMoney(value) {
-    return new Intl.NumberFormat('es-UY', {
-      style: 'currency',
-      currency: 'UYU',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Number(value || 0));
-  }
-
-  function escapeHtml(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function formatDifferenceLabel(value) {
-    const amount = Number(value || 0);
-    if (amount > 0) return `Sobrante ${formatMoney(amount)}`;
-    if (amount < 0) return `Faltante ${formatMoney(amount)}`;
-    return `Sin diferencia ${formatMoney(0)}`;
-  }
-
-  function formatMovementType(value) {
-    const labels = {
-      alta: 'Alta',
-      renovacion: 'Renovación',
-      venta_producto: 'Venta de producto',
-      ingreso_manual: 'Ingreso manual',
-      egreso: 'Salida',
-      ajuste_manual: 'Ajuste',
-      anulacion: 'Anulación por corrección',
-    };
-    return labels[value] || value || '-';
-  }
-
-  function formatPaymentMethod(value) {
-    const labels = {
-      efectivo: 'Efectivo',
-      transferencia: 'Transferencia',
-      ajuste: 'Ajuste',
-    };
-    return labels[value] || value || '-';
-  }
-
-  function buildMovementsRows(movimientos = []) {
-    if (!movimientos.length) {
-      return `<tr><td colspan="5">Sin movimientos registrados</td></tr>`;
-    }
-
-    return movimientos.map(row => {
-      const detalle = row.usuario_nombre || row.producto_nombre || row.descripcion || '-';
-      return `<tr>
-        <td>${escapeHtml(row.hora || '-')}</td>
-        <td>${escapeHtml(formatMovementType(row.tipo_ingreso))}</td>
-        <td>${escapeHtml(detalle)}</td>
-        <td>${escapeHtml(formatPaymentMethod(row.forma_pago))}</td>
-        <td>${formatMoney(row.monto)}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  function buildProductRows(products = []) {
-    if (!products.length) return `<tr><td colspan="5">Sin ventas de productos</td></tr>`;
-    return products.map(product => `<tr>
-      <td>${escapeHtml(product.nombre)}</td>
-      <td>${Number(product.cantidad || 0)}</td>
-      <td>${formatMoney(product.efectivo)}</td>
-      <td>${formatMoney(product.transferencia)}</td>
-      <td>${formatMoney(product.total)}</td>
-    </tr>`).join('');
-  }
-
-  function buildPendingRows(sales = []) {
-    return sales.map(sale => `<tr>
-      <td>${escapeHtml(sale.hora || '-')}</td>
-      <td>${escapeHtml(sale.usuarioNombre || sale.usuario_nombre || '-')}</td>
-      <td>${escapeHtml(sale.productoNombre || sale.producto_nombre || '-')}</td>
-      <td>${escapeHtml(sale.profesor || '-')}</td>
-      <td>${formatMoney(sale.total)}</td>
-    </tr>`).join('');
-  }
-
-  function buildConceptRows(report) {
-    const totals = report.totalesPorTipoIngreso || {};
-    const concepts = [
-      ['Altas', totals.altas],
-      ['Renovaciones', totals.renovaciones],
-      ['Ventas de productos', totals.ventasProductos],
-      ['Ingresos manuales', totals.ingresosManuales],
-      ['Salidas', Math.abs(Number(totals.egresos || 0))],
-      ['Ajustes', totals.ajustes],
-    ].filter(([, value]) => Math.abs(Number(value || 0)) > 0.0001);
-
-    return concepts.map(([label, value]) => `<tr>
-      <td>${label}</td>
-      <td>${formatMoney(value)}</td>
-    </tr>`).join('');
-  }
-
-  function buildSessionHtml(sesion, index) {
-    const isClosed = sesion.estado === 'cerrada';
-    const cierreLabel = isClosed
-      ? `${escapeHtml(sesion.cajero_cierre || 'Sin registrar')} a las ${escapeHtml(sesion.hora_cierre || '-')}`
-      : 'Caja abierta pendiente de cierre';
-    const notes = [
-      sesion.observacion_apertura
-        ? `<div><span class="meta-label">Observación de apertura</span><p>${escapeHtml(sesion.observacion_apertura)}</p></div>`
-        : '',
-      sesion.observacion_cierre
-        ? `<div><span class="meta-label">Observación de cierre</span><p>${escapeHtml(sesion.observacion_cierre)}</p></div>`
-        : '',
-    ].filter(Boolean).join('');
-    const notesHtml = notes ? `<div class="notes">${notes}</div>` : '';
-    const products = sesion.ventasPorProducto || [];
-    const productsHtml = products.length
-      ? `<div class="subsection">
-          <h3>Ventas por producto</h3>
-          <table>
-            <thead>
-              <tr><th>Producto</th><th>Unidades</th><th>Efectivo</th><th>Transferencia</th><th>Total</th></tr>
-            </thead>
-            <tbody>${buildProductRows(products)}</tbody>
-          </table>
-        </div>`
-      : '';
-
-    return `<section class="section session">
-      <h2>Caja ${index + 1}</h2>
-      <div class="session-grid">
-        <div><span class="meta-label">Apertura</span><strong>${escapeHtml(sesion.cajero_apertura || 'Sin registrar')} · ${escapeHtml(sesion.hora_apertura || '-')}</strong></div>
-        <div><span class="meta-label">Cierre</span><strong>${cierreLabel}</strong></div>
-        <div><span class="meta-label">Monto inicial</span><strong>${formatMoney(sesion.monto_inicial_efectivo)}</strong></div>
-        <div><span class="meta-label">Efectivo esperado</span><strong>${formatMoney(sesion.efectivoEsperado)}</strong></div>
-        <div><span class="meta-label">Efectivo contado</span><strong>${isClosed ? formatMoney(sesion.efectivo_contado) : '-'}</strong></div>
-        <div><span class="meta-label">Diferencia</span><strong>${isClosed ? formatDifferenceLabel(sesion.diferencia_efectivo) : '-'}</strong></div>
-      </div>
-      ${notesHtml}
-      <h3>Movimientos de caja</h3>
-      <table>
-        <thead>
-          <tr><th>Hora</th><th>Tipo</th><th>Detalle</th><th>Pago</th><th>Monto</th></tr>
-        </thead>
-        <tbody>
-          ${buildMovementsRows(sesion.movimientos)}
-        </tbody>
-      </table>
-      ${productsHtml}
-    </section>`;
-  }
-
+  function getPdfPath(date) { return path.join(getClosuresDirectory(), `cierre-caja-${date}.pdf`); }
   function buildReportHtml(report) {
-    const closedSessions = (report.sesiones || []).filter(sesion => sesion.estado === 'cerrada');
-    const openSessions = (report.sesiones || []).filter(sesion => sesion.estado === 'abierta');
-    const paymentTotals = report.totalesPorFormaPago || {};
-    const typeTotals = report.totalesPorTipoIngreso || {};
-    const conceptRows = buildConceptRows(report);
-    const pendingSales = report.ventasPendientes || [];
-    const sessionSections = closedSessions.length
-      ? closedSessions.map(buildSessionHtml).join('')
-      : `<section class="section"><h2>Cajas cerradas</h2><p class="empty">Todavía no hay cajas cerradas para esta fecha.</p></section>`;
-    const conceptSection = conceptRows
-      ? `<section class="section compact-section">
-          <h2>Ingresos y salidas por concepto</h2>
-          <table class="concept-table">
-            <thead><tr><th>Concepto</th><th>Total</th></tr></thead>
-            <tbody>${conceptRows}</tbody>
-          </table>
-        </section>`
-      : '';
-    const openNotice = openSessions.length
-      ? `<section class="section warning"><h2>Caja abierta pendiente</h2><p>Hay una caja abierta por ${escapeHtml(openSessions[0].cajero_apertura || 'Sin registrar')} desde las ${escapeHtml(openSessions[0].hora_apertura || '-')}.</p></section>`
-      : '';
-    const pendingSection = pendingSales.length
-      ? `<section class="section warning pending-section">
-          <div class="section-heading">
-            <div>
-              <h2>Ventas entregadas sin cobrar</h2>
-              <p class="empty">Control aparte: estos importes no integran el efectivo ni las transferencias cobradas.</p>
-            </div>
-            <strong>${formatMoney(report.pendientes?.total || 0)}</strong>
-          </div>
-          <table>
-            <thead><tr><th>Hora</th><th>Socio</th><th>Producto</th><th>Registró</th><th>Importe pendiente</th></tr></thead>
-            <tbody>${buildPendingRows(pendingSales)}</tbody>
-          </table>
-        </section>`
-      : '';
-
-    return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Cierre de caja ${escapeHtml(report.fecha)}</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #0e1116;
-      --panel: #161b22;
-      --soft: #f6f7fb;
-      --line: #d9dfea;
-      --ink: #111827;
-      --muted: #6b7280;
-      --accent: #ff6a1a;
-      --accent-soft: rgba(255, 106, 26, 0.12);
-      --warn-soft: rgba(245, 158, 11, 0.14);
+    const sessions = [...(report.sesiones || [])].sort((a, b) => String(a.ts_apertura || a.hora_apertura || '').localeCompare(String(b.ts_apertura || b.hora_apertura || '')));
+    const model = summarizeMovements(sessions.flatMap(s => s.movimientos || []));
+    const first = sessions[0];
+    const last = sessions.at(-1);
+    const lastModel = summarizeMovements(last?.movimientos || []);
+    const closed = sessions.filter(s => s.estado === 'cerrada').length;
+    const pending = report.ventasPendientes || [];
+    let carry = 0;
+    for (let i = 1; i < sessions.length; i++) {
+      const previous = sessions[i - 1];
+      carry += cents(sessions[i].monto_inicial_efectivo) - cents(previous.monto_inicial_efectivo) - summarizeMovements(previous.movimientos).net.efectivo;
     }
-    * { box-sizing: border-box; }
-    @page {
-      size: A4;
-      margin: 12mm;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      color: var(--ink);
-      background: #ffffff;
-    }
-    .sheet {
-      display: grid;
-      gap: 14px;
-    }
-    .hero {
-      display: grid;
-      gap: 5px;
-      padding: 18px 20px;
-      border-radius: 14px;
-      background:
-        radial-gradient(circle at top right, rgba(255, 106, 26, 0.18), transparent 28%),
-        linear-gradient(180deg, #11151c, #0b0e13);
-      color: #f9fafb;
-      break-inside: avoid;
-    }
-    .hero h1 {
-      margin: 0;
-      font-size: 25px;
-      font-weight: 700;
-    }
-    .hero p {
-      margin: 0;
-      color: rgba(249, 250, 251, 0.78);
-      font-size: 12px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 9px;
-      break-inside: avoid;
-    }
-    .card {
-      padding: 13px 14px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--soft);
-    }
-    .card-label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .card-value {
-      display: block;
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-    .section {
-      display: grid;
-      gap: 10px;
-      padding: 15px 17px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #fff;
-    }
-    .section h2 {
-      margin: 0;
-      font-size: 16px;
-    }
-    .section h3 {
-      margin: 3px 0 0;
-      font-size: 13px;
-    }
-    .session-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px 14px;
-      padding: 5px 0 8px;
-      break-inside: avoid;
-    }
-    .session-grid strong {
-      display: block;
-      margin-top: 2px;
-      font-size: 12px;
-    }
-    .meta-label {
-      display: block;
-      color: var(--muted);
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.035em;
-    }
-    .notes {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 9px 11px;
-      border-radius: 9px;
-      background: var(--soft);
-      break-inside: avoid;
-    }
-    .notes p {
-      margin: 3px 0 0;
-      color: var(--ink);
-      font-size: 11px;
-    }
-    .subsection {
-      display: grid;
-      gap: 7px;
-      padding-top: 5px;
-      break-inside: avoid;
-    }
-    .warning {
-      background: var(--warn-soft);
-    }
-    .empty {
-      margin: 0;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.4;
-    }
-    .section-heading {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 20px;
-    }
-    .section-heading > strong {
-      flex: 0 0 auto;
-      color: #9a3412;
-      font-size: 18px;
-    }
-    .compact-section {
-      break-inside: avoid;
-    }
-    .concept-table {
-      font-size: 12px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-    th, td {
-      padding: 7px 8px 7px 0;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      color: var(--muted);
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    th:last-child,
-    td:last-child {
-      padding-right: 0;
-      text-align: right;
-    }
-    tr:last-child td { border-bottom: none; }
-    thead {
-      display: table-header-group;
-    }
-    tr {
-      break-inside: avoid;
-    }
-    .card,
-    .compact-section,
-    .pending-section,
-    .warning {
-      break-inside: avoid;
-    }
-  </style>
-</head>
-<body>
-  <main class="sheet">
-    <section class="hero">
-      <h1>Cierre de caja</h1>
-      <p>Fecha: ${escapeHtml(report.fecha)}</p>
-      <p>${closedSessions.length} ${closedSessions.length === 1 ? 'caja cerrada' : 'cajas cerradas'}${openSessions.length ? ' - hay una caja abierta pendiente' : ''}</p>
-    </section>
-
-    <section class="grid">
-      <div class="card">
-        <span class="card-label">Efectivo</span>
-        <span class="card-value">${formatMoney(paymentTotals.efectivo)}</span>
-      </div>
-      <div class="card">
-        <span class="card-label">Transferencias</span>
-        <span class="card-value">${formatMoney(paymentTotals.transferencia)}</span>
-      </div>
-      <div class="card">
-        <span class="card-label">Salidas</span>
-        <span class="card-value">${formatMoney(Math.abs(Number(typeTotals.egresos || 0)))}</span>
-      </div>
-      <div class="card">
-        <span class="card-label">Total caja</span>
-        <span class="card-value">${formatMoney(report.totalGeneral)}</span>
-      </div>
-    </section>
-
-    ${conceptSection}
-    ${sessionSections}
-    ${openNotice}
-    ${pendingSection}
-  </main>
-</body>
-</html>`;
+    const sections = sessions.map((s, i) => {
+      const m = summarizeMovements(s.movimientos);
+      return `<section class="session"><header><h2>${s.estado === 'cerrada' ? 'Cierre' : 'Caja abierta'} ${i + 1} · ${escapeHtml(s.cajero_cierre || s.cajero_apertura || 'Sin registrar')}</h2><p>Apertura: ${escapeHtml(time(s.hora_apertura, s.ts_apertura))} · Abre: ${escapeHtml(s.cajero_apertura || 'Sin registrar')}</p><p>${s.estado === 'cerrada' ? `Cierre: ${escapeHtml(time(s.hora_cierre, s.ts_cierre))} · Cierra: ${escapeHtml(s.cajero_cierre || 'Sin registrar')}` : 'Pendiente de cierre'}</p></header><h3>Cobros por concepto</h3>${receiptsTable(m)}${adjustmentsTable(m)}${balanceHtml(s, m)}${s.observacion_apertura ? `<p>Observación de apertura: ${escapeHtml(s.observacion_apertura)}</p>` : ''}${s.observacion_cierre || s.observacion ? `<p>Observación: ${escapeHtml(s.observacion_cierre || s.observacion)}</p>` : ''}</section>`;
+    }).join('');
+    return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Cierre de caja ${escapeHtml(report.fecha)}</title><style>
+    @page { size:A4; margin:14mm 12mm 16mm; }
+    * { box-sizing:border-box; } body { margin:0; font:11px/1.4 "Segoe UI",sans-serif; color:#18212b; background:white; }
+    h1 { font-size:28px; margin:5px 0 8px; } h2 { font-size:20px; margin:0 0 8px; } h3 { font-size:14px; margin:18px 0 7px; break-after:avoid; }
+    p { margin:5px 0; } .brand,.note { color:#586574; font-size:10px; } header { break-inside:avoid; break-after:avoid; } .meta { margin:16px 0; padding:10px; background:#f4f5f7; border:1px solid #dde2e7; }
+    table { width:100%; border-collapse:collapse; table-layout:fixed; margin:5px 0; font-size:11px; } th,td { padding:7px 8px; border-bottom:1px solid #dde2e7; vertical-align:top; text-align:right; overflow-wrap:anywhere; } th { background:#eef1f4; font-weight:600; } th:first-child,td:first-child { text-align:left; width:36%; } .receipts th:nth-child(2) { width:11%; } .cash { background:#e2f3e9; } .transfer { background:#e3eefc; } th.cash { color:#166548; } th.transfer { color:#245a91; } .total { border-left:1px solid #cbd2d9; font-weight:700; } .grand td { background:#18212b; color:white; font-weight:700; padding-top:10px; padding-bottom:10px; } .subtotal td { background:#eef1f4; font-weight:700; }
+    thead { display:table-header-group; } tr { break-inside:avoid; } .balance { break-inside:avoid; margin-top:12px; } .final-balance { display:flex; justify-content:space-between; gap:20px; background:#18212b; color:white; font-weight:700; padding:12px; margin:8px 0; font-size:13px; }
+    .session { break-before:page; } .pending { break-before:page; } .note { margin-top:7px; }
+    </style></head><body><section><header><p class="brand">UNDER-FIT</p><h1>Cierre de caja</h1><p>${dateLabel(report.fecha)} · Caja central · ${closed} ${closed === 1 ? 'cierre registrado' : 'cierres registrados'}${sessions.some(s => s.estado !== 'cerrada') ? ' · Hay una caja abierta' : ''}</p></header>${first ? `<div class="meta"><p><b>Apertura del día:</b> ${escapeHtml(time(first.hora_apertura, first.ts_apertura))} · ${escapeHtml(first.cajero_apertura || 'Sin registrar')}</p><p><b>${last.estado === 'cerrada' ? 'Último cierre' : 'Último turno (abierto)'}:</b> ${last.estado === 'cerrada' ? escapeHtml(time(last.hora_cierre, last.ts_cierre)) : 'Pendiente'} · ${escapeHtml(last.cajero_cierre || last.cajero_apertura || 'Sin registrar')}</p></div>` : ''}<h3>Cobros por concepto</h3>${receiptsTable(model)}${adjustmentsTable(model)}${first ? `<div class="balance"><h3>Control del efectivo del día</h3><p>Inicial <b>${money(cents(first.monto_inicial_efectivo))}</b> + cobros <b>${money(model.receipts.efectivo)}</b> + salidas y correcciones <b>${money(model.net.efectivo - model.receipts.efectivo)}</b>${carry ? ` + variación entre aperturas <b>${money(carry)}</b>` : ''}</p><div class="final-balance"><span>Efectivo final calculado</span><strong>${money(cents(last.monto_inicial_efectivo) + lastModel.net.efectivo)}</strong></div><p>Transferencias netas: <b>${money(model.net.transferencia)}</b></p></div>` : ''}</section>${sections}${pending.length ? `<section class="pending"><h2>Ventas entregadas sin cobrar</h2><p>No incluidas en los cobros.</p><table><thead><tr><th>Producto</th><th>Socio</th><th>Registró</th><th>Pendiente</th></tr></thead><tbody>${pending.map(s => `<tr><td>${escapeHtml(s.productoNombre || s.producto_nombre)}</td><td>${escapeHtml(s.usuarioNombre || s.usuario_nombre)}</td><td>${escapeHtml(s.profesor)}</td><td>${money(cents(s.total))}</td></tr>`).join('')}</tbody></table></section>` : ''}</body></html>`;
   }
-
   async function exportDailyClosurePdf(fecha) {
     const report = await cashService.getDailyReport(fecha);
     const pdfPath = getPdfPath(fecha);
@@ -463,6 +81,9 @@ function createClosureExportService({ cashService, getDbPath }) {
         printBackground: true,
         pageSize: 'A4',
         preferCSSPageSize: true,
+        displayHeaderFooter: true,
+        headerTemplate: '<span></span>',
+        footerTemplate: '<div style="font-size:8px;color:#586574;width:100%;padding:0 12mm;display:flex;justify-content:space-between"><span>UNDER-FIT · Importes en pesos uruguayos</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>',
       });
       fs.writeFileSync(pdfPath, pdfBuffer);
       return {

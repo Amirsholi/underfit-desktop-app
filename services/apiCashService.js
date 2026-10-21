@@ -5,6 +5,12 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   }
 
+  const normalizeType = type => ({ registration: 'alta', productsale: 'venta_producto', membershiprenewal: 'renovacion' }[type] || type);
+  function localTime(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.valueOf()) ? null : date.toLocaleTimeString('es-UY', { hour12: false, timeZone: 'America/Montevideo' });
+  }
   function mapSession(session) {
     if (!session) return null;
     const opened = new Date(session.openedAtUtc);
@@ -13,7 +19,7 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
       fecha: session.businessDate,
       hora_apertura: Number.isNaN(opened.valueOf())
         ? null
-        : opened.toLocaleTimeString('es-UY', { hour12: false }),
+        : localTime(session.openedAtUtc),
       ts_apertura: session.openedAtUtc,
       cajero_apertura: session.cashier,
       monto_inicial_efectivo: Number(session.openingCash),
@@ -32,6 +38,8 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
       ts_apertura: closure.openedAtUtc,
       cajero_cierre: closure.closingCashier,
       ts_cierre: closure.closedAtUtc,
+      hora_apertura: localTime(closure.openedAtUtc),
+      hora_cierre: localTime(closure.closedAtUtc),
       total_ingresos: Number(closure.totalIncome),
       cantidad_movimientos: Number(closure.movementCount),
       total_efectivo: Number(closure.totalCash),
@@ -58,7 +66,7 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
         ? null
         : occurred.toLocaleTimeString('es-UY', { hour12: false }),
       ts: movement.occurredAtUtc,
-      tipo_ingreso: movement.type,
+      tipo_ingreso: normalizeType(movement.type),
       forma_pago: movement.paymentMethod,
       monto: Number(movement.amount),
       monto_recibido: Number(movement.amount),
@@ -67,9 +75,9 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
       observacion: movement.note || null,
       usuario_ci: movement.memberIdentityNumber || null,
       usuario_nombre: movement.memberName || null,
-      producto_id: null,
-      producto_nombre: null,
-      cantidad: 1,
+      producto_id: movement.productId ?? null,
+      producto_nombre: movement.productName ?? null,
+      cantidad: movement.productQuantity ?? null,
       referencia_tabla: 'membership_renewals',
       referencia_id: movement.correctionOfId || null,
       correccion_de_id: movement.correctionOfId || null,
@@ -90,7 +98,7 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
         total: Number(item.total),
       })),
       totalPorTipoIngreso: summary.totalsByType.map(item => ({
-        tipoIngreso: item.key,
+        tipoIngreso: normalizeType(item.key),
         total: Number(item.total),
       })),
       efectivoEsperado: Number(summary.expectedCash),
@@ -111,7 +119,7 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
   async function getDailyReport(fecha) {
     const reportDate = fecha || today();
     const report = await apiClient.getCashDailyReport(reportDate);
-    const summaries = report.sessions.map(mapSummary);
+    const summaries = [...report.sessions].sort((a, b) => String(a.opening?.openedAtUtc || '').localeCompare(String(b.opening?.openedAtUtc || ''))).map(mapSummary);
     const sessions = summaries.map(summary => {
       const byType = totalsObject(summary.totalPorTipoIngreso, 'tipoIngreso');
       const byPayment = totalsObject(summary.totalPorFormaPago, 'formaPago');
@@ -154,7 +162,7 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
       fecha: reportDate,
       cajaInicial: Number(summaries[0]?.apertura?.monto_inicial_efectivo || 0),
       totalGeneral: summaries.reduce((total, item) => total + item.totalIngresos, 0),
-      efectivoEsperado: summaries.reduce((total, item) => total + item.efectivoEsperado, 0),
+      efectivoEsperado: Number(summaries.at(-1)?.efectivoEsperado || 0),
       totalesPorTipoIngreso: {
         altas: Number(totalByType.alta || 0),
         renovaciones: Number(totalByType.renovacion || 0),

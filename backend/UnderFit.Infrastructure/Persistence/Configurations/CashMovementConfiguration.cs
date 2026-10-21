@@ -13,6 +13,7 @@ public sealed class CashMovementConfiguration : IEntityTypeConfiguration<CashMov
             "CK_cash_movements_legacy_session",
             "(\"CashSessionId\" IS NULL) = \"IsLegacyUnassigned\""));
         builder.Property(movement => movement.IsLegacyUnassigned).HasDefaultValue(false);
+        builder.Property(movement => movement.ProductName).HasMaxLength(300);
         builder.HasKey(movement => movement.Id);
         builder.Property(movement => movement.MemberIdentityNumber).HasMaxLength(32);
         builder.Property(movement => movement.MemberName).HasMaxLength(160);

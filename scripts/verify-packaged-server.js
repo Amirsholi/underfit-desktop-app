@@ -42,7 +42,7 @@ async function main() {
   const tables = ['members', 'entries', 'membership_renewals', 'cash_sessions', 'cash_movements', 'product_sales', 'products'];
   // Compare historical values independently of the newly added availability columns.
   const fingerprint = db => tables.map(table => {
-    const row = table === 'products' ? "(to_jsonb(t) - 'AvailableLocal1' - 'AvailableLocal2')::text" : 'to_jsonb(t)::text';
+    const row = table === 'products' ? "(to_jsonb(t) - 'AvailableLocal1' - 'AvailableLocal2')::text" : table === 'cash_movements' ? "(to_jsonb(t) - 'ProductId' - 'ProductName' - 'ProductQuantity')::text" : 'to_jsonb(t)::text';
     return query(db, `SELECT md5(COALESCE(string_agg(${row}, E'\\n' ORDER BY ${row}),'')) FROM ${table} t`);
   });
   const before = empty ? null : fingerprint(source);
@@ -94,6 +94,8 @@ async function main() {
     } else {
       assert.deepEqual(fingerprint(source), before, 'Cambió la migración original.');
       assert.deepEqual(fingerprint(target), before, 'El arranque alteró los registros importados.');
+      const hadSnapshot = query(source, "SELECT count(*) FROM information_schema.columns WHERE table_name='cash_movements' AND column_name='ProductQuantity'") !== '0';
+      if (!hadSnapshot) assert.equal(query(target, 'SELECT count(*) FROM cash_movements WHERE "ProductId" IS NOT NULL OR "ProductName" IS NOT NULL OR "ProductQuantity" IS NOT NULL'), '0', 'Historical quantities must not be invented.');
       const hadAvailability = query(source, "SELECT count(*) FROM information_schema.columns WHERE table_name='products' AND column_name='AvailableLocal1'") !== '0';
       if (!hadAvailability) assert.equal(query(target, 'SELECT count(*) FROM products WHERE "AvailableLocal1" <> "IsActive" OR "AvailableLocal2" <> "IsActive"'), '0', 'Availability must preserve active state.');
     }

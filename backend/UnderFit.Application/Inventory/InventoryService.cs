@@ -69,6 +69,7 @@ public sealed class InventoryService(IUnderFitDataStore dataStore, TimeProvider 
             movement = CashMovement.ProductSale(
                 cashSession.Id, amount, paymentMethod, product.Name,
                 request.Payment?.Observacion, now);
+            movement.SetProductSnapshot(product.Id, product.Name, quantity);
             dataStore.AddCashMovement(movement);
         }
         await dataStore.SaveChangesAsync(ct);
@@ -148,6 +149,7 @@ public sealed class InventoryService(IUnderFitDataStore dataStore, TimeProvider 
             cashSession.Id, sale.Total, paymentMethod,
             $"{sale.ProductName} · venta pendiente Local {sale.LocationId}",
             note, now, member?.Id, sale.MemberIdentityNumber, sale.MemberName);
+        movement.SetProductSnapshot(sale.ProductId, sale.ProductName, sale.Quantity);
         dataStore.AddCashMovement(movement);
         sale.Collect(paymentMethod, movement.Id, now);
         await dataStore.SaveChangesAsync(ct);
