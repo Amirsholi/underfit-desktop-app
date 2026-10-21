@@ -31,7 +31,7 @@ public static class TabletEndpoints
                 int.TryParse(context.HttpContext.Request.RouteValues["id"]?.ToString(), out var id))
             {
                 var db = context.HttpContext.RequestServices.GetRequiredService<UnderFitDbContext>();
-                if (!await db.GymClasses.AnyAsync(x => x.Id == id && x.LocationId == 2, context.HttpContext.RequestAborted))
+                if (!await db.GymClasses.AnyAsync(x => x.Id == id && x.Status != UnderFit.Domain.Classes.GymClassStatus.Deleted, context.HttpContext.RequestAborted))
                     return Results.NotFound(new { title = "La clase no pertenece al salón o ya no existe." });
             }
             return await next(context);

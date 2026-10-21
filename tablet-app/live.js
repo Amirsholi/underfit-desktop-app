@@ -85,7 +85,7 @@
   root.TabletLive = {
     store, exercises, routineData, client, load, ready: () => ready, professorId,
     async saveSchedule(values, existing) {
-      const schedule = { name: values.name, locationId: 2, professorId: 0,
+      const schedule = { name: values.name, locationId: existing?.location || values.location || 2, professorId: 0,
         professor: values.professor, weekdays: values.weekdays, time: values.time + ':00',
         durationMinutes: values.duration, capacity: values.capacity, startsOn: values.startDate,
         endsOn: values.endDate || null, notes: null };

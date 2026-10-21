@@ -25,7 +25,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
         await classes.ListAsync(start, ct);
         var end = start.AddDays(7);
         var visible = await db.GymClasses.AsNoTracking()
-            .Where(x => x.LocationId == 2 && x.Date >= start && x.Date < end)
+            .Where(x => x.Status != GymClassStatus.Deleted && x.Date >= start && x.Date < end)
             .OrderBy(x => x.Date).ThenBy(x => x.Time).ToArrayAsync(ct);
         var records = new List<object>();
         foreach (var item in visible)
@@ -38,7 +38,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
                 roster = detail.Students.Select(x => new { memberId = x.IdentityNumber, name = x.MemberName,
                     presence = x.Present ? "present" : null, rating = x.PerformanceRating ?? 0 }) });
         }
-        var schedules = await db.ClassSchedules.AsNoTracking().Where(x => x.IsActive && x.LocationId == 2).ToArrayAsync(ct);
+        var schedules = await db.ClassSchedules.AsNoTracking().Where(x => x.IsActive).ToArrayAsync(ct);
         var templates = await training.ListTemplatesAsync(ct);
         var rawTemplates = await db.WorkoutTemplates.AsNoTracking().Where(x => x.IsActive).ToDictionaryAsync(x => x.Id, ct);
         var assignments = await training.ListActiveMemberPlansAsync(ct);
@@ -85,9 +85,9 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
             var professor = await db.FindProfessorAsync(gymClass.ProfessorId ?? 0, ct)
                 ?? throw new UseCaseException("staff.not_found", "La clase no tiene un profesor asignado.");
             var occurred = new DateTimeOffset(gymClass.Date.ToDateTime(gymClass.Time), clock.GetLocalNow().Offset).ToUniversalTime();
-            var entry = Entry.Register(member.Id, member.IdentityNumber, member.Name, occurred, "tablet_clase", $"Asistencia a {gymClass.Name}", 2, deviceId, id);
+            var entry = Entry.Register(member.Id, member.IdentityNumber, member.Name, occurred, "tablet_clase", $"Asistencia a {gymClass.Name}", gymClass.LocationId, deviceId, id);
             db.AddEntry(entry);
-            db.AddClassAttendance(new ClassAttendance(id, gymClass.ScheduleId, member.Id, member.IdentityNumber, member.Name, entry.Id, 2, professor.Id, null, deviceId, occurred));
+            db.AddClassAttendance(new ClassAttendance(id, gymClass.ScheduleId, member.Id, member.IdentityNumber, member.Name, entry.Id, gymClass.LocationId, professor.Id, null, deviceId, occurred));
         }
         await db.SaveChangesAsync(ct);
         return new { present = request.Present };
@@ -122,14 +122,14 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
     public async Task<object> SaveScheduleAsync(int? id, TabletScheduleRequest request, CancellationToken ct)
     {
         var input = request.Schedule;
-        if (input.LocationId != 2 || input.DurationMinutes is < 15 or > 240 || input.Capacity is < 1 or > 100)
+        if (input.LocationId is not (1 or 2) || input.DurationMinutes is < 15 or > 240 || input.Capacity is < 1 or > 100)
             throw new UseCaseException("schedule.invalid", "Revisá duración, cupo y salón.");
         var professor = await UnderFit.Application.Staff.ProfessorAttribution.ResolveAsync(db, input.Professor, input.ProfessorId, clock, ct);
         if (professor is null || !professor.IsActive) throw new UseCaseException("staff.not_found", "El profesor ya no está disponible.");
         ClassSchedule schedule;
         if (id is null)
         {
-            schedule = new(input.Name, 2, professor.Id, professor.Name, input.Weekdays, input.Time,
+            schedule = new(input.Name, input.LocationId, professor.Id, professor.Name, input.Weekdays, input.Time,
                 input.DurationMinutes, input.Capacity, input.StartsOn, input.EndsOn, input.Notes, clock.GetUtcNow());
             schedule.MarkAsTrial(request.IsTrial);
             db.AddClassSchedule(schedule);
@@ -137,7 +137,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
         }
         else
         {
-            schedule = await db.ClassSchedules.SingleOrDefaultAsync(x => x.Id == id && x.LocationId == 2 && x.IsActive, ct)
+            schedule = await db.ClassSchedules.SingleOrDefaultAsync(x => x.Id == id && x.IsActive, ct)
                 ?? throw new UseCaseException("schedule.not_found", "La clase semanal ya no existe.");
             if (schedule.UpdatedAtUtc != request.ExpectedVersion)
                 throw new UseCaseException("schedule.conflict", "La clase cambió desde otra pantalla. Volvé a abrirla.");
@@ -195,7 +195,7 @@ public sealed class TabletService(UnderFitDbContext db, ClassService classes, Tr
             throw new UseCaseException("exercise.not_found", "Un ejercicio ya no está disponible.");
     }
     private async Task<GymClass> RequireClass(int id, CancellationToken ct) =>
-        await db.GymClasses.SingleOrDefaultAsync(x => x.Id == id && x.LocationId == 2, ct)
+        await db.GymClasses.SingleOrDefaultAsync(x => x.Id == id && x.Status != GymClassStatus.Deleted, ct)
         ?? throw new UseCaseException("class.not_found", "La clase no pertenece al salón o ya no existe.");
     public static string TemplateVersion(UnderFit.Domain.Training.WorkoutTemplate template) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(template.Name + "\n" + template.DaysJson + "\n" + template.ProfessorId)));

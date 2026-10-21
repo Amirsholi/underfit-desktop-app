@@ -28,6 +28,31 @@ public sealed class PostgreSqlVerticalSliceTests
         "Host=localhost;Port=5432;Database=underfit;Username=underfit;Password=underfit_dev";
 
     [Fact]
+    public async Task TabletState_ShowsBothLocationsAndExcludesDeletedClasses()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDatabase();
+        await db.Database.MigrateAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 10, 21, 12, 0, 0, TimeSpan.Zero));
+        var classes = new ClassService(db, clock);
+        foreach (var location in new[] { 1, 2 })
+            await classes.CreateScheduleAsync(new("Clases local " + location, location, 0, "Responsable",
+                [3], new TimeOnly(17, 0), 60, 12, new DateOnly(2026, 10, 21), null, null), ct);
+        var tablet = new UnderFit.Api.Tablet.TabletService(db, classes,
+            new UnderFit.Application.Training.TrainingService(db, clock), clock);
+        var state = System.Text.Json.JsonSerializer.SerializeToElement(await tablet.StateAsync(new(2026, 10, 19), ct));
+        var visible = state.GetProperty("classes").EnumerateArray().ToArray();
+        Assert.Contains(visible, x => x.GetProperty("location").GetInt32() == 1);
+        Assert.Contains(visible, x => x.GetProperty("location").GetInt32() == 2);
+        var first = visible.First(x => x.GetProperty("location").GetInt32() == 1);
+        await classes.DeleteAsync(int.Parse(first.GetProperty("id").GetString()!), ct);
+        state = System.Text.Json.JsonSerializer.SerializeToElement(await tablet.StateAsync(new(2026, 10, 19), ct));
+        Assert.DoesNotContain(state.GetProperty("classes").EnumerateArray(), x => x.GetProperty("id").GetString() == first.GetProperty("id").GetString());
+        await transaction.RollbackAsync(ct);
+    }
+
+    [Fact]
     public async Task TypedAuthorAndSeriesRemoval_PreserveHistoryAndStopRegeneration()
     {
         var ct = TestContext.Current.CancellationToken;
