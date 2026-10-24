@@ -439,15 +439,30 @@ function createAdminEntriesController({ shared }) {
           .filter(row => row.tipo_ingreso === 'anulacion' && row.correccion_de_id)
           .map(row => Number(row.correccion_de_id))
       );
-      sinCaja.style.display = movimientos?.length ? 'none' : 'block';
-      document.getElementById('ledger-movement-count').textContent = `${movimientos?.length || 0} movimientos`;
+      const sessions = [...(resumen?.sesiones || [])].sort((a, b) => String(b.ts_apertura || '').localeCompare(String(a.ts_apertura || '')));
+      sinCaja.style.display = movimientos?.length || sessions.length ? 'none' : 'block';
+      document.getElementById('ledger-movement-count').textContent = `${movimientos?.length || 0} movimientos · ${sessions.length} cajas del día`;
 
-      (movimientos || []).forEach(row => {
+      const groups = sessions.map((session, index) => ({ session, number: sessions.length - index,
+        rows: movimientos.filter(row => String(row.caja_sesion_id) === String(session.id)) }));
+      const ungrouped = movimientos.filter(row => !sessions.some(session => String(row.caja_sesion_id) === String(session.id)));
+      if (ungrouped.length) groups.push({ rows: ungrouped });
+      groups.forEach(({ session, number, rows }) => {
+        if (session) {
+          const separator = document.createElement('tr');
+          separator.className = 'ledger-session-separator';
+          const cell = document.createElement('th');
+          cell.colSpan = 5;
+          cell.textContent = `Caja ${number} · Apertura ${session.hora_apertura || '—'} · ${session.estado === 'cerrada' ? `Cierre ${session.hora_cierre || '—'}` : 'Abierta'}${rows.length ? '' : ' · Sin movimientos'}`;
+          separator.appendChild(cell);
+          movementRows.appendChild(separator);
+        }
+      rows.forEach(row => {
         const isSale = row.tipo_ingreso === 'venta_producto';
         const detalle = isSale ? row.producto_nombre || row.descripcion || 'Venta de producto' : row.usuario_nombre || row.descripcion || 'Movimiento de caja';
         const esSalida = Number(row.monto || 0) < 0 || row.tipo_ingreso === 'egreso';
         const esManual = ['ingreso_manual', 'egreso'].includes(row.tipo_ingreso);
-        const canCorrect = esManual && Boolean(resumen?.sesionAbierta) && !correctedMovementIds.has(Number(row.id));
+        const canCorrect = esManual && Boolean(resumen?.sesionAbierta) && String(row.caja_sesion_id) === String(resumen.sesionAbierta.id) && !correctedMovementIds.has(Number(row.id));
         const metadata = [formatearTipoMovimiento(row.tipo_ingreso)];
         if (isSale && row.cantidad) metadata.push(`${row.cantidad} ${Number(row.cantidad) === 1 ? 'unidad' : 'unidades'}`);
         if (isSale && row.usuario_nombre) metadata.push(row.usuario_nombre);
@@ -462,6 +477,7 @@ function createAdminEntriesController({ shared }) {
           <td>${canCorrect ? `<button class="ledger-correct" type="button" data-corregir-movimiento="${Number(row.id)}">Corregir</button>` : ''}</td>
         `;
         movementRows.appendChild(tr);
+      });
       });
       tablaDashboardCaja.replaceChildren(movementRows);
 
@@ -789,14 +805,67 @@ function createAdminEntriesController({ shared }) {
   }
 
   async function refreshDashboard(fecha) {
+    renderCashWeek(fecha);
     await Promise.all([
       cargarCajaDelDia(fecha),
       cargarIngresosDelDia(fecha),
     ]);
   }
 
+  function cashDateValue(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function renderCashWeek(selected) {
+    const strip = document.getElementById('ledger-week');
+    if (!strip || !selected) return;
+    const date = new Date(`${selected}T12:00:00`);
+    if (Number.isNaN(date.valueOf())) return;
+    date.setDate(date.getDate() - (date.getDay() + 6) % 7);
+    const today = hoyYYYYMMDD();
+    const focusedDate = strip.contains(document.activeElement) ? document.activeElement.dataset.cashDate : null;
+    const fragment = document.createDocumentFragment();
+    for (let index = 0; index < 7; index++) {
+      const value = cashDateValue(date);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `ledger-day${value === today ? ' is-today' : ''}`;
+      button.dataset.cashDate = value;
+      button.setAttribute('aria-pressed', String(value === selected));
+      button.setAttribute('aria-label', date.toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+      if (value === today) button.setAttribute('aria-current', 'date');
+      const weekday = document.createElement('span');
+      weekday.textContent = value === today ? 'Hoy' : ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][index];
+      const number = document.createElement('strong');
+      number.textContent = String(date.getDate());
+      button.append(weekday, number);
+      fragment.appendChild(button);
+      date.setDate(date.getDate() + 1);
+    }
+    strip.replaceChildren(fragment);
+    if (focusedDate) strip.querySelector(`[data-cash-date="${focusedDate}"]`)?.focus();
+    document.getElementById('ledger-today').disabled = selected === today;
+  }
+
+  function selectCashDay(value) {
+    fechaDashboard.value = value;
+    fechaDashboard.dispatchEvent(new Event('change'));
+  }
+
   function init() {
     if (!fechaDashboard) return;
+    document.getElementById('ledger-week')?.addEventListener('click', event => {
+      const button = event.target.closest('[data-cash-date]');
+      if (button) selectCashDay(button.dataset.cashDate);
+    });
+    document.getElementById('ledger-today')?.addEventListener('click', () => selectCashDay(hoyYYYYMMDD()));
+    for (const [id, offset] of [['ledger-previous-day', -1], ['ledger-next-day', 1]]) {
+      document.getElementById(id)?.addEventListener('click', () => {
+        const date = new Date(`${fechaDashboard.value || hoyYYYYMMDD()}T12:00:00`);
+        date.setDate(date.getDate() + offset);
+        selectCashDay(cashDateValue(date));
+      });
+    }
     window.adminSync?.watch({
       enabled: () => Boolean(window.api && window.adminSync.active('home')),
       read: async () => {

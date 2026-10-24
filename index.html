@@ -465,13 +465,19 @@
       <div class="ledger-toolbar">
         <div class="ledger-date-group">
           <input id="dashboard-fecha" type="date" aria-label="Fecha de caja">
-          <span id="ledger-movement-count" aria-live="polite">Movimientos</span>
+          <button id="ledger-today" class="app-button" type="button">Hoy</button>
         </div>
+        <nav class="ledger-day-navigation" aria-label="Elegir día de caja">
+          <button id="ledger-previous-day" class="app-button ledger-day-arrow" type="button" aria-label="Día anterior"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+          <div id="ledger-week" class="ledger-week"></div>
+          <button id="ledger-next-day" class="app-button ledger-day-arrow" type="button" aria-label="Día siguiente"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+        </nav>
         <div class="ledger-actions">
           <button id="dashboard-registrar-ingreso-manual" class="app-button" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i>Entrada</button>
           <button id="dashboard-registrar-salida" class="app-button" type="button"><i class="fa-solid fa-minus" aria-hidden="true"></i>Salida</button>
         </div>
       </div>
+      <span id="ledger-movement-count" class="ledger-day-count" aria-live="polite">Movimientos</span>
       <div class="ledger-table-scroll">
         <table class="ledger-table" aria-label="Movimientos de caja">
           <colgroup><col class="ledger-col-time"><col><col class="ledger-col-payment"><col class="ledger-col-amount"><col class="ledger-col-action"></colgroup>

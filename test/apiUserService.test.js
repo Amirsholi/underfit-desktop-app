@@ -333,6 +333,9 @@ test('API cash service preserves closure totals and cash difference', async () =
       async getCashClosure() {
         return closure;
       },
+      async getCashDailyReport() {
+        return { sessions: [await this.getCashSummary()] };
+      },
       async getCashSummary() {
         return {
           businessDate: '2026-07-27',

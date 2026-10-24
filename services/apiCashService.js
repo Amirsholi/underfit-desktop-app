@@ -198,9 +198,20 @@ function createApiCashService({ apiClient, clock = () => new Date() }) {
       return session?.businessDate === (fecha || today()) ? mapSession(session) : null;
     },
     listMovementsByDate: async fecha =>
-      (await apiClient.getCashSummary(fecha || today())).movements.map(mapMovement),
-    getDailySummary: async fecha =>
-      mapSummary(await apiClient.getCashSummary(fecha || today())),
+      (await apiClient.getCashDailyReport(fecha || today())).sessions.flatMap(session => session.movements.map(mapMovement)),
+    getDailySummary: async fecha => {
+      const [current, report] = await Promise.all([
+        apiClient.getCashSummary(fecha || today()),
+        apiClient.getCashDailyReport(fecha || today()),
+      ]);
+      // Keep the active/latest session totals for reconciliation. Only the
+      // ledger expands to the entire day; closing must never count prior shifts.
+      return {
+        ...mapSummary(current),
+        sesiones: report.sessions.flatMap(session => mapSummary(session).sesiones),
+        movimientos: report.sessions.flatMap(session => session.movements.map(mapMovement)),
+      };
+    },
     getDailyReport,
     registerManualIncome: async ({ fecha, monto, formaPago = 'efectivo', observacion = null }) =>
       mapMovement(await apiClient.createManualCashIncome({
