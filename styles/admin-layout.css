@@ -127,6 +127,27 @@ body.admin-page {
   color: #ff4c00;
 }
 
+.sidebar-action.is-active {
+  border-color: #ff4c00;
+  background: rgba(255, 76, 0, 0.08);
+  color: #ff4c00;
+}
+
+.module-placeholder {
+  display: grid;
+  gap: 10px;
+  padding: 28px;
+  border: 1px dashed #cfd5df;
+  border-radius: 12px;
+  background: white;
+  color: #3a4150;
+}
+
+.module-placeholder p {
+  margin: 0;
+  color: #6b7280;
+}
+
 .sidebar-reserved {
   flex: 1;
   min-height: 220px;

@@ -1,0 +1,22 @@
+name: underfit
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: underfit
+      POSTGRES_USER: underfit
+      POSTGRES_PASSWORD: ${UNDERFIT_POSTGRES_PASSWORD:-underfit_dev}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - underfit-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U underfit -d underfit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  underfit-postgres:

@@ -1,0 +1,73 @@
+name: CI
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  desktop:
+    name: JavaScript and SQLite / Windows
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # Migration tests load the exact SQLite-era baseline from Git.
+          fetch-depth: 0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Install media test prerequisites
+        run: choco install ffmpeg --yes --no-progress
+      - name: Verify media tools
+        run: |
+          ffmpeg -version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ffprobe -version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - run: npm test
+      - run: python -m unittest discover -s test -p test_integration_copy.py
+      - run: node scripts/check-doc-links.js
+  backend:
+    name: .NET and PostgreSQL / Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: underfit_test
+          POSTGRES_USER: underfit_test
+          POSTGRES_PASSWORD: ephemeral-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U underfit_test -d underfit_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      UNDERFIT_TEST_CONNECTION_STRING: Host=127.0.0.1;Port=5432;Database=underfit_test;Username=underfit_test;Password=ephemeral-ci-only
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+      - run: dotnet test backend/UnderFit.UnitTests/UnderFit.UnitTests.csproj --configuration Release
+      - run: dotnet test backend/UnderFit.IntegrationTests/UnderFit.IntegrationTests.csproj --configuration Release

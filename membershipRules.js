@@ -50,6 +50,14 @@
     return expiration >= reference;
   }
 
+  function compareMembershipUrgency(firstExpiration, secondExpiration, referenceDate = todayLocal()) {
+    const firstDays = daysRemaining(firstExpiration, referenceDate);
+    const secondDays = daysRemaining(secondExpiration, referenceDate);
+    const firstGroup = firstDays > 0 ? 0 : 1;
+    const secondGroup = secondDays > 0 ? 0 : 1;
+    return firstGroup - secondGroup || firstDays - secondDays;
+  }
+
   function calculateRenewalExpiration(expirationDate, daysToAdd, paymentDate = todayLocal()) {
     const currentExpiration = parseLocalDate(expirationDate);
     const payment = new Date(paymentDate);
@@ -70,6 +78,7 @@
     addDays,
     daysRemaining,
     isMembershipActive,
+    compareMembershipUrgency,
     calculateRenewalExpiration,
     calculateManualExpirationFromToday,
   };

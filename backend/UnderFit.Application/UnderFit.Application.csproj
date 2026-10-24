@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../UnderFit.Contracts/UnderFit.Contracts.csproj" />
+    <ProjectReference Include="../UnderFit.Domain/UnderFit.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+body { margin: 0; background: #fff; color: #222; font: 16px/1.5 system-ui, sans-serif; }
+main { padding: 28px 32px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0 0 24px; }
+#status { font-weight: 600; border-left: 3px solid #c45b16; padding-left: 14px; }
+.detail { color: #444; margin: 18px 0 0; }

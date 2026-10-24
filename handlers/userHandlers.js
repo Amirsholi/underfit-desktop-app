@@ -22,6 +22,12 @@ function registerUserHandlers(ipcMain, userService) {
   ipcMain.handle('eliminar-usuario', async (_evt, ci) => {
     return userService.deleteUser(ci);
   });
+  ipcMain.handle('restablecer-acceso-movil', async (_evt, { ci, password } = {}) => {
+    if (typeof userService.resetMobileAccess !== 'function') {
+      throw new Error('El acceso móvil requiere la plataforma .NET/PostgreSQL.');
+    }
+    return userService.resetMobileAccess(ci, password);
+  });
 }
 
 module.exports = { registerUserHandlers };

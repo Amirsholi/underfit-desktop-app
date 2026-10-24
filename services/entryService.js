@@ -35,7 +35,14 @@ function createEntryService({ userRepository, entryRepository, membershipRules }
     };
   }
 
-  async function validateAndRegisterEntry({ ci, fuente = 'kiosk', observacion = null }) {
+  async function validateAndRegisterEntry({
+    ci,
+    fuente = 'kiosk',
+    observacion = null,
+    localId = 1,
+    dispositivoId = null,
+    claseId = null,
+  }) {
     const usuario = await userRepository.findByCi(ci);
     const resultado = buildAccessResult(usuario);
 
@@ -47,6 +54,9 @@ function createEntryService({ userRepository, entryRepository, membershipRules }
       ci: usuario.ci,
       fuente,
       observacion,
+      localId,
+      dispositivoId,
+      claseId,
       ...nowLocalParts(),
     });
 
@@ -62,9 +72,25 @@ function createEntryService({ userRepository, entryRepository, membershipRules }
     return entryRepository.findByDateRange({ desde, hasta });
   }
 
+  async function annulEntry({ id, motivo }) {
+    const entryId = Number(id);
+    const reason = String(motivo || '').trim();
+    if (!Number.isInteger(entryId) || entryId <= 0) throw new Error('Ingreso invalido');
+    if (!reason) throw new Error('El motivo de la anulacion es obligatorio');
+
+    const entry = await entryRepository.findById(entryId);
+    if (!entry || Number(entry.anulado || 0) === 1) throw new Error('Ingreso no encontrado');
+    const now = nowLocalParts();
+    if (entry.fecha !== now.fecha) throw new Error('Solo se pueden anular ingresos del dia actual');
+    const result = await entryRepository.annul({ id: entryId, ts: now.ts, motivo: reason });
+    if (!result.changed) throw new Error('El ingreso ya fue anulado');
+    return { annulled: true, id: entryId };
+  }
+
   return {
     validateAndRegisterEntry,
     listEntriesByDateRange,
+    annulEntry,
   };
 }
 

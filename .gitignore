@@ -7,6 +7,8 @@ build/
 out/
 release/
 *.asar
+**/bin/
+**/obj/
 
 # Electron Builder cache/artifacts
 .electron/
@@ -19,6 +21,13 @@ release/
 *.db-journal
 *.sqlite-journal
 *.sqlite3-journal
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.dump
 
 # Environment and local config
 .env
@@ -45,6 +54,18 @@ tmp/
 temp/
 *.tmp
 *.bak
+__pycache__/
+*.py[cod]
+.codex-audit/
+.playwright-cli/
+output/
+.tmp-*
+# Local credentials and installation state must never enter a release.
+*.token
+*.key
+platform.local.json
+config.json
+mobile/.discarded-expo-underfit-socios/
 
 # Coverage
 coverage/

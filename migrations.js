@@ -121,6 +121,9 @@ async function migrarIngresos(dbPath) {
     await addColumnIfMissing(db, 'ingresos', 'ts', 'TEXT');
     await addColumnIfMissing(db, 'ingresos', 'fuente', 'TEXT', `'kiosk'`);
     await addColumnIfMissing(db, 'ingresos', 'observacion', 'TEXT');
+    await addColumnIfMissing(db, 'ingresos', 'anulado', 'INTEGER', '0');
+    await addColumnIfMissing(db, 'ingresos', 'anulado_ts', 'TEXT');
+    await addColumnIfMissing(db, 'ingresos', 'motivo_anulacion', 'TEXT');
 
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ingresos_fecha ON ingresos(fecha)`);
     await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ingresos_ci ON ingresos(ci)`);
@@ -141,6 +144,7 @@ async function migrarProductos(dbPath) {
         stock INTEGER NOT NULL DEFAULT 0
       )
     `);
+    await addColumnIfMissing(db, 'productos', 'activo', 'INTEGER NOT NULL', '1');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS ventas_productos (
@@ -228,6 +232,9 @@ async function migrarCaja(dbPath) {
     await addColumnIfMissing(db, 'aperturas_caja', 'cajero_apertura', 'TEXT');
     await addColumnIfMissing(db, 'cierres_caja', 'cajero_cierre', 'TEXT');
     await addColumnIfMissing(db, 'caja_movimientos', 'caja_sesion_id', 'INTEGER');
+    await addColumnIfMissing(db, 'caja_movimientos', 'correccion_de_id', 'INTEGER');
+    await addColumnIfMissing(db, 'caja_movimientos', 'motivo_correccion', 'TEXT');
+    await addColumnIfMissing(db, 'caja_movimientos', 'responsable', 'TEXT');
 
     await runAsync(db, `
       CREATE TABLE IF NOT EXISTS caja_sesiones (
@@ -387,12 +394,310 @@ async function migrarConfiguracion(dbPath) {
   }
 }
 
+async function migrarOperacionesMultiLocal(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS locales (
+        id INTEGER PRIMARY KEY,
+        codigo TEXT NOT NULL UNIQUE,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1
+      )
+    `);
+
+    await runAsync(db, `
+      INSERT OR IGNORE INTO locales (id, codigo, nombre, tipo, activo)
+      VALUES (1, 'principal', 'Recepcion principal', 'principal', 1),
+             (2, 'funcional', 'Salon funcional', 'clases', 1)
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS stock_local (
+        local_id INTEGER NOT NULL,
+        producto_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL DEFAULT 0,
+        actualizado_ts TEXT NOT NULL,
+        PRIMARY KEY (local_id, producto_id)
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS transferencias_stock (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        producto_id INTEGER NOT NULL,
+        origen_local_id INTEGER NOT NULL,
+        destino_local_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL,
+        responsable TEXT,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS clases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        duracion_minutos INTEGER NOT NULL DEFAULT 60,
+        capacidad INTEGER NOT NULL DEFAULT 12,
+        profesor TEXT NOT NULL,
+        local_id INTEGER NOT NULL DEFAULT 2,
+        notas TEXT,
+        estado TEXT NOT NULL DEFAULT 'programada',
+        creado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS inscripciones_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clase_id INTEGER NOT NULL,
+        usuario_ci INTEGER NOT NULL,
+        usuario_nombre TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'inscripto',
+        creado_ts TEXT NOT NULL,
+        UNIQUE (clase_id, usuario_ci)
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS ventas_pendientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        local_id INTEGER NOT NULL DEFAULT 2,
+        producto_id INTEGER NOT NULL,
+        producto_nombre TEXT NOT NULL,
+        usuario_ci INTEGER NOT NULL,
+        usuario_nombre TEXT NOT NULL,
+        cantidad INTEGER NOT NULL DEFAULT 1,
+        total REAL NOT NULL DEFAULT 0,
+        profesor TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        ts TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'pendiente',
+        cobrado_ts TEXT,
+        forma_pago TEXT,
+        caja_movimiento_id INTEGER,
+        observacion TEXT
+      )
+    `);
+
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_clases_fecha ON clases(fecha, hora)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_inscripciones_clase ON inscripciones_clase(clase_id)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_stock_transferencias_fecha ON transferencias_stock(fecha)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ventas_pendientes_estado ON ventas_pendientes(estado, fecha)`);
+
+    await runAsync(db, `
+      INSERT OR IGNORE INTO stock_local (local_id, producto_id, cantidad, actualizado_ts)
+      SELECT 1, id, stock, datetime('now') FROM productos
+    `);
+    await runAsync(db, `
+      INSERT OR IGNORE INTO stock_local (local_id, producto_id, cantidad, actualizado_ts)
+      SELECT 2, id, 0, datetime('now') FROM productos
+    `);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
+async function migrarProfesores(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS profesores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        pin_hash TEXT NOT NULL,
+        pin_salt TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS sesiones_profesor (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profesor_id INTEGER NOT NULL,
+        local_id INTEGER NOT NULL DEFAULT 2,
+        dispositivo_id TEXT NOT NULL,
+        inicio_ts TEXT NOT NULL,
+        fin_ts TEXT,
+        estado TEXT NOT NULL DEFAULT 'activa'
+      )
+    `);
+
+    await addColumnIfMissing(db, 'clases', 'profesor_id', 'INTEGER');
+    await addColumnIfMissing(db, 'ventas_pendientes', 'profesor_id', 'INTEGER');
+    await addColumnIfMissing(db, 'ventas_pendientes', 'profesor_sesion_id', 'INTEGER');
+
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_profesores_activo ON profesores(activo, nombre)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_sesiones_profesor_estado ON sesiones_profesor(estado, dispositivo_id)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_sesiones_profesor_profesor ON sesiones_profesor(profesor_id, inicio_ts)`);
+    await runAsync(db, `CREATE UNIQUE INDEX IF NOT EXISTS unq_sesion_profesor_dispositivo_activa ON sesiones_profesor(dispositivo_id) WHERE estado = 'activa'`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
+async function migrarProgramacionesClases(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS programaciones_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        profesor_id INTEGER NOT NULL,
+        profesor_nombre TEXT NOT NULL,
+        dias_semana TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        duracion_minutos INTEGER NOT NULL DEFAULT 60,
+        capacidad INTEGER NOT NULL DEFAULT 12,
+        fecha_inicio TEXT NOT NULL,
+        fecha_fin TEXT,
+        notas TEXT,
+        estado TEXT NOT NULL DEFAULT 'activa',
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS inscripciones_programacion_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        programacion_id INTEGER NOT NULL,
+        usuario_ci INTEGER NOT NULL,
+        usuario_nombre TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'inscripto',
+        creado_ts TEXT NOT NULL,
+        UNIQUE (programacion_id, usuario_ci)
+      )
+    `);
+
+    await addColumnIfMissing(db, 'clases', 'programacion_id', 'INTEGER');
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_programaciones_clase_estado ON programaciones_clase(estado, fecha_inicio)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_inscripciones_programacion ON inscripciones_programacion_clase(programacion_id, estado)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_clases_programacion ON clases(programacion_id, fecha, hora)`);
+    await runAsync(db, `CREATE UNIQUE INDEX IF NOT EXISTS unq_clase_programacion_fecha ON clases(programacion_id, fecha, hora) WHERE programacion_id IS NOT NULL`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
+async function migrarAsistenciasClases(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await addColumnIfMissing(db, 'ingresos', 'local_id', 'INTEGER NOT NULL', '1');
+    await addColumnIfMissing(db, 'ingresos', 'dispositivo_id', 'TEXT');
+    await addColumnIfMissing(db, 'ingresos', 'clase_id', 'INTEGER');
+    await addColumnIfMissing(db, 'clases', 'profesor_real_id', 'INTEGER');
+    await addColumnIfMissing(db, 'clases', 'profesor_sesion_id', 'INTEGER');
+    await addColumnIfMissing(db, 'clases', 'inicio_real_ts', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'fin_real_ts', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'cancelada_ts', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'motivo_cancelacion', 'TEXT');
+    await addColumnIfMissing(db, 'clases', 'es_prueba', 'INTEGER NOT NULL', '0');
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS asistencias_clase (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clase_id INTEGER NOT NULL,
+        programacion_id INTEGER,
+        usuario_ci INTEGER NOT NULL,
+        ingreso_id INTEGER,
+        local_id INTEGER NOT NULL,
+        profesor_id INTEGER NOT NULL,
+        profesor_sesion_id INTEGER NOT NULL,
+        dispositivo_id TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        ts TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'presente',
+        anulado INTEGER NOT NULL DEFAULT 0,
+        anulado_ts TEXT,
+        motivo_anulacion TEXT
+      )
+    `);
+
+    await addColumnIfMissing(db, 'asistencias_clase', 'puntuacion', 'INTEGER');
+    await addColumnIfMissing(db, 'asistencias_clase', 'puntuado_por_profesor_id', 'INTEGER');
+    await addColumnIfMissing(db, 'asistencias_clase', 'puntuado_ts', 'TEXT');
+
+    await runAsync(db, `CREATE UNIQUE INDEX IF NOT EXISTS unq_asistencia_clase_activa ON asistencias_clase(clase_id, usuario_ci) WHERE anulado = 0`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_asistencias_clase_fecha ON asistencias_clase(fecha, clase_id)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_asistencias_clase_usuario ON asistencias_clase(usuario_ci, fecha)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ingresos_local_fecha ON ingresos(local_id, fecha, hora)`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
+async function migrarEntrenamientoLocal(dbPath) {
+  const db = openDb(dbPath);
+  try {
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS ejercicios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        grupo_muscular TEXT NOT NULL,
+        instrucciones TEXT,
+        gif_url TEXT,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS plantillas_rutina (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        dias_json TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL
+      )
+    `);
+
+    await runAsync(db, `
+      CREATE TABLE IF NOT EXISTS rutinas_socios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_ci INTEGER NOT NULL UNIQUE,
+        nombre TEXT NOT NULL,
+        profesor_id INTEGER NOT NULL,
+        profesor_nombre TEXT NOT NULL,
+        dias_json TEXT NOT NULL,
+        asignado_ts TEXT NOT NULL,
+        actualizado_ts TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1
+      )
+    `);
+
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_ejercicios_activo_nombre ON ejercicios(activo, nombre)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_plantillas_rutina_activo ON plantillas_rutina(activo, nombre)`);
+    await runAsync(db, `CREATE INDEX IF NOT EXISTS idx_rutinas_socios_activo ON rutinas_socios(activo, usuario_ci)`);
+  } finally {
+    await closeAsync(db);
+  }
+}
+
 async function ejecutarMigraciones(dbPath) {
   await migrarUsuarios(dbPath);
   await migrarIngresos(dbPath);
   await migrarProductos(dbPath);
   await migrarCaja(dbPath);
   await migrarConfiguracion(dbPath);
+  await migrarOperacionesMultiLocal(dbPath);
+  await migrarProfesores(dbPath);
+  await migrarProgramacionesClases(dbPath);
+  await migrarAsistenciasClases(dbPath);
+  await migrarEntrenamientoLocal(dbPath);
 }
 
 module.exports = {
@@ -401,5 +706,10 @@ module.exports = {
   migrarProductos,
   migrarCaja,
   migrarConfiguracion,
+  migrarOperacionesMultiLocal,
+  migrarProfesores,
+  migrarProgramacionesClases,
+  migrarAsistenciasClases,
+  migrarEntrenamientoLocal,
   ejecutarMigraciones,
 };

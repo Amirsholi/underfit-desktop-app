@@ -1,13 +1,28 @@
 {
   "name": "under-fit",
-  "version": "2.1.0",
+  "version": "2.5.6",
   "description": "App de escritorio para gestion de gimnasio",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "rebuild": "electron-rebuild -f -w sqlite3",
-    "build": "npm run rebuild && electron-builder",
-    "build:dir": "npm run rebuild && electron-builder --dir"
+    "test": "node --test --test-concurrency=2 test/*.test.js",
+    "demo:prepare": "node scripts/prepare-demo-database.js",
+    "audit:package": "node scripts/audit-package.js",
+    "demo:seed": "node scripts/seed-review-data.js",
+    "inspect:legacy": "node scripts/inspect-legacy.js",
+    "import:legacy:masters": "node scripts/import-legacy-masters.js",
+    "import:legacy:history": "node scripts/import-legacy-history.js",
+    "import:legacy:classes": "node scripts/import-legacy-classes.js",
+    "import:legacy:commercial": "node scripts/import-legacy-commercial.js",
+    "verify:restore": "node scripts/verify-postgres-restore.js",
+    "rebuild": "electron-builder install-app-deps",
+    "build:api": "dotnet publish backend/UnderFit.Api/UnderFit.Api.csproj -c Release -r win-x64 --self-contained true -o release/api",
+    "prepare:media": "node scripts/prepare-media-tools.js",
+    "prepare:tunnel": "node scripts/prepare-tunnel-tool.js",
+    "build": "npm run rebuild && npm run build:api && npm run build:keypad && npm run prepare:media && npm run prepare:tunnel && electron-builder --publish never && node scripts/record-build.js",
+    "build:dir": "npm run rebuild && npm run build:api && npm run build:keypad && npm run prepare:media && npm run prepare:tunnel && electron-builder --dir",
+    "release:draft": "node scripts/publish-release-draft.js",
+    "build:keypad": "dotnet publish backend/UnderFit.Keypad/UnderFit.Keypad.csproj -c Release -r win-x64 --self-contained true -o release/keypad"
   },
   "keywords": [],
   "author": "Amir Sholi",
@@ -17,6 +32,8 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
+    "electron-updater": "6.8.9",
     "sqlite3": "^5.1.7"
   },
   "build": {
@@ -27,16 +44,78 @@
       "handlers/**/*",
       "repositories/**/*",
       "services/**/*",
+      "clients/**/*",
       "database/**/*",
       "styles/**/*",
       "assets/**/*",
+      "!assets/exercises/**",
       "*.jpg",
       "*.mp3",
       "*.ttf",
       "package.json",
       "!*.png",
       "!dist/**",
-      "!docs/**"
+      "!docs/**",
+      "!**/*.db",
+      "!**/*.sqlite",
+      "!**/*.sqlite3",
+      "!**/*.dump",
+      "!**/*.db-*",
+      "!**/*.sqlite-*",
+      "!**/*.sqlite3-*",
+      "!**/*.key",
+      "!**/*.token",
+      "!**/.env*",
+      "!**/config.json",
+      "!**/installation.json",
+      "!**/appsettings.Development.json",
+      "!assets/*.nsh"
+    ],
+    "extraResources": [
+      {
+        "from": "release/api",
+        "to": "api",
+        "filter": [
+          "**/*",
+          "!appsettings.Development.json",
+          "!**/*.pdb",
+          "!**/*.db",
+          "!**/*.key",
+          "!**/*.token"
+        ]
+      },
+      {
+        "from": "infrastructure/compose/production.yaml",
+        "to": "platform/compose.yaml"
+      },
+      {
+        "from": "release/tools/ffmpeg.exe",
+        "to": "tools/ffmpeg.exe"
+      },
+      {
+        "from": "release/tools/cloudflared.exe",
+        "to": "tools/cloudflared.exe"
+      },
+      {
+        "from": "scripts/configure-installation.ps1",
+        "to": "installation/configure-installation.ps1"
+      },
+      {
+        "from": "scripts/configure-remote-access.ps1",
+        "to": "installation/configure-remote-access.ps1"
+      },
+      {
+        "from": "scripts/check-gym-pc.ps1",
+        "to": "installation/check-gym-pc.ps1"
+      },
+      {
+        "from": "release/keypad",
+        "to": "keypad",
+        "filter": [
+          "**/*",
+          "!**/*.pdb"
+        ]
+      }
     ],
     "appId": "com.gymapp.local",
     "productName": "Under-Fit",
@@ -48,8 +127,17 @@
       "output": "dist"
     },
     "nsis": {
-      "artifactName": "Under-Fit-Setup-${version}.${ext}"
-    }
+      "artifactName": "Under-Fit-Setup-${version}.${ext}",
+      "include": "assets/installer.nsh"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Amirsholi",
+        "repo": "underfit-desktop-app",
+        "releaseType": "draft"
+      }
+    ]
   },
   "asarUnpack": []
 }

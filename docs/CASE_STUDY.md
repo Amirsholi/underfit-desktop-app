@@ -1,86 +1,43 @@
-# Under-Fit Desktop - Case Study
+# Caso de estudio — Under-Fit
 
-## Summary
+## Contexto
 
-Under-Fit is a desktop management system built for a real gym that needed a practical way to manage daily front-desk operations without depending on cloud software or complex administrative workflows.
+Desarrollado por Amir Sholi para un gimnasio de Uruguay con dos locales y caja centralizada. El trabajo abarca relevamiento, programación, interfaces, persistencia, migración, distribución y mantenimiento.
 
-The application was built with Electron, Node.js, and SQLite, then packaged as a Windows desktop app for local use.
+## Evolución verificable
 
-## Business Context
+| Etapa | Evidencia |
+|---|---|
+| Aplicación local | El primer commit, `66a1cd5` (2 de junio de 2026), ya contiene la versión 2.1.0 con Electron y SQLite |
+| Ampliación | Los commits de julio incorporan organización administrativa, clases recurrentes, asistencias y tablets |
+| Arquitectura compartida | `codex/dotnet-transition` incorpora API .NET, PostgreSQL y migración |
+| Entrega y mantenimiento | Releases 2.5.2–2.5.6: instalación, clases, medios y caja |
+| Acceso de socios | Base web/PWA implementada; validación completa pendiente |
 
-The gym needed a system that could support daily operations such as member entry, membership renewals, product sales, cash control, and backups. The most important requirement was speed and simplicity: the front desk needed to register common actions quickly without navigating a complicated ERP-style interface.
+El primer commit no es el comienzo del desarrollo. El relato del autor complementa el período anterior a Git.
 
-Because the app is used in a real operational environment, reliability and data safety were more important than adding unnecessary features.
+## Decisiones motivadas por el uso
 
-## Main Goals
+**Más dispositivos, una sola información.** SQLite local dio paso a una API con PostgreSQL para compartir operaciones entre escritorio y tablets.
 
-- Keep member lookup and access validation fast.
-- Support membership renewals with clear plan rules.
-- Register product sales without slowing down the front desk.
-- Track daily cash movements and payment methods.
-- Generate daily closing reports.
-- Store data locally in SQLite.
-- Provide manual and automatic backups.
-- Make installation and updates manageable on Windows.
+**Migrar conservando el historial.** La instalación prepara una copia consistente, importa y verifica cantidades e importes. Respaldo y restauración tienen ensayos independientes.
 
-## Solution
+**Atender mientras se administra.** Un auxiliar Windows distingue el pad USB del teclado habitual. Las pruebas verifican el enrutamiento; el dispositivo real requiere comprobación física.
 
-Under-Fit centralizes the gym's core workflow in a local Electron application. The system uses SQLite for persistence and separates business logic, data access, and UI behavior into distinct modules.
+**Entender la caja completa.** Las versiones 2.5.4 y 2.5.6 mejoran reportes y consulta de múltiples sesiones. El historial diario y el arqueo de la caja abierta tienen propósitos distintos.
 
-The interface was designed around the real workflow of the gym:
+**Mantener después de instalar.** Tags y comprobaciones de integridad vinculan código y binarios. La publicación es explícita y el host contempla un respaldo antes de actualizar.
 
-- A front-desk screen for access checks.
-- An admin area for members, memberships, products, sales, and cash.
-- Backup and operational tools for safer updates.
-- PDF closing reports for end-of-day review.
+## IA en el proceso
 
-## Key Product Decisions
+El proyecto empezó con programación manual. El autor incorporó herramientas de IA a medida que creció el alcance. Esto describe el desarrollo; no implica funciones de IA en el producto. Las decisiones se contrastan con código, pruebas y comportamiento observado. El historial no permite atribuir cada línea a trabajo manual o a una herramienta.
 
-### Simple Stock Handling
+## Resultado y límites
 
-The product module intentionally keeps stock simple. The gym does not need a full inventory system; it needs quick product creation, sale registration, and basic stock visibility. Adding a more complex stock workflow would slow down the operator and create unnecessary friction.
+El responsable confirmó el funcionamiento del escritorio y tablets con la arquitectura compartida. La última publicación revisada es la 2.5.6; publicar no demuestra que todos los equipos la hayan instalado.
 
-### Local-First Desktop App
+No se presentan porcentajes de ahorro, cobertura total ni métricas de usuarios sin medición. Los límites actuales incluyen dependencia de la PC central, coexistencia de SQLite y API y validación móvil pendiente.
 
-Electron and SQLite were chosen because the gym needed a local Windows application with predictable behavior and no dependency on a browser session or external hosting.
+La instalación de dependencias del 24 de octubre de 2026 reportó 30 alertas de npm audit (2 bajas, 1 moderada, 26 altas y 1 crítica). Ese resultado requiere revisión de alcance y actualización de dependencias, incluida la plataforma Electron; no equivale por sí solo a demostrar explotación en la aplicación. Esta actualización documental no modifica las dependencias del producto ni resuelve esas alertas.
 
-### Operational Documentation
-
-The project includes deployment, backup, restore, and release notes because the handoff process matters as much as the code for this kind of business software.
-
-## Implemented Features
-
-- Member creation and editing.
-- Membership renewal rules.
-- Access validation.
-- Entry logging.
-- Product creation and editing.
-- Product sales.
-- Payment method tracking.
-- Daily cash session management.
-- Daily closing PDF export.
-- Manual backup.
-- Weekly automatic backup.
-- SQLite migrations.
-- Windows installer build configuration.
-
-## Technical Stack
-
-- Electron
-- Node.js
-- SQLite
-- JavaScript
-- HTML/CSS
-- electron-builder
-
-## Results
-
-Under-Fit is currently used as a real operational tool. The project demonstrates how a small business workflow can be translated into a focused desktop app that prioritizes speed, reliability, local data ownership, and simple handoff.
-
-## Privacy
-
-Screenshots and videos use prepared or non-sensitive data for portfolio presentation. Real gym data and production database files are private and are not included in this repository.
-
-## Future Demo Version
-
-A restricted demo build is planned for future portfolio sharing. The goal is to let prospects inspect the product safely while limiting sensitive or production-specific functionality.
+Para evaluar el trabajo: comenzar por [Domain](../backend/UnderFit.Domain), seguir un caso de uso en [Application](../backend/UnderFit.Application), contrastarlo con las [pruebas PostgreSQL](../backend/UnderFit.IntegrationTests/PostgreSql/PostgreSqlVerticalSliceTests.cs) y revisar [la entrega](OPERATIONS.md).

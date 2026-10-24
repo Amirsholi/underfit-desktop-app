@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1540" viewBox="0 0 1600 1540"><defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#B6BDC7" stroke-width="1.5"/></marker></defs><rect width="1600" height="1540" fill="#080B0E"/>
+<text x="90" y="110" font-family="Segoe UI, Arial, sans-serif" font-size="44" fill="#FF681F" font-weight="700">UNDER-FIT</text>
+<text x="365" y="110" font-family="Segoe UI, Arial, sans-serif" font-size="44" fill="#EDF0F4" font-weight="600">/ Diagrama de componentes</text>
+<g transform="translate(0,-115)">
+<rect x="90" y="330" width="440" height="230" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="114" y="366" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«component»</text>
+<text x="114" y="406" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">Administración</text>
+<text x="114" y="443" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#FF681F" font-weight="600">Windows · Electron · JavaScript</text>
+<text x="114" y="483" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Socios, caja y productos</text>
+<text x="114" y="514" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Clases, rutinas e ingresos</text>
+<rect x="482" y="350" width="24" height="32" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="475" y="355" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="475" y="369" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="580" y="330" width="440" height="230" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="604" y="366" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«component»</text>
+<text x="604" y="406" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">Profesores</text>
+<text x="604" y="443" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#FF681F" font-weight="600">Tablets · Web</text>
+<text x="604" y="483" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Clases y asistencias</text>
+<text x="604" y="514" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Consulta y gestión de rutinas</text>
+<rect x="972" y="350" width="24" height="32" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="965" y="355" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="965" y="369" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1070" y="330" width="440" height="230" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="1094" y="366" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«component»</text>
+<text x="1094" y="406" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">Socios</text>
+<text x="1094" y="443" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#FF681F" font-weight="600">Móvil · Web / PWA</text>
+<text x="1094" y="483" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Rutinas, ejercicios y videos</text>
+<text x="1094" y="514" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Inscripción a clases</text>
+<rect x="1462" y="350" width="24" height="32" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1455" y="355" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1455" y="369" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<path d="M800 560 V650" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<path d="M1290 560 V610 H1100 V650" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<text x="820" y="600" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#B6BDC7" font-weight="400">HTTPS</text>
+<rect x="680" y="650" width="600" height="142" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="704" y="686" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«component»</text>
+<text x="704" y="726" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">Acceso remoto</text>
+<text x="704" y="763" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#FF681F" font-weight="600">Cloudflare Tunnel · HTTPS</text>
+<rect x="1232" y="670" width="24" height="32" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1225" y="675" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1225" y="689" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<path d="M980 792 V910" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<text x="1003" y="850" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#B6BDC7" font-weight="400">HTTP · túnel hacia la PC</text>
+<path d="M310 560 V985 H470" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<text x="330" y="842" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#B6BDC7" font-weight="400">HTTP local</text>
+<rect x="90" y="880" width="1420" height="690" fill="#0D1117" stroke="#343A43" stroke-width="1.6"/>
+<text x="470" y="920" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#B6BDC7" font-weight="600">«node» PC DEL GIMNASIO · SERVIDOR CENTRAL</text>
+<rect x="470" y="950" width="820" height="205" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="494" y="986" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«component»</text>
+<text x="494" y="1026" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">API de Under-Fit</text>
+<text x="494" y="1063" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#FF681F" font-weight="600">C# · ASP.NET Core / .NET 10</text>
+<text x="494" y="1103" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Socios · membresías · caja · productos</text>
+<text x="494" y="1134" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Clases · asistencias · rutinas · autenticación</text>
+<rect x="1242" y="970" width="24" height="32" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1235" y="975" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1235" y="989" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<path d="M310 880 V1040 H470" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<path d="M980 880 V950" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<path d="M880 1155 V1220" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<text x="903" y="1196" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">usa</text>
+<rect x="470" y="1220" width="820" height="142" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="494" y="1256" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«component»</text>
+<text x="494" y="1296" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">Persistencia</text>
+<text x="494" y="1333" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#FF681F" font-weight="600">Entity Framework Core · Npgsql</text>
+<rect x="1242" y="1240" width="24" height="32" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1235" y="1245" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<rect x="1235" y="1259" width="12" height="8" fill="#181D24" stroke="#B6BDC7" stroke-width="1.6"/>
+<path d="M880 1362 V1418" fill="none" stroke="#B6BDC7" stroke-width="2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<text x="904" y="1400" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">SQL</text>
+<rect x="470" y="1418" width="820" height="110" fill="#181D24" stroke="#515863" stroke-width="1.6"/>
+<text x="494" y="1453" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#B6BDC7" font-weight="400">«database»</text>
+<text x="494" y="1496" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#EDF0F4" font-weight="600">PostgreSQL 18</text>
+<text x="870" y="1496" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#B6BDC7" font-weight="400">Docker · datos compartidos</text>
+</g>
+</svg>

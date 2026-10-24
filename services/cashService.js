@@ -1,4 +1,4 @@
-function createCashService({ cashRepository }) {
+function createCashService({ cashRepository, operationsRepository = null }) {
   const ALLOWED_PAYMENT_METHODS = new Set(['efectivo', 'transferencia']);
 
   function nowLocalParts() {
@@ -111,6 +111,7 @@ function createCashService({ cashRepository }) {
     cantidad = 1,
     referencia = null,
     fecha = null,
+    responsable = null,
   }) {
     const normalizedPayment = normalizePaymentDetails(payment);
     const movementDate = normalizeDate(fecha);
@@ -141,6 +142,7 @@ function createCashService({ cashRepository }) {
       cantidad,
       referencia_tabla: referencia?.tabla ?? null,
       referencia_id: referencia?.id ?? null,
+      responsable: responsable ? String(responsable).trim() : null,
     });
 
     return {
@@ -159,7 +161,10 @@ function createCashService({ cashRepository }) {
 
   async function getDailySummary(fecha) {
     const summaryDate = normalizeDate(fecha);
-    const resumen = await cashRepository.getDailySummary(summaryDate);
+    const [resumen, pendientes] = await Promise.all([
+      cashRepository.getDailySummary(summaryDate),
+      operationsRepository?.getPendingSummaryByDate(summaryDate) || Promise.resolve({ cantidad: 0, total: 0 }),
+    ]);
     const openSession = await cashRepository.findOpenSession();
     const sesiones = await cashRepository.findSessionsByDate(summaryDate);
     const ultimoCierreGlobal = await cashRepository.findLastClosedSession();
@@ -171,6 +176,7 @@ function createCashService({ cashRepository }) {
       sesionAbierta: activeSession,
       ultimoCierreGlobal,
       cierre,
+      pendientes,
       estado: activeSession ? 'abierta' : (sesiones.length ? 'cerrada' : 'sin_apertura'),
     };
   }
@@ -223,7 +229,7 @@ function createCashService({ cashRepository }) {
     return cashRepository.findClosureByDate(normalizeDate(fecha));
   }
 
-  async function registerCashOutput({ fecha = null, monto, observacion = null }) {
+  async function registerCashOutput({ fecha = null, monto, formaPago = 'efectivo', observacion = null, responsable = null }) {
     const normalizedAmount = Number(monto);
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       throw new Error('Monto invalido');
@@ -231,6 +237,7 @@ function createCashService({ cashRepository }) {
 
     const movementDate = normalizeDate(fecha);
     const activeSession = await getActiveSessionForDate(movementDate);
+    const normalizedPaymentMethod = normalizePaymentMethod(formaPago);
 
     const now = nowLocalParts();
     const created = await cashRepository.createMovement({
@@ -239,7 +246,7 @@ function createCashService({ cashRepository }) {
       hora: now.hora,
       ts: now.ts,
       tipo_ingreso: 'egreso',
-      forma_pago: 'efectivo',
+      forma_pago: normalizedPaymentMethod,
       monto: Number((-normalizedAmount).toFixed(2)),
       monto_recibido: 0,
       cambio: 0,
@@ -248,6 +255,7 @@ function createCashService({ cashRepository }) {
       cantidad: 1,
       referencia_tabla: 'caja_movimientos',
       referencia_id: null,
+      responsable: responsable ? normalizeName(responsable, 'Responsable') : null,
     });
 
     return {
@@ -258,11 +266,77 @@ function createCashService({ cashRepository }) {
     };
   }
 
+  async function correctMovement({ id, monto, formaPago, observacion = null, motivo }) {
+    const movementId = Number(id);
+    const reason = String(motivo || '').trim();
+    const amount = Number(monto);
+    if (!Number.isInteger(movementId) || movementId <= 0) throw new Error('Movimiento invalido');
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Monto invalido');
+    if (!reason) throw new Error('El motivo de la correccion es obligatorio');
+
+    const original = await cashRepository.findMovementById(movementId);
+    if (!original) throw new Error('Movimiento no encontrado');
+    if (!['ingreso_manual', 'egreso'].includes(original.tipo_ingreso)) {
+      throw new Error('Solo se pueden corregir entradas y salidas manuales');
+    }
+    const activeSession = await getActiveSessionForDate(original.fecha);
+    if (Number(original.caja_sesion_id) !== Number(activeSession.id)) {
+      throw new Error('Solo se pueden corregir movimientos de la caja abierta');
+    }
+
+    return cashRepository.inTransaction(async () => {
+    const now = nowLocalParts();
+    await cashRepository.createMovement({
+      caja_sesion_id: activeSession.id,
+      fecha: original.fecha,
+      hora: now.hora,
+      ts: now.ts,
+      tipo_ingreso: 'anulacion',
+      forma_pago: original.forma_pago,
+      monto: Number((-Number(original.monto)).toFixed(2)),
+      monto_recibido: 0,
+      cambio: 0,
+      descripcion: `Anulacion de movimiento #${original.id}`,
+      observacion: reason,
+      cantidad: 1,
+      referencia_tabla: 'caja_movimientos',
+      referencia_id: original.id,
+      correccion_de_id: original.id,
+      motivo_correccion: reason,
+      responsable: original.responsable || null,
+    });
+
+    const signedAmount = original.tipo_ingreso === 'egreso' ? -amount : amount;
+    const replacement = await cashRepository.createMovement({
+      caja_sesion_id: activeSession.id,
+      fecha: original.fecha,
+      hora: now.hora,
+      ts: now.ts,
+      tipo_ingreso: original.tipo_ingreso,
+      forma_pago: normalizePaymentMethod(formaPago || original.forma_pago),
+      monto: Number(signedAmount.toFixed(2)),
+      monto_recibido: original.tipo_ingreso === 'egreso' ? 0 : amount,
+      cambio: 0,
+      descripcion: observacion || original.descripcion,
+      observacion: observacion || null,
+      cantidad: 1,
+      referencia_tabla: 'caja_movimientos',
+      referencia_id: original.id,
+      correccion_de_id: original.id,
+      motivo_correccion: reason,
+      responsable: original.responsable || null,
+    });
+
+    return { corrected: true, originalId: original.id, replacementId: replacement.id };
+    });
+  }
+
   async function registerManualIncome({
     fecha = null,
     monto,
     formaPago = 'efectivo',
     observacion = null,
+    responsable = null,
   }) {
     return registerMovement({
       tipoIngreso: 'ingreso_manual',
@@ -273,6 +347,7 @@ function createCashService({ cashRepository }) {
         observacion,
       },
       fecha,
+      responsable: responsable ? normalizeName(responsable, 'Responsable') : null,
     });
   }
 
@@ -326,12 +401,43 @@ function createCashService({ cashRepository }) {
   async function getDailyReport(fecha) {
     const reportDate = normalizeDate(fecha);
     const resumen = await getDailySummary(reportDate);
+    const ventasPendientes = operationsRepository
+      ? await operationsRepository.listPendingSales({ estado: 'pendiente', fecha: reportDate })
+      : [];
     const totalsByType = Object.fromEntries(
       resumen.totalPorTipoIngreso.map(item => [item.tipoIngreso, item.total])
     );
     const totalsByPayment = Object.fromEntries(
       resumen.totalPorFormaPago.map(item => [item.formaPago, item.total])
     );
+
+    function groupProductSales(movements) {
+      const groups = new Map();
+      movements
+        .filter(row => row.tipo_ingreso === 'venta_producto')
+        .forEach(row => {
+          const key = String(row.producto_id || row.producto_nombre || 'sin-producto');
+          const current = groups.get(key) || {
+            productoId: row.producto_id || null,
+            nombre: row.producto_nombre || row.descripcion || 'Producto',
+            cantidad: 0,
+            efectivo: 0,
+            transferencia: 0,
+            total: 0,
+          };
+          current.cantidad += Number(row.cantidad || 1);
+          current.total += Number(row.monto || 0);
+          if (row.forma_pago === 'efectivo') current.efectivo += Number(row.monto || 0);
+          if (row.forma_pago === 'transferencia') current.transferencia += Number(row.monto || 0);
+          groups.set(key, current);
+        });
+      return [...groups.values()].map(item => ({
+        ...item,
+        efectivo: Number(item.efectivo.toFixed(2)),
+        transferencia: Number(item.transferencia.toFixed(2)),
+        total: Number(item.total.toFixed(2)),
+      })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    }
 
     const sesiones = await Promise.all((resumen.sesiones || []).map(async sesion => {
       const sessionSummary = await cashRepository.getSessionSummary(sesion.id);
@@ -346,6 +452,7 @@ function createCashService({ cashRepository }) {
       return {
         ...sesion,
         movimientos,
+        ventasPorProducto: groupProductSales(movimientos),
         totalGeneral: Number(sessionSummary.totalIngresos || 0),
         efectivoEsperado: Number(sessionSummary.efectivoEsperado || 0),
         totalesPorTipoIngreso: {
@@ -385,6 +492,8 @@ function createCashService({ cashRepository }) {
       sesionAbierta: resumen.sesionAbierta,
       diferenciaCaja: Number(resumen.cierre?.diferencia_efectivo || 0),
       observaciones: resumen.cierre?.observacion || null,
+      pendientes: resumen.pendientes || { cantidad: 0, total: 0 },
+      ventasPendientes,
     };
   }
 
@@ -398,6 +507,7 @@ function createCashService({ cashRepository }) {
     closeDay,
     getClosureByDate,
     registerCashOutput,
+    correctMovement,
     registerManualIncome,
     adjustDailyTotal,
     getDailyReport,

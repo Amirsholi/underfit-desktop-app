@@ -1,0 +1,126 @@
+/* Concurrencia preserves the readable record rows inside the shared modal. */
+#modal-concurrencia { z-index: 1100; }
+#modal-concurrencia .app-modal-card { background: #0b0f14; border: 1px solid #343a43; border-radius: 8px; box-shadow: none; }
+#modal-concurrencia .app-modal-header, #modal-concurrencia .app-modal-footer { background: #0d1116; border-color: #2c323a; }
+#modal-concurrencia .app-modal-body { background: #0b0f14; }
+#modal-concurrencia .app-modal-card { width: min(1160px, calc(100vw - 48px)); height: min(780px, calc(100dvh - 48px)); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; overflow: hidden; }
+#modal-concurrencia .app-modal-body { display: grid; grid-template-rows: auto minmax(0, 1fr); flex: 1; min-height: 0; gap: 20px; overflow: hidden; padding: 24px 26px; }
+#modal-concurrencia .app-modal-body > [hidden] { display: none !important; }
+#modal-concurrencia .app-modal-header, #modal-concurrencia .app-modal-footer { flex-shrink: 0; }
+#modal-concurrencia .app-modal-footer { justify-content: space-between; }
+#modal-concurrencia .admin-business-date { height: 52px; flex-shrink: 0; }
+#modal-concurrencia .records-search-control { margin: 0; }
+#modal-concurrencia .records-search-control input { min-height: 0; }
+#modal-anular-ingreso { z-index: 1101; }
+@media (max-width: 650px) {
+  #modal-concurrencia .app-modal-card { width: calc(100vw - 24px); height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); }
+  #modal-concurrencia .app-modal-body { padding: 16px; gap: 12px; }
+  #modal-concurrencia .records-toolbar { height: auto; flex-wrap: wrap; }
+  #modal-concurrencia .records-search-control { flex-basis: 100%; }
+  #modal-concurrencia .records-table { min-width: 640px; }
+}
+.records-index-page > [hidden] { display: none !important; }
+.records-toolbar > [hidden] { display: none !important; }
+#modal-concurrencia .records-toolbar { flex-wrap: wrap; height: auto; }
+#records-member { flex: 1 1 250px; min-width: 200px; }
+#records-mode { max-width: 210px; }
+.records-index-page .records-toolbar { display: flex; align-items: stretch; gap: 12px; min-width: 0; min-height: 0; height: 52px; margin: 0; padding: 0; border: 0; background: none; }
+.records-index-page .records-tabs { display: flex; flex: 0 0 auto; gap: 0; margin: 0; padding: 0; border: 1px solid #343a43; border-radius: 7px; overflow: hidden; background: #0d1015; }
+.records-index-page .records-tabs button { min-height: 0; height: 50px; padding: 0 18px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: #a8afb9; font: 600 14px var(--uf-font-body); box-shadow: none; cursor: pointer; }
+.records-index-page .records-tabs button.is-active { background: #24201e; color: #f0f2f5; border-bottom-color: #ff681f; }
+.records-index-page .records-search-control { display: flex; flex: 1; gap: 14px; align-items: center; min-width: 0; height: 52px; padding: 0 18px; margin: 0; border: 1px solid #343a43; border-radius: 7px; background: #0d1015; color: #929ca8; }
+.records-index-page .records-search-control input { flex: 1; min-width: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; color: #edf0f4; font: 400 14px var(--uf-font-body); box-shadow: none; }
+.records-index-page .records-search-control:focus-within { border-color: #ff681f; }
+.records-index-page .records-search-control input:focus { outline: none; box-shadow: none; }
+.records-index-page .records-search-control kbd { font: 400 10px var(--uf-font-body); color: #929ca8; white-space: nowrap; }
+.records-index-page #records-entry-status { align-self: center; color: #a8afb9; font-size: 12px; white-space: nowrap; }
+.records-index-page [data-records-panel] { display: none; min-height: 0; }
+.records-index-page .records-panel { position: relative; min-width: 0; min-height: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: rgba(9,12,16,.94); overflow: hidden; }
+.records-index-page .records-panel.is-active,
+.records-index-page .records-class-list-panel { display: grid; grid-template-rows: minmax(0,1fr); }
+.records-index-page .records-table-scroll { height: 100%; min-height: 0; max-height: none; margin: 0; border: 0; border-radius: 0; overflow: auto; scrollbar-gutter: stable; }
+.records-index-page table { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--uf-font-body); color: #edf0f4; }
+.records-index-page table th:nth-child(n) { width: auto; }
+.records-index-page th { position: sticky; top: 0; z-index: 1; height: 48px; padding: 0 22px; text-align: left; background: #0f141a; color: #a8afb9; border-bottom: 1px solid #343a43; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.records-index-page td { height: 72px; padding: 12px 22px; border-bottom: 1px solid #2c323a; vertical-align: middle; font-size: 14px; background: none; }
+.records-index-page tbody tr { background: transparent; }
+.records-index-page tbody tr:hover { background: #11161c; }
+.records-index-page td strong { display: block; color: #edf0f4; font-size: 15px; line-height: 1.35; }
+.records-index-page td small { display: block; margin-top: 5px; color: #a8afb9; font-size: 12px; font-weight: 400; line-height: 1.4; }
+.records-index-page .record-person { display: flex; align-items: center; gap: 16px; }
+.records-index-page .record-avatar { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid #404751; border-radius: 50%; color: #c5cbd3; background: #181d24; font-size: 11px; font-weight: 700; }
+.records-index-page .record-location { padding: 0; border: 0; background: none; color: #aeb5be; font-size: 14px; font-weight: 400; }
+.records-index-page .record-annul-action { display: inline-flex; align-items: center; min-height: 36px; padding: 0; border: 0; background: none; color: #df9a92; font: 600 12px var(--uf-font-body); cursor: pointer; }
+.records-index-page .records-table td:last-child { text-align: right; }
+.records-index-page .records-panel > .surface-empty { position: absolute; inset: 48px 0 0; align-content: center; justify-items: center; gap: 10px; margin: 0; padding: 24px; background: #0b0e13; border: 0; color: #a8afb9; text-align: center; }
+.records-index-page .surface-empty strong { color: #edf0f4; font-size: 16px; }
+.records-index-page .records-class-workspace.is-active { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 20px; }
+.records-index-page .records-class-table td { height: 94px; padding: 14px 18px; }
+.records-index-page .records-class-table th { padding: 0 18px; }
+.records-index-page .records-class-table tr[data-class-record] { cursor: pointer; }
+.records-index-page .records-class-table tr.is-selected { background: #171a1d; box-shadow: inset 2px 0 #ff681f; }
+.records-index-page .records-class-table tr.is-selected td:nth-child(2) > strong { color: #ff854d; }
+.records-index-page .record-class-state { color: #a8afb9; }
+.records-index-page .record-class-state.state-dictada { color: #6ad79f; }
+.records-index-page .record-class-state.state-cancelada { color: #df9a92; }
+.records-index-page .records-class-detail { display: grid; grid-template-rows: auto auto auto minmax(0,1fr); position: relative; min-width: 0; min-height: 0; padding: 0; border: 1px solid #343a43; border-radius: 8px; background: #0d1116; overflow: hidden; }
+.records-index-page .records-class-detail .surface-heading { margin: 0; padding: 20px; min-height: 0; border-bottom: 1px solid #2c323a; }
+.records-index-page .records-class-detail h3 { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.4; }
+.records-index-page .records-class-detail .surface-heading p { margin: 6px 0 0; font-size: 13px; color: #a8afb9; }
+.records-index-page .records-detail-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; padding: 16px 20px; border-bottom: 1px solid #2c323a; }
+.records-index-page .records-detail-summary:empty { display: none; }
+.records-index-page .records-detail-summary article { display: block; align-content: start; min-height: 0; padding: 0; border: 0; background: none; border-radius: 0; min-width: 0; }
+.records-index-page .records-detail-summary article:last-child { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+.records-index-page .records-detail-summary article > span { display: block; color: #a8afb9; font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; margin-bottom: 4px; }
+.records-index-page .records-detail-summary strong { font-size: 14px; color: #edf0f4; }
+.records-index-page .records-detail-summary article:last-child > span { margin: 0; }
+.records-index-page .record-status-action { display: block; margin: 6px 0 0; padding: 0; min-height: 24px; border: 0; background: none; color: #c5cbd3; text-decoration: underline; text-underline-offset: 3px; font: 400 12px var(--uf-font-body); cursor: pointer; }
+.records-index-page .records-detail-roster { min-height: 0; max-height: none; overflow: auto; margin: 0; padding: 0 20px; }
+.records-index-page .records-roster-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 6px 16px; min-height: 76px; padding: 14px 0; margin: 0; border: 0; border-bottom: 1px solid #2c323a; border-radius: 0; background: none; }
+.records-index-page .records-roster-row > span:nth-child(2) { min-width: 0; }
+.records-index-page .records-roster-row strong { display: block; font-size: 14px; color: #edf0f4; }
+.records-index-page .records-roster-row small { display: block; margin-top: 4px; font-size: 12px; color: #a8afb9; }
+.records-index-page .records-roster-row > span:nth-child(3) { font-size: 12px; color: #a8afb9; }
+.records-index-page .roster-status { width: auto; height: auto; border: 0; background: none; color: #919aa5; font-size: 12px; }
+.records-index-page .is-present .roster-status { color: #6ad79f; }
+.records-index-page .record-attendance-action { grid-column: 2 / -1; justify-self: start; padding: 0; min-height: 24px; border: 0; background: none; color: #c5cbd3; font: 400 12px var(--uf-font-body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.records-index-page .record-rating { grid-column: 2 / -1; display: flex; gap: 5px; }
+.records-index-page .record-rating button { width: 28px; height: 28px; border: 0; background: none; color: #737e8b; font-size: 20px; cursor: pointer; }
+.records-index-page .record-rating button.is-active { color: #ff853d; }
+.records-index-page #records-detail-empty { grid-row: 4; align-content: center; justify-items: center; padding: 24px; margin: 0; color: #a8afb9; text-align: center; border: 0; }
+.records-index-page .records-detail-summary { grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; }
+.records-index-page .records-attendance-overview { display: grid; gap: 6px; }
+.records-index-page .records-attendance-overview strong { font-size: 16px; }
+.records-index-page .records-attendance-overview strong span { font-weight: 400; color: #a8afb9; font-size: 13px; }
+.records-index-page .records-attendance-overview > span { color: #a8afb9; font-size: 12px; }
+.records-index-page .records-attendance-overview span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.records-index-page .records-edit-toggle { height: 38px; padding: 0 12px; border: 1px solid #343a43; border-radius: 6px; background: #181d24; color: #edf0f4; font: 600 12px var(--uf-font-body); cursor: pointer; }
+.records-index-page .record-status-action { grid-column: 1/-1; justify-self: start; color: #df9a92; }
+.records-index-page .records-roster-tools { display: flex; gap: 10px; padding: 12px 20px; border-bottom: 1px solid #2c323a; }
+.records-index-page .records-roster-tools[hidden] { display: none; }
+.records-index-page .records-roster-tools input, .records-index-page .records-roster-tools select { min-width: 0; height: 40px; min-height: 40px; margin: 0; padding: 0 12px; border: 1px solid #343a43; border-radius: 6px; background: #0d1117; color: #edf0f4; font: 400 13px var(--uf-font-body); color-scheme: dark; }
+.records-index-page .records-roster-tools input { flex: 1; width: 0; }
+.records-index-page .records-roster-tools select { width: 125px; }
+.records-index-page .roster-presence { text-align: right; font-size: 12px; color: #a8afb9; }
+.records-index-page .is-present .roster-presence { color: #6ad79f; }
+.records-index-page .is-editing .records-roster-row { grid-template-columns: minmax(0,1fr) auto auto; }
+.records-index-page .record-attendance-action { grid-column: 3; grid-row: 1; padding: 0 10px; min-height: 36px; border: 1px solid #343a43; border-radius: 6px; text-decoration: none; font-weight: 600; }
+.records-index-page .record-rating { grid-column: 1/-1; }
+#records-correction-modal .app-modal-card { width: min(560px, calc(100vw - 40px)); }
+#records-correction-modal .app-modal-body { display: grid; gap: 12px; }
+#records-correction-person { margin: 0; font-size: 18px; font-weight: 700; }
+#records-correction-change { margin: 0 0 8px; color: #a8afb9; }
+#records-correction-error { color: #ffaaa0; margin: 0; }
+.records-index-page button:focus-visible,
+.records-index-page tr:focus-visible { outline: 2px solid #ff681f; outline-offset: -2px; }
+.records-index-page button:hover { filter: brightness(1.15); }
+.records-index-page .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.records-index-page .records-date-control { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.records-index-page .admin-business-date { width: 184px; height: 44px; min-height: 44px; margin: 0; padding: 0 10px 0 14px; border: 1px solid #343a43; border-radius: 7px; background: #10141a; color: #f0f2f5; color-scheme: dark; font: 400 14px/1.4 var(--uf-font-body); }
+.admin-business-date::-webkit-calendar-picker-indicator { width: 17px; height: 17px; margin-left: 4px; padding: 3px; border-radius: 5px; background-color: rgba(255,104,31,.07); filter: invert(49%) sepia(99%) saturate(3030%) hue-rotate(347deg) brightness(104%) contrast(103%); opacity: 1; cursor: pointer; }
+@media (max-width: 1100px) {
+  .records-index-page .records-tabs button { padding: 0 12px; font-size: 13px; }
+  .records-index-page .records-search-control kbd { display: none; }
+  .records-index-page .records-class-workspace.is-active { gap: 14px; }
+  .records-index-page td, .records-index-page th { padding-left: 16px; padding-right: 16px; }
+}

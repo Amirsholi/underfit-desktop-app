@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Under-Fit</title>
-  <link rel="stylesheet" href="styles/user-dark.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles/kiosk-entry.css?v=1">
 </head>
 <body class="user-page">
   <main class="user-shell">
@@ -27,20 +28,23 @@
 
         <div class="kiosk-form">
           <div class="kiosk-input-wrap">
-            <input type="text" id="ci-usuario" class="kiosk-input" placeholder="Documento" autocomplete="off">
+            <label for="ci-usuario">Documento</label>
+            <input type="text" id="ci-usuario" class="kiosk-input" placeholder="Documento" inputmode="numeric" maxlength="12" autocomplete="off">
           </div>
           <button id="btn-ingresar" class="kiosk-submit" type="button">Ingresar</button>
         </div>
 
-        <div id="feedback-panel" class="feedback-panel" aria-live="polite">
+        <div id="feedback-panel" class="feedback-panel" aria-live="polite" aria-atomic="true">
           <h2 id="feedback-title" class="feedback-title"></h2>
           <p id="feedback-text" class="feedback-text"></p>
         </div>
+        <aside id="kiosk-event" class="kiosk-event" hidden aria-label="Evento del gimnasio"></aside>
       </section>
     </section>
   </main>
 
-  <script src="underRunningEvent.js"></script>
+  <script src="underRunningEvent.js?v=2.5.0.5"></script>
+  <script src="kioskAudio.js"></script>
   <script>
     window.onload = async () => {
       const inputCI = document.getElementById('ci-usuario');
@@ -49,10 +53,31 @@
       const feedbackTitle = document.getElementById('feedback-title');
       const feedbackText = document.getElementById('feedback-text');
       const body = document.body;
-      const runningEvent = window.UnderRunningEvent ? await window.UnderRunningEvent.init() : null;
+      const entryAudio = window.KioskAudio?.create();
+      let audioSettingsRevision = 0;
+      const unsubscribeAudio = window.api?.onSonidosIngresoActualizados?.(settings => {
+        audioSettingsRevision++;
+        entryAudio?.configure(settings);
+      });
+      try {
+        const revision = audioSettingsRevision;
+        const preferences = await window.api?.obtenerSonidosIngreso?.();
+        if (revision === audioSettingsRevision) entryAudio?.configure(preferences);
+      } catch (_) { entryAudio?.setMuted(true); }
+      let isCheckingAccess = false;
+      let runningEvent = window.UnderRunningEvent ? await window.UnderRunningEvent.init() : null;
+      let pendingEventSettings = null;
+      async function applyEvent(settings) {
+        runningEvent?.destroy();
+        runningEvent = await window.UnderRunningEvent.init({config: window.UnderRunningEvent.buildConfig(settings)});
+      }
+      const unsubscribeEvent = window.api?.onEventoActualizado?.(settings => {
+        if (isCheckingAccess) pendingEventSettings = settings;
+        else applyEvent(settings);
+      });
       let inactivityTimer;
       let feedbackTimer;
-      let isCheckingAccess = false;
+      let feedbackCleanupTimer;
 
       function resetInactivityTimer() {
         clearTimeout(inactivityTimer);
@@ -69,19 +94,46 @@
 
       if (window.api) {
         window.api.onEnfocarInput(() => inputCI.focus());
+        window.api.onTeclaPadIngreso((key) => {
+          if (isCheckingAccess) return;
+          if (key === 'enter') {
+            verificarAcceso(inputCI.value.trim());
+            return;
+          }
+          if (key === 'backspace') {
+            clearTimeout(feedbackTimer);
+            limpiarFeedback();
+            inputCI.value = inputCI.value.slice(0, -1);
+            return;
+          }
+          if (/^\d$/.test(key) && inputCI.value.length < 8) {
+            clearTimeout(feedbackTimer);
+            limpiarFeedback();
+            inputCI.value += key;
+          }
+        });
       }
 
       function limpiarFeedback() {
-        feedbackPanel.className = 'feedback-panel';
-        feedbackTitle.textContent = '';
-        feedbackText.textContent = '';
+        entryAudio?.stop();
+        clearTimeout(feedbackCleanupTimer);
+        feedbackPanel.className = feedbackPanel.className.replace(' is-visible', '');
         body.classList.remove('feedback-success', 'feedback-error', 'feedback-warning');
+        // Keep the content and its color until the opacity transition has finished.
+        feedbackCleanupTimer = setTimeout(() => {
+          feedbackPanel.className = 'feedback-panel';
+          feedbackTitle.textContent = '';
+          feedbackText.textContent = '';
+          feedbackTitle.className = 'feedback-title';
+        }, 400);
       }
 
       const mostrarFeedback = (titulo, texto, tipo) => {
         clearTimeout(feedbackTimer);
+        clearTimeout(feedbackCleanupTimer);
         body.classList.remove('feedback-success', 'feedback-error', 'feedback-warning');
         feedbackTitle.textContent = titulo;
+        feedbackTitle.className = 'feedback-title';
         feedbackText.textContent = texto || '';
         feedbackPanel.className = `feedback-panel feedback-${tipo} is-visible`;
         body.classList.add(`feedback-${tipo}`);
@@ -90,7 +142,7 @@
           limpiarFeedback();
           inputCI.value = '';
           inputCI.focus();
-        }, 2000);
+        }, tipo === 'success' ? 1600 : 3200);
       };
 
       async function verificarAcceso(ci) {
@@ -103,31 +155,43 @@
 
         isCheckingAccess = true;
         submitButton.disabled = true;
+        submitButton.textContent = 'Verificando…';
+        clearTimeout(feedbackTimer);
+        limpiarFeedback();
 
         try {
           const resultado = await window.api.validarYRegistrarIngreso(ci, 'kiosk');
 
           if (resultado?.reason === 'not_found') {
-            mostrarFeedback('No encontrado', '', 'error');
+            mostrarFeedback('No encontramos tu documento', 'Revisá el número o consultá en recepción.', 'error');
             return;
           }
 
           const restantes = resultado.daysRemaining;
 
           if (resultado.allowed) {
-            if (runningEvent?.active) {
-              await runningEvent.playEntryTransition();
-            }
-            const texto = `${restantes} día${restantes === 1 ? '' : 's'} restantes`;
-            mostrarFeedback('Puede ingresar', texto, 'success');
+            const dias = Number(restantes);
+            const membresia = restantes != null && Number.isFinite(dias)
+              ? dias <= 0 ? 'Vence hoy' : `${dias} día${dias === 1 ? '' : 's'} restante${dias === 1 ? '' : 's'}`
+              : '';
+            mostrarFeedback('Puede ingresar', membresia, 'success');
+            void entryAudio?.play('success');
+            inputCI.value = '';
           } else {
-            mostrarFeedback('Membresía vencida', `${restantes} días restantes`, 'error');
+            mostrarFeedback('Membresía vencida', 'Acercate a recepción para renovar y continuar.', 'error');
+            void entryAudio?.play('expired');
           }
         } catch (e) {
-          mostrarFeedback('Error', '', 'error');
+          mostrarFeedback('No pudimos verificar el ingreso', 'Consultá en recepción. No se confirmó el registro.', 'warning');
         } finally {
           isCheckingAccess = false;
           submitButton.disabled = false;
+          submitButton.textContent = 'Ingresar';
+          if (pendingEventSettings) {
+            const settings = pendingEventSettings;
+            pendingEventSettings = null;
+            await applyEvent(settings);
+          }
         }
       }
 
@@ -148,7 +212,11 @@
 
       window.addEventListener('beforeunload', () => {
         clearTimeout(feedbackTimer);
+        clearTimeout(feedbackCleanupTimer);
         runningEvent?.destroy();
+        unsubscribeEvent?.();
+        unsubscribeAudio?.();
+        entryAudio?.dispose();
         setTimeout(() => {
           clearTimeout(inactivityTimer);
         }, 0);

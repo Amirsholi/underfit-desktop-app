@@ -1,0 +1,18 @@
+/* Visual baseline: origin/main (4122ecb), shared by the normal and event entrance.
+   Keep business logic, configurable audio and live event settings in their current modules. */
+@import url('./kiosk-event-main.css');
+
+/* Accessibility and the short dismissal are retained without redesigning the baseline. */
+.kiosk-input-wrap label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+[hidden] { display: none !important; }
+.feedback-panel { transition: opacity 360ms ease, transform 180ms ease; }
+.feedback-panel.is-visible { transition-duration: 180ms; }
+@media (prefers-reduced-motion: reduce) {
+  .feedback-panel { transition: none; }
+}

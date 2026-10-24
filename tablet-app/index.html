@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0b0e12">
+  <title>Under-Fit · Tablet</title>
+  <link rel="icon" href="./assets/logo.jpg">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
+  <script src="./model.js" defer></script>
+  <script src="./api.js?v=20260925-2" defer></script>
+  <script src="./live.js" defer></script>
+  <script src="./controls.js" defer></script>
+  <script src="./exercises.js" defer></script>
+  <script src="./routines-model.js" defer></script>
+  <script src="./routines.js" defer></script>
+  <script src="./app.js?v=20260925-2" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  <header class="app-header">
+    <a class="brand" href="#clases" aria-label="Under-Fit, clases"><img src="./assets/logo.jpg" width="42" height="42" alt=""><span>UNDER <span class="brand-separator">-</span> <b>FIT</b></span></a>
+    <div class="header-tools"><button class="preview-label" id="fullscreen-toggle" type="button" aria-pressed="false">Pantalla completa</button><button class="preview-label" id="preview-info" type="button" aria-label="Estado de conexión">ⓘ</button></div>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <nav class="app-nav" aria-label="Navegación principal">
+    <a href="#clases" class="nav-link" data-nav="clases"><i class="icon calendar" aria-hidden="true"></i><span>Clases</span></a>
+    <a href="#rutinas" class="nav-link" data-nav="rutinas"><i class="icon routine-sheet" aria-hidden="true"></i><span>Rutinas</span></a>
+    <a href="#ejercicios" class="nav-link" data-nav="ejercicios"><i class="icon exercise" aria-hidden="true"></i><span>Ejercicios</span></a>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <header class="dialog-header"><div><h2 id="dialog-title"></h2><p id="dialog-subtitle" hidden></p></div><button type="button" class="icon-button" id="dialog-close" aria-label="Cerrar">×</button></header>
+    <div id="dialog-body"></div>
+  </dialog>
+</body>
+</html>
