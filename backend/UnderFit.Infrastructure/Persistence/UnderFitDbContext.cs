@@ -44,6 +44,50 @@ public sealed class UnderFitDbContext(DbContextOptions<UnderFitDbContext> option
     public DbSet<WorkoutTemplate> WorkoutTemplates => Set<WorkoutTemplate>();
     public DbSet<IdempotentRequest> IdempotentRequests => Set<IdempotentRequest>();
 
+    public async Task SaveMemberIdentityCorrectionAsync(Member member, string previousIdentity, CancellationToken ct)
+    {
+        await using var transaction = Database.CurrentTransaction is null
+            ? await Database.BeginTransactionAsync(ct) : null;
+        var currentTransaction = Database.CurrentTransaction!;
+        await currentTransaction.CreateSavepointAsync("identity_correction", ct);
+        try
+        {
+            var stored = await Members.FromSqlInterpolated(
+                $"SELECT * FROM members WHERE \"Id\" = {member.Id} FOR UPDATE")
+                .AsNoTracking().SingleAsync(ct);
+            if (stored.IdentityNumber != previousIdentity)
+                throw new UnderFit.Application.Common.UseCaseException(
+                    "member.identity_conflict", "La cédula cambió en otra ficha. Volvé a abrir el socio.");
+            // Keep the immutable member ID and update identity snapshots in the same transaction.
+            async Task Correct<T>() where T : class => await Set<T>()
+                .Where(item => EF.Property<Guid?>(item, "MemberId") == member.Id ||
+                    (EF.Property<Guid?>(item, "MemberId") == null &&
+                     EF.Property<string>(item, "MemberIdentityNumber") == previousIdentity))
+                .ExecuteUpdateAsync(update => update.SetProperty(
+                    item => EF.Property<string>(item, "MemberIdentityNumber"), member.IdentityNumber), ct);
+            await Correct<Entry>();
+            await Correct<CashMovement>();
+            await Correct<ClassEnrollment>();
+            await Correct<ClassEnrollmentException>();
+            await Correct<ClassAttendance>();
+            await Correct<MemberAccountDeletionRequest>();
+            await PendingProductSales.Where(item => item.MemberIdentityNumber == previousIdentity)
+                .ExecuteUpdateAsync(update => update.SetProperty(item => item.MemberIdentityNumber, member.IdentityNumber), ct);
+            await SaveChangesAsync(ct);
+            await currentTransaction.ReleaseSavepointAsync("identity_correction", ct);
+            if (transaction is not null) await transaction.CommitAsync(ct);
+        }
+        catch (Exception error)
+        {
+            await currentTransaction.RollbackToSavepointAsync("identity_correction", ct);
+            if (error is Npgsql.PostgresException { SqlState: "23505" } ||
+                error is DbUpdateException { InnerException: Npgsql.PostgresException { SqlState: "23505" } })
+                throw new UnderFit.Application.Common.UseCaseException(
+                    "member.identity_conflict", "La cédula ya está en uso o tiene registros incompatibles. No se guardaron cambios.");
+            throw;
+        }
+    }
+
     public Task<bool> MemberIdentityExistsAsync(
         string identityNumber,
         CancellationToken cancellationToken) =>

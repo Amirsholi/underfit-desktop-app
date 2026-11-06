@@ -106,10 +106,16 @@ function createUserService({ db, userRepository, membershipPaymentRepository, me
   }
 
   async function saveAdminManualEdit(ci, datos) {
+    const newCi = datos.ci === undefined ? String(ci) : String(datos.ci).trim().replace(/[.\s-]/g, '');
+    if (!/^\d{1,8}$/.test(newCi) || Number(newCi) <= 0) throw new Error('Ingresá una cédula válida de hasta 8 dígitos.');
+    const identityChanged = Number(newCi) !== Number(ci);
     const diasRestantes = parseInt(datos.diasRestantes, 10);
     const fechaVencimiento = membershipRules.calculateManualExpirationFromToday(diasRestantes);
 
-    return userRepository.update(ci, {
+    if (identityChanged) await run('BEGIN IMMEDIATE TRANSACTION');
+    try {
+      if (identityChanged) await userRepository.correctIdentity(ci, Number(newCi));
+      const result = await userRepository.update(identityChanged ? Number(newCi) : ci, {
       nombre: datos.nombre,
       numero: datos.numero,
       email: datos.email,
@@ -129,6 +135,12 @@ function createUserService({ db, userRepository, membershipPaymentRepository, me
       ultima_actualizacion: datos.ultima_actualizacion,
       fecha_vencimiento: fechaVencimiento,
     });
+      if (identityChanged) await run('COMMIT');
+      return result;
+    } catch (error) {
+      if (identityChanged) {try {await run('ROLLBACK');} catch (_) {}}
+      throw error;
+    }
   }
 
   function deleteUser(ci) {

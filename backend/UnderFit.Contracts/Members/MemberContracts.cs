@@ -38,7 +38,8 @@ public sealed record UpdateMemberRequest(
     string? MedicalCondition,
     string? Goal,
     string? RegistrationPaymentMethod,
-    string? PaymentPreference);
+    string? PaymentPreference,
+    string? IdentityNumber = null);
 
 public sealed record RenewMembershipRequest(
     MembershipPlan Plan,

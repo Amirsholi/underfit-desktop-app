@@ -153,6 +153,27 @@ function createUserRepository(db) {
     }
   }
 
+  async function correctIdentity(ci, newCi) {
+    const existing = await findByCi(newCi);
+    if (existing) throw new Error('Ya existe un socio con esa cédula.');
+    const result = await run('UPDATE usuarios SET ci = ? WHERE ci = ?', [newCi, ci]);
+    if (result.changes !== 1) throw new Error('No se encontró el socio. Volvé a abrir su ficha.');
+    const links = [
+      ['ingresos', 'ci'], ['pagos_membresia', 'usuario_ci'],
+      ['caja_movimientos', 'usuario_ci'], ['inscripciones_clase', 'usuario_ci'],
+      ['ventas_pendientes', 'usuario_ci'], ['inscripciones_programacion_clase', 'usuario_ci'],
+      ['asistencias_clase', 'usuario_ci'], ['rutinas_socios', 'usuario_ci'],
+    ];
+    for (const [table, column] of links) {
+      const columns = await new Promise((resolve, reject) => db.all(`PRAGMA table_info(${table})`, [], (error, rows) => error ? reject(error) : resolve(rows)));
+      if (!columns.length) continue; // Supported legacy installations may lack optional modules.
+      await run(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`, [newCi, ci]);
+      if (table === 'caja_movimientos' && columns.some(item => item.name === 'referencia_tabla')) {
+        await run("UPDATE caja_movimientos SET referencia_id = ? WHERE referencia_tabla = 'usuarios' AND referencia_id = ?", [newCi, ci]);
+      }
+    }
+  }
+
   function updateMembershipDates(ci, { ultima_actualizacion, fecha_vencimiento, tipo_membresia = null, preferencia_pago = null }) {
     const fields = [
       'ultima_actualizacion = ?',
@@ -200,6 +221,7 @@ function createUserRepository(db) {
     findAll,
     findByCi,
     update,
+    correctIdentity,
     updateMembershipDates,
     remove,
   };

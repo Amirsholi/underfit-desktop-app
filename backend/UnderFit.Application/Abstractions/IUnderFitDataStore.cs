@@ -12,6 +12,7 @@ namespace UnderFit.Application.Abstractions;
 public interface IUnderFitDataStore
 {
     Task<bool> MemberIdentityExistsAsync(string identityNumber, CancellationToken cancellationToken);
+    Task SaveMemberIdentityCorrectionAsync(Member member, string previousIdentity, CancellationToken cancellationToken);
     Task<Member?> FindMemberByIdentityAsync(string identityNumber, CancellationToken cancellationToken);
     Task<Member?> FindMemberByIdAsync(Guid memberId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Member>> ListMembersAsync(CancellationToken cancellationToken);
