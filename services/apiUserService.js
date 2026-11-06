@@ -123,6 +123,7 @@ function createApiUserService({ apiClient, clock = todayLocal }) {
     },
     async saveAdminManualEdit(ci, payload = {}) {
       const member = await apiClient.updateMember(String(ci), {
+        identityNumber: payload.ci === undefined ? null : String(payload.ci),
         name: String(payload.nombre || '').trim(),
         plan: PLAN_TO_API[payload.tipoMembresia] || PLAN_TO_API.mensual,
         daysRemaining: Number.parseInt(payload.diasRestantes, 10),

@@ -183,9 +183,20 @@ public sealed class MemberService(IUnderFitDataStore dataStore, TimeProvider tim
             ?? throw new UseCaseException("member.not_found", "Member was not found.");
 
         var updatedAt = timeProvider.GetUtcNow();
+        var previousIdentity = member.IdentityNumber;
+        if (request.IdentityNumber is not null && request.IdentityNumber != previousIdentity)
+        {
+            member.CorrectIdentity(request.IdentityNumber, updatedAt);
+            if (member.IdentityNumber != previousIdentity &&
+                await dataStore.MemberIdentityExistsAsync(member.IdentityNumber, cancellationToken))
+                throw new UseCaseException("member.identity_conflict", "Ya existe un socio con esa cédula.");
+        }
         member.UpdateProfile(request.Name, MapProfile(request), updatedAt);
         member.UpdateMembershipManually(request.Plan, request.DaysRemaining, Today(), updatedAt);
-        await dataStore.SaveChangesAsync(cancellationToken);
+        if (member.IdentityNumber != previousIdentity)
+            await dataStore.SaveMemberIdentityCorrectionAsync(member, previousIdentity, cancellationToken);
+        else
+            await dataStore.SaveChangesAsync(cancellationToken);
         return Map(member, Today());
     }
 

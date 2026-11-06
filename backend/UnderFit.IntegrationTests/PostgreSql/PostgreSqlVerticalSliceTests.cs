@@ -24,6 +24,68 @@ namespace UnderFit.IntegrationTests.PostgreSql;
 
 public sealed class PostgreSqlVerticalSliceTests
 {
+    [Fact]
+    public async Task IdentityCorrection_PreservesMemberIdHistoryCashAndEnrollment()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDatabase();
+        await db.Database.MigrateAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var now = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+        var clock = new FixedTimeProvider(now);
+        var identity = Random.Shared.Next(10000000, 50000000).ToString();
+        var corrected = Random.Shared.Next(50000000, 99999999).ToString();
+        var service = new MemberService(db, clock);
+        var created = await service.CreateAsync(CreateRequest(identity, "Corrección CI", MembershipPlan.Monthly, new(2026, 11, 5)), ct);
+        var memberId = created.Member.Id;
+        var entry = UnderFit.Domain.Attendance.Entry.Register(memberId, identity, "Corrección CI", now, "test");
+        db.Entries.Add(entry);
+        var session = CashSession.Open(new(2026, 11, 5), "Prueba", 100, now);
+        db.CashSessions.Add(session);
+        var payment = CashMovement.MembershipRenewal(session.Id, memberId, identity, "Corrección CI", 1500, "efectivo", "Cuota", now);
+        db.CashMovements.Add(payment);
+        await db.SaveChangesAsync(ct);
+        var classes = new ClassService(db, clock);
+        var gymClass = await classes.CreateAsync(new("Clase CI", new(2026, 11, 6), new(18, 0), 60, 10, "Profesor", null, 2, null), ct);
+        await classes.EnrollAsync(gymClass.Id, new(identity), ct);
+        var updated = await service.UpdateAsync(identity,
+            new("Corregido", MembershipPlan.Monthly, created.Member.DaysRemaining,
+                null, null, null, null, null, false, null, null, null, null, null, null, null, corrected), ct);
+        db.ChangeTracker.Clear();
+        Assert.Equal(memberId, updated.Id);
+        Assert.Equal(created.Member.MembershipExpiresOn, updated.MembershipExpiresOn);
+        Assert.Null(await db.FindMemberByIdentityAsync(identity, ct));
+        Assert.Equal(memberId, (await db.FindMemberByIdentityAsync(corrected, ct))!.Id);
+        Assert.Equal(corrected, (await db.Entries.SingleAsync(item => item.Id == entry.Id, ct)).MemberIdentityNumber);
+        var savedPayment = await db.CashMovements.SingleAsync(item => item.Id == payment.Id, ct);
+        Assert.Equal(corrected, savedPayment.MemberIdentityNumber);
+        Assert.Equal(1500, savedPayment.Amount);
+        Assert.Contains(await classes.ListEnrollmentsAsync(gymClass.Id, ct), item => item.MemberIdentityNumber == corrected);
+        await transaction.RollbackAsync(ct);
+    }
+
+    [Fact]
+    public async Task IdentityCorrection_RejectsDuplicateWithoutSavingProfile()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDatabase();
+        await db.Database.MigrateAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var now = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+        var service = new MemberService(db, new FixedTimeProvider(now));
+        var first = Random.Shared.Next(10000000, 50000000).ToString();
+        var second = Random.Shared.Next(50000000, 99999999).ToString();
+        await service.CreateAsync(CreateRequest(first, "Original", MembershipPlan.Monthly, new(2026, 11, 5)), ct);
+        await service.CreateAsync(CreateRequest(second, "Otro", MembershipPlan.Monthly, new(2026, 11, 5)), ct);
+        var error = await Assert.ThrowsAsync<UseCaseException>(() => service.UpdateAsync(first,
+            new("No guardar", MembershipPlan.Monthly, 30, null, null, null, null, null, false,
+                null, null, null, null, null, null, null, second), ct));
+        Assert.Equal("member.identity_conflict", error.Code);
+        db.ChangeTracker.Clear();
+        Assert.Equal("Original", (await db.FindMemberByIdentityAsync(first, ct))!.Name);
+        await transaction.RollbackAsync(ct);
+    }
+
     private const string DefaultConnectionString =
         "Host=localhost;Port=5432;Database=underfit;Username=underfit;Password=underfit_dev";
 

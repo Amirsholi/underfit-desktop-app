@@ -115,6 +115,16 @@ public sealed class Member
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    public void CorrectIdentity(string identityNumber, DateTimeOffset updatedAtUtc)
+    {
+        var normalized = identityNumber.Trim().Replace(".", "").Replace("-", "").Replace(" ", "");
+        if (normalized.Length is < 1 or > 8 || normalized.Any(character => character is < '0' or > '9') ||
+            !int.TryParse(normalized, out var number) || number <= 0)
+            throw new DomainException("Ingresá una cédula válida de hasta 8 dígitos.");
+        IdentityNumber = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
     private static string NormalizeIdentity(string value)
     {
         var normalized = value?.Trim() ?? string.Empty;

@@ -502,6 +502,12 @@ function createAdminUsersController({ shared }) {
 
     guardarCambiosBtn.addEventListener('click', async () => {
       if (!usuarioSeleccionado) return;
+      const nuevaCi = detalleCI.value.trim().replace(/[.\s-]/g, '');
+      if (!/^\d{1,8}$/.test(nuevaCi) || Number(nuevaCi) <= 0) {
+        shared.mostrarNotificacion('Ingresá una cédula válida de hasta 8 dígitos', 'warning');
+        detalleCI.focus();
+        return;
+      }
 
       const fechaPago = detallePago.value;
       const diasExtras = parseInt(detalleDias.value, 10);
@@ -512,6 +518,7 @@ function createAdminUsersController({ shared }) {
       }
 
       const nuevosDatos = {
+        ci: String(Number(nuevaCi)),
         nombre: detalleNombre.value.trim(),
         numero: detalleTelefono.value.trim(),
         email: detalleEmail.value.trim(),
@@ -533,6 +540,7 @@ function createAdminUsersController({ shared }) {
       };
 
       try {
+        guardarCambiosBtn.disabled = true;
         const resultado = await window.api.guardarEdicionManualUsuario(usuarioSeleccionado.ci, nuevosDatos);
         if (resultado?.success) {
           document.dispatchEvent(new CustomEvent('admin:navigate', { detail: { section: 'users' } }));
@@ -541,7 +549,9 @@ function createAdminUsersController({ shared }) {
         }
       } catch (e) {
         console.error('Error al guardar cambios:', e);
-        shared.mostrarNotificacion('Error al guardar cambios', 'error');
+        shared.mostrarNotificacion(e?.message || 'Error al guardar cambios', 'error');
+      } finally {
+        guardarCambiosBtn.disabled = false;
       }
     });
 
